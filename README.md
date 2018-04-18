@@ -43,7 +43,7 @@ So far, we worked with the PubMed citations dataset from
 [CITREC](https://www.isg.uni-konstanz.de/projects/citrec/).  We converted the
 provided SQL dumps into the dataset format above. We plan to also publish our
 converted tsv version of the CITREC PubMed dataset.
-In the CITREC TREC Genomics dataset, there references are not disambiguated.
+The references in the CITREC TREC Genomics dataset are not disambiguated.
 Therefore we operate only the PubMed dataset for citation recommendation.
 
 For subject label recommendation, we used the the economics dataset `EconBiz`, provided by [ZBW](https://zbw.eu).
