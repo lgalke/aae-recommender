@@ -93,18 +93,20 @@ def prepare_evaluation(bags, test_size=0.1):
 
 def main():
     """ Main function for training and evaluating AAE methods on MDP data """
+    print("Loading data from", DATA_PATH)
     playlists = playlists_from_slices(DATA_PATH, sort_by_pid=False)
+    print("Unpacking json data...")
     bags_of_tracks, pids, side_info = unpack_playlists(playlists)
     # Re-use 'title' property here because methods rely on it
     bags = Bags(bags_of_tracks, pids, {"title": side_info})
-    print("Whole dataset")
+    print("Whole dataset:")
     print(bags)
     train_set, dev_set, missing = prepare_evaluation(bags)
 
-    print("Retained items in train set")
+    print("Retained items in train set:")
     print(train_set)
 
-    print("Retained items in dev set")
+    print("Retained items in dev set:")
     print(dev_set)
 
     # THE GOLD
