@@ -28,7 +28,7 @@ def magic(S, N, alpha=0.05):
     return S**2 * math.log(S * N / alpha)
 
 
-def build_vocab(sets, max_features=None, min_count=None):
+def build_vocab(sets, min_count=None, max_features=None):
     """ Builds the vocabulary with respect to :code:`max_features` most common
     tokens and :code:`min_count` minimal set length """
     # sort descending by frequency and only keep max_features
@@ -91,7 +91,7 @@ def split_set(s, criterion):
     if criterion is callable: drop each element iff criterion(element) returns
     False
 
-    In either case, the result is (remainder_set, dropped_elements
+    In either case, the result is (remainder_set, dropped_elements)
     """
     s = set(s)
 
@@ -533,6 +533,14 @@ class BagsWithVocab(Bags):
 
         return BagsWithVocab(data, vocab, owners=bag_owners,
                              attributes=attributes)
+
+    def build_vocab(self, min_count=None, max_features=None, apply=True):
+        """ Override to prevent errors like building vocab of indices """
+        raise ValueError("Instance already has vocabulary.")
+
+    def apply_vocab(self, vocab):
+        """ Override to prevent errors like building vocab of indices """
+        raise ValueError("A vocabulary has already been applied.")
 
     def __str__(self):
         s = "{} elements in [{}, {}] with density {}"

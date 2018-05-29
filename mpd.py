@@ -18,12 +18,13 @@ from aae import AAERecommender
 
 # Should work on kdsrv03
 DATA_PATH = "/data21/lgalke/MDP/data/"
+DEBUG_LIMIT = None
 
 METRICS = ['mrr', 'map']
 
 MODELS = [
     Countbased(),
-    AAERecommender(adversarial=True, use_title=True)
+    AAERecommender(adversarial=True, use_title=True, n_epochs=10)
     # Put more here...
 ]
 
@@ -34,10 +35,14 @@ def playlists_from_slices(slices_dir, sort_by_pid=True):
     optionally sorted by id
     """
     playlists = []
-    for fpath in glob.iglob(os.path.join(slices_dir, '*.json')):
+    for i, fpath in enumerate(glob.iglob(os.path.join(slices_dir, '*.json'))):
         with open(fpath, 'r') as fhandle:
             data_slice = json.load(fhandle)
             playlists.extend(data_slice["playlists"])
+            if DEBUG_LIMIT and i > DEBUG_LIMIT:
+                # Stop after `DEBUG_LIMIT` files
+                # (for quick testing)
+                break
 
     # in-place sort by playlist id
     if sort_by_pid:
@@ -75,12 +80,7 @@ def prepare_evaluation(bags, test_size=0.1):
     # Apply vocab (turn track ids into indices)
     train_set = train_set.apply_vocab(vocab)
     # Discard unknown tokens in the test set
-    dev_set = train_set.apply_vocab(vocab)
-
-    # Make sure that all playlists have two or more tracks left
-    min_elements = 2
-    train_set.prune_(min_elements)
-    dev_set.prune_(min_elements)
+    dev_set = dev_set.apply_vocab(vocab)
 
     # Drop one track off each playlist within test set
     noisy, missing = corrupt_sets(dev_set.data, drop=1)
@@ -103,10 +103,10 @@ def main():
     print(bags)
     train_set, dev_set, missing = prepare_evaluation(bags)
 
-    print("Retained items in train set:")
+    print("Train set:")
     print(train_set)
 
-    print("Retained items in dev set:")
+    print("Dev set:")
     print(dev_set)
 
     # THE GOLD
