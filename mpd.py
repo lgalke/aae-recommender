@@ -19,6 +19,10 @@ from aae import AAERecommender
 # Should work on kdsrv03
 DATA_PATH = "/data21/lgalke/MDP/data/"
 DEBUG_LIMIT = None
+# Use only this many most frequent items
+N_ITEMS = 50000
+# Use all present items
+# N_ITEMS = None
 
 METRICS = ['mrr', 'map']
 
@@ -66,7 +70,7 @@ def unpack_playlists(playlists):
     return bags_of_tracks, pids, side_info
 
 
-def prepare_evaluation(bags, test_size=0.1):
+def prepare_evaluation(bags, test_size=0.1, n_items=None):
     """
     Split data into train and dev set.
     Build vocab on train set and applies it to both train and test set.
@@ -75,7 +79,8 @@ def prepare_evaluation(bags, test_size=0.1):
     train_set, dev_set = bags.train_test_split(test_size=test_size)
     # Builds vocabulary only on training set
     # Limit of most frequent 50000 distinct items is for testing purposes
-    vocab, __counts = train_set.build_vocab(max_features=50000, apply=False)
+    vocab, __counts = train_set.build_vocab(max_features=n_items,
+                                            apply=False)
 
     # Apply vocab (turn track ids into indices)
     train_set = train_set.apply_vocab(vocab)
@@ -101,7 +106,7 @@ def main():
     bags = Bags(bags_of_tracks, pids, {"title": side_info})
     print("Whole dataset:")
     print(bags)
-    train_set, dev_set, missing = prepare_evaluation(bags)
+    train_set, dev_set, missing = prepare_evaluation(bags, n_items=N_ITEMS)
 
     print("Train set:")
     print(train_set)
