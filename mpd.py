@@ -29,7 +29,7 @@ MODELS = [
 ]
 
 
-def playlists_from_slices(slices_dir, sort_by_pid=True):
+def playlists_from_slices(slices_dir, sort_by_pid=False):
     """
     Loads a bunch of slices into a list of playlists,
     optionally sorted by id
@@ -39,10 +39,10 @@ def playlists_from_slices(slices_dir, sort_by_pid=True):
         with open(fpath, 'r') as fhandle:
             data_slice = json.load(fhandle)
             playlists.extend(data_slice["playlists"])
-            if DEBUG_LIMIT and i > DEBUG_LIMIT:
-                # Stop after `DEBUG_LIMIT` files
-                # (for quick testing)
-                break
+        if DEBUG_LIMIT and i > DEBUG_LIMIT:
+            # Stop after `DEBUG_LIMIT` files
+            # (for quick testing)
+            break
 
     # in-place sort by playlist id
     if sort_by_pid:
