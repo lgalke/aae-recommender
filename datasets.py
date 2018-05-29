@@ -179,6 +179,9 @@ class Bags(object):
     def __len__(self):
         return len(self.data)
 
+    def __str__(self):
+        return "{} records with {} ratings".format(len(self), self.numel())
+
     def __getitem__(self, idx):
         return self.data[idx]
 
