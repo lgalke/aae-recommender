@@ -70,7 +70,7 @@ def prepare_evaluation(bags, test_size=0.1):
     train_set, dev_set = bags.train_test_split(test_size=test_size)
     # Builds vocabulary only on training set
     # Limit of most frequent 50000 distinct items is for testing purposes
-    vocab, __counts = train_set.build_vocab(max_features=50000)
+    vocab, __counts = train_set.build_vocab(max_features=50000, apply=False)
 
     # Apply vocab (turn track ids into indices)
     train_set = train_set.apply_vocab(vocab)
