@@ -17,18 +17,19 @@ from baselines import Countbased
 from aae import AAERecommender
 
 # Should work on kdsrv03
-DATA_PATH = "/data21/lgalke/MDP/data/"
+DATA_PATH = "/data21/lgalke/MPD/data/"
 DEBUG_LIMIT = None
 # Use only this many most frequent items
 N_ITEMS = 50000
 # Use all present items
 # N_ITEMS = None
 
+# These need to be implemented in evaluation.py
 METRICS = ['mrr', 'map']
 
 MODELS = [
     Countbased(),
-    AAERecommender(adversarial=True, use_title=True, n_epochs=10)
+    AAERecommender(adversarial=False, use_title=False, n_epochs=10)
     # Put more here...
 ]
 
@@ -106,7 +107,7 @@ def main():
     bags = Bags(bags_of_tracks, pids, {"title": side_info})
     print("Whole dataset:")
     print(bags)
-    train_set, dev_set, missing = prepare_evaluation(bags, n_items=N_ITEMS)
+    train_set, dev_set, y_test = prepare_evaluation(bags, n_items=N_ITEMS)
 
     print("Train set:")
     print(train_set)
@@ -114,13 +115,12 @@ def main():
     print("Dev set:")
     print(dev_set)
 
-    # THE GOLD
-    y_test = lists2sparse(missing, dev_set.size(1)).tocsr(copy=False)
+    # THE GOLD (put into sparse matrix)
+    y_test = lists2sparse(y_test, dev_set.size(1)).tocsr(copy=False)
 
     # the known items in the test set, just to not recompute
     x_test = lists2sparse(dev_set.data, dev_set.size(1)).tocsr(copy=False)
 
-    # These need to be implemented in evaluation.py
 
     for model in MODELS:
         print('=' * 78)
