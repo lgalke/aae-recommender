@@ -228,13 +228,13 @@ class AutoEncoder():
 
         x_sample = self.dec(z_sample)
         recon_loss = F.binary_cross_entropy(x_sample + TINY,
-                                            batch.resize(batch.size(0),
-                                                         batch.size(1)) + TINY)
+                                            batch.view(batch.size(0),
+                                                       batch.size(1)) + TINY)
         recon_loss.backward()
         self.enc_optim.step()
         self.dec_optim.step()
         self.zero_grad()
-        return recon_loss.data[0]
+        return recon_loss.data[0].item()
 
     def partial_fit(self, X, y=None, condition=None):
         """ Performs reconstrction, discimination, generator training steps """
@@ -263,7 +263,7 @@ class AutoEncoder():
 
     def fit(self, X, y=None, condition=None):
         if y is not None:
-            raise ValueError("(Semi-)supervised usage not supported")
+            raise NotImplementedError("(Semi-)supervised usage not supported")
 
         self.enc = Encoder(X.shape[1], self.n_hidden, self.n_code,
                            final_activation='linear',
@@ -292,18 +292,17 @@ class AutoEncoder():
 
             # Shuffle on each new epoch
             if condition is not None:
-                X, condition = sklearn.utils.shuffle(X, condition)
+                X_shuf, condition_shuf = sklearn.utils.shuffle(X, condition)
             else:
-                X = sklearn.utils.shuffle(X)
+                X_shuf = sklearn.utils.shuffle(X)
 
 
             for start in range(0, X.shape[0], self.batch_size):
-                X_batch = X[start:(start+self.batch_size)]
+                X_batch = X_shuf[start:(start+self.batch_size)].toarray()
                 # condition may be None
                 if condition is not None:
-                    c_batch = condition[start:(start+self.batch_size)]
+                    c_batch = condition_shuf[start:(start+self.batch_size)]
                     self.partial_fit(X_batch, condition=c_batch)
-
                 else:
                     self.partial_fit(X_batch)
 
@@ -317,17 +316,19 @@ class AutoEncoder():
         pred = []
         for start in range(0, X.shape[0], self.batch_size):
             # batched predictions, yet inclusive
-            X_batch = X[start:(start+self.batch_size)]
-            X_batch = Variable(torch.FloatTensor(X_batch))
+            X_batch = X[start:(start+self.batch_size)].toarray()
+            X_batch = torch.FloatTensor(X_batch)
             if torch.cuda.is_available():
                 X_batch = X_batch.cuda()
+            X_batch = Variable(X_batch)
 
             if condition is not None:
                 c_batch = condition[start:(start+self.batch_size)]
                 c_batch = c_batch.astype('float32')
-                c_batch = Variable(torch.from_numpy(c_batch))
+                c_batch = torch.from_numpy(c_batch)
                 if torch.cuda.is_available():
                     c_batch = c_batch.cuda()
+                c_batch = Variable(c_batch)
 
             # reconstruct
             z = self.enc(X_batch)
@@ -395,10 +396,10 @@ class DecodingRecommender(Recommender):
         optimizer_gen = TORCH_OPTIMIZERS[self.optimizer]
         self.mlp_optim = optimizer_gen(self.mlp.parameters(), lr=self.lr)
         for __epoch in range(self.n_epochs):
-            X, y = sklearn.utils.shuffle(X, y)
+            X_shuf, y_shuf = sklearn.utils.shuffle(X, y)
             for start in range(0, X.shape[0], self.batch_size):
-                X_batch = X[start:(start+self.batch_size)]
-                y_batch = y[start:(start+self.batch_size)]
+                X_batch = X_shuf[start:(start+self.batch_size)].toarray()
+                y_batch = y_shuf[start:(start+self.batch_size)].toarray()
                 self.partial_fit(X_batch, y_batch)
 
             if self.verbose:
@@ -423,11 +424,11 @@ class DecodingRecommender(Recommender):
     def predict(self, test_set):
         condition = test_set.get_attribute("title")
         condition = self.vect.transform(condition)
-        condition = Variable(torch.FloatTensor(condition))
+        condition = torch.FloatTensor(condition)
         if torch.cuda.is_available():
             condition = condition.cuda()
         self.mlp.eval()
-        x_pred = self.mlp(condition)
+        x_pred = self.mlp(Variable(condition))
         return x_pred.data.cpu().numpy()
 
 
@@ -513,8 +514,8 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
 
         x_sample = self.dec(z_sample)
         recon_loss = F.binary_cross_entropy(x_sample + TINY,
-                                            batch.resize(batch.size(0),
-                                                         batch.size(1)) + TINY)
+                                            batch.view(batch.size(0),
+                                                       batch.size(1)) + TINY)
         recon_loss.backward()
         self.enc_optim.step()
         self.dec_optim.step()
@@ -554,7 +555,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
     def partial_fit(self, X, y=None, condition=None):
         """ Performs reconstrction, discimination, generator training steps """
         if y is not None:
-            raise ValueError("(Semi-)supervised usage not supported")
+            raise NotImplementedError("(Semi-)supervised usage not supported")
         # Transform to Torch (Cuda) Variable, shift batch to GPU
         X = Variable(torch.FloatTensor(X))
         if torch.cuda.is_available():
@@ -563,7 +564,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         if condition is not None:
             condition = condition.astype('float32')
             if sp.issparse(condition):
-                condition = condition.todense()
+                condition = condition.toarray()
             condition = Variable(torch.from_numpy(condition))
             if torch.cuda.is_available():
                 condition = condition.cuda()
@@ -582,7 +583,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
 
     def fit(self, X, y=None, condition=None):
         if y is not None:
-            raise ValueError("(Semi-)supervised usage not supported")
+            raise NotImplementedError("(Semi-)supervised usage not supported")
 
         self.enc = Encoder(X.shape[1], self.n_hidden, self.n_code,
                            final_activation=self.encoder_activation,
@@ -619,15 +620,15 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
 
             # Shuffle on each new epoch
             if condition is not None:
-                X, condition = sklearn.utils.shuffle(X, condition)
+                X_shuf, condition_shuf = sklearn.utils.shuffle(X, condition)
             else:
-                X = sklearn.utils.shuffle(X)
+                X_shuf = sklearn.utils.shuffle(X)
 
-            for start in range(0, X.shape[0], self.batch_size):
-                X_batch = X[start:(start+self.batch_size)]
+            for start in range(0, X_shuf.shape[0], self.batch_size):
+                X_batch = X_shuf[start:(start+self.batch_size)].toarray()
                 # condition may be None
                 if condition is not None:
-                    c_batch = condition[start:(start+self.batch_size)]
+                    c_batch = condition_shuf[start:(start+self.batch_size)]
                     self.partial_fit(X_batch, condition=c_batch)
 
                 else:
@@ -653,7 +654,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         pred = []
         for start in range(0, X.shape[0], self.batch_size):
             # batched predictions, yet inclusive
-            X_batch = X[start:(start+self.batch_size)]
+            X_batch = X[start:(start+self.batch_size)].toarray()
             X_batch = Variable(torch.FloatTensor(X_batch))
             if torch.cuda.is_available():
                 X_batch = X_batch.cuda()
@@ -662,7 +663,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
                 c_batch = condition[start:(start+self.batch_size)]
                 c_batch = c_batch.astype('float32')
                 if sp.issparse(c_batch):
-                    c_batch = c_batch.todense()
+                    c_batch = c_batch.toarray()
                 c_batch = Variable(torch.from_numpy(c_batch))
                 if torch.cuda.is_available():
                     c_batch = c_batch.cuda()
@@ -725,7 +726,7 @@ class AAERecommender(Recommender):
 
 
     def train(self, training_set):
-        X = training_set.tocsr().todense()
+        X = training_set.tocsr()
         if self.use_title:
             if self.embedding:
                 self.vect = GensimEmbeddedVectorizer(self.embedding,
@@ -748,7 +749,7 @@ class AAERecommender(Recommender):
         self.aae.fit(X, condition=titles)
 
     def predict(self, test_set):
-        X = test_set.tocsr().todense()
+        X = test_set.tocsr()
         if self.use_title:
             # Use titles as condition
             titles = test_set.get_attribute("title")

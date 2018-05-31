@@ -1,11 +1,11 @@
 """
 Executable to run AAE on the Spotify Million Playlist Dataset
 """
+import argparse
 import glob
-import os
-import json
-
 import itertools
+import json
+import os
 from operator import itemgetter
 
 import numpy as np
@@ -16,7 +16,7 @@ from datasets import Bags, corrupt_sets
 from transforms import lists2sparse
 from evaluation import remove_non_missing, evaluate
 from baselines import Countbased
-from aae import AAERecommender
+from aae import AAERecommender, DecodingRecommender
 
 # Should work on kdsrv03
 DATA_PATH = "/data21/lgalke/MPD/data/"
@@ -31,7 +31,9 @@ METRICS = ['mrr', 'map']
 
 MODELS = [
     Countbased(),
-    AAERecommender(adversarial=False, use_title=False, n_epochs=10)
+    AAERecommender(adversarial=True, use_title=True, n_epochs=10),
+    AAERecommender(adversarial=False, use_title=True, n_epochs=10),
+    DecodingRecommender(use_title=True, n_epochs=10)
     # Put more here...
 ]
 
@@ -114,24 +116,33 @@ def prepare_evaluation(bags, test_size=0.1, n_items=None):
     return train_set, dev_set, missing
 
 
-def main():
+def log(*print_args, logfile=None):
+    """ Maybe logs the output also in the file `outfile` """
+    if logfile:
+        with open(logfile, 'a') as fhandle:
+            print(*print_args, file=fhandle)
+    print(*print_args)
+
+
+
+def main(outfile=None):
     """ Main function for training and evaluating AAE methods on MDP data """
     print("Loading data from", DATA_PATH)
     playlists = playlists_from_slices(DATA_PATH, n_jobs=-1)
     print("Unpacking json data...")
     bags_of_tracks, pids, side_info = unpack_playlists(playlists)
+    del playlists
     # Re-use 'title' property here because methods rely on it
     bags = Bags(bags_of_tracks, pids, {"title": side_info})
-    del playlists
-    print("Whole dataset:")
-    print(bags)
+    log("Whole dataset:", logfile=outfile)
+    log(bags, logfile=outfile)
     train_set, dev_set, y_test = prepare_evaluation(bags, n_items=N_ITEMS)
 
-    print("Train set:")
-    print(train_set)
+    log("Train set:", logfile=outfile)
+    log(train_set, logfile=outfile)
 
-    print("Dev set:")
-    print(dev_set)
+    log("Dev set:", logfile=outfile)
+    log(dev_set, logfile=outfile)
 
     # THE GOLD (put into sparse matrix)
     y_test = lists2sparse(y_test, dev_set.size(1)).tocsr(copy=False)
@@ -140,8 +151,8 @@ def main():
     x_test = lists2sparse(dev_set.data, dev_set.size(1)).tocsr(copy=False)
 
     for model in MODELS:
-        print('=' * 78)
-        print(model)
+        log('=' * 78, logfile=outfile)
+        log(model, logfile=outfile)
 
         # Training
         model.train(train_set)
@@ -161,12 +172,16 @@ def main():
         # Evaluate metrics
         results = evaluate(y_test, y_pred, METRICS)
 
-        print("-" * 78)
+        log("-" * 78, logfile=outfile)
         for metric, stats in zip(METRICS, results):
-            print("* {}: {} ({})".format(metric, *stats))
+            log("* {}: {} ({})".format(metric, *stats), logfile=outfile)
 
-        print('=' * 78)
+        log('=' * 78, logfile=outfile)
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-o', '--outfile',
+                        help="File to store the results.")
+    args = parser.parse_args()
+    main(outfile=args.outfile)
