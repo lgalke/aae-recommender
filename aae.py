@@ -623,7 +623,6 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
             else:
                 X = sklearn.utils.shuffle(X)
 
-
             for start in range(0, X.shape[0], self.batch_size):
                 X_batch = X[start:(start+self.batch_size)]
                 # condition may be None

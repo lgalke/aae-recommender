@@ -5,10 +5,12 @@ import glob
 import os
 import json
 
+import itertools
 from operator import itemgetter
 
 import numpy as np
 import scipy.sparse as sp
+from joblib import Parallel, delayed
 
 from datasets import Bags, corrupt_sets
 from transforms import lists2sparse
@@ -34,24 +36,32 @@ MODELS = [
 ]
 
 
-def playlists_from_slices(slices_dir, sort_by_pid=False):
+def load(path):
+    """ Loads a single slice """
+    with open(path, 'r') as fhandle:
+        obj = json.load(fhandle)
+    return obj["playlists"]
+
+
+def playlists_from_slices(slices_dir, n_jobs=1):
     """
     Loads a bunch of slices into a list of playlists,
     optionally sorted by id
     """
-    playlists = []
-    for i, fpath in enumerate(glob.iglob(os.path.join(slices_dir, '*.json'))):
-        with open(fpath, 'r') as fhandle:
-            data_slice = json.load(fhandle)
-            playlists.extend(data_slice["playlists"])
-        if DEBUG_LIMIT and i > DEBUG_LIMIT:
-            # Stop after `DEBUG_LIMIT` files
-            # (for quick testing)
-            break
-
-    # in-place sort by playlist id
-    if sort_by_pid:
-        playlists.sort(key=itemgetter("pid"))
+    it = glob.iglob(os.path.join(slices_dir, '*.json'))
+    if int(n_jobs) == 1:
+        playlists = []
+        for i, fpath in enumerate(it):
+            playlists.extend(load(fpath))
+            print("\r{}".format(i+1), end='', flush=True)
+            if DEBUG_LIMIT and i > DEBUG_LIMIT:
+                # Stop after `DEBUG_LIMIT` files
+                # (for quick testing)
+                break
+        print()
+    else:
+        pps = Parallel(n_jobs=n_jobs, verbose=5)(delayed(load)(p) for p in it)
+        playlists = itertools.chain.from_iterable(pps)
 
     return playlists
 
@@ -62,12 +72,19 @@ def unpack_playlists(playlists):
     format. It is not mandatory that playlists are sorted.
     """
     # Assume track_uri is primary key for track
-    bags_of_tracks = [[t["track_uri"] for t in p["tracks"]] for p in playlists]
-    # Extract pids (even though they might be sorted already)
-    pids = [p["pid"] for p in playlists]
-    # Use dict here such that we can also deal with unsorted pids or other keys
-    side_info = {p["pid"]: p["name"] for p in playlists}
-    # We could assemble even more side info here from the track names and so on
+
+    bags_of_tracks, pids, side_info = [], [], {}
+    for playlist in playlists:
+        # Extract pids
+        pids.append(playlist["pid"])
+        # Put all tracks of the playlists in here
+        bags_of_tracks.append([t["track_uri"] for t in playlist["tracks"]])
+        # Use dict here such that we can also deal with unsorted pids
+        side_info[playlist["pid"]] = playlist["name"]
+        # We could assemble even more side info here from the track names
+
+    # bag_of_tracks and pids should have corresponding indices
+    # In side info the pid is the key
     return bags_of_tracks, pids, side_info
 
 
@@ -100,11 +117,12 @@ def prepare_evaluation(bags, test_size=0.1, n_items=None):
 def main():
     """ Main function for training and evaluating AAE methods on MDP data """
     print("Loading data from", DATA_PATH)
-    playlists = playlists_from_slices(DATA_PATH, sort_by_pid=False)
+    playlists = playlists_from_slices(DATA_PATH, n_jobs=-1)
     print("Unpacking json data...")
     bags_of_tracks, pids, side_info = unpack_playlists(playlists)
     # Re-use 'title' property here because methods rely on it
     bags = Bags(bags_of_tracks, pids, {"title": side_info})
+    del playlists
     print("Whole dataset:")
     print(bags)
     train_set, dev_set, y_test = prepare_evaluation(bags, n_items=N_ITEMS)
@@ -120,7 +138,6 @@ def main():
 
     # the known items in the test set, just to not recompute
     x_test = lists2sparse(dev_set.data, dev_set.size(1)).tocsr(copy=False)
-
 
     for model in MODELS:
         print('=' * 78)
