@@ -246,7 +246,7 @@ class AutoEncoder():
             X = X.cuda()
        
         if condition is not None:
-            condition = condition.astype('float32')
+            condition = condition.astype('float32').toarray()
             condition = Variable(torch.from_numpy(condition))
             if torch.cuda.is_available():
                 condition = condition.cuda()
