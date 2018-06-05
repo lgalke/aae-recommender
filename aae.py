@@ -388,7 +388,6 @@ class DecodingRecommender(Recommender):
             print("\rLoss: {}".format(loss.data[0]), flush=True, end='')
         return self
 
-
     def fit(self, X, y):
         self.mlp = Decoder(X.shape[1], self.n_hidden, y.shape[1], **self.mlp_params)
         if torch.cuda.is_available():
@@ -407,7 +406,6 @@ class DecodingRecommender(Recommender):
 
         return self
 
-
     def train(self, training_set):
         # Fit function from condition to X
         X = training_set.tocsr()
@@ -423,7 +421,7 @@ class DecodingRecommender(Recommender):
 
     def predict(self, test_set):
         condition = test_set.get_attribute("title")
-        condition = self.vect.transform(condition)
+        condition = self.vect.transform(condition).toarray()
         condition = torch.FloatTensor(condition)
         if torch.cuda.is_available():
             condition = condition.cuda()

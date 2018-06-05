@@ -30,9 +30,10 @@ N_ITEMS = 50000
 METRICS = ['mrr', 'map']
 
 MODELS = [
-    AAERecommender(adversarial=True, use_title=True, n_epochs=20),
-    AAERecommender(adversarial=False, use_title=True, n_epochs=20),
-    DecodingRecommender(use_title=True, n_epochs=20)
+    Countbased(),
+    AAERecommender(adversarial=True, use_title=True, n_epochs=25),
+    AAERecommender(adversarial=False, use_title=True, n_epochs=25),
+    DecodingRecommender(n_epochs=25)
     # Put more here...
 ]
 
