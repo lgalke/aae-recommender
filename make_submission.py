@@ -31,11 +31,11 @@ def main():
     parser.add_argument('--no-title', action='store_false', default=True,
                         dest='use_title',
                         help="Do not use the playlist titles")
-    parser.add_argument('--limit', type=int, default=None,
+    parser.add_argument('--max-items', type=int, default=None,
                         help="Limit the max number of considered items")
     args = parser.parse_args()
 
-    # The mapping from command line arguments to create the model
+    # Create the model as specified by command line args
     # Count-based never uses title
     # Decoding recommender always uses title
     model = {
@@ -60,7 +60,7 @@ def main():
     data = Bags(data[0], data[1], {"title": data[3]})
 
     print("Building vocabulary")
-    data = data.build_vocab(max_features=args.limit, apply=True)
+    data = data.build_vocab(max_features=args.max_items, apply=True)
 
     print("Training...")
     model.train(data)
