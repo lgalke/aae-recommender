@@ -13,9 +13,25 @@ from baselines import Countbased
 from aae import AAERecommender, DecodingRecommender
 from svd import SVDRecommender
 
-from mpd import playlists_from_slices, unpack_playlists
+from mpd import playlists_from_slices, unpack_playlists, load
 
 DATA_PATH = "/data21/lgalke/MPD/data/"
+TEST_PATH = "/data21/lgalke/MPD/challenge_set.json"
+
+SUBMISSION_HEADER = "team_info,Unconscious Bias,lga@informatik.uni-kiel.de"
+
+
+def make_submission(predictions,
+                    index2playlist,
+                    index2trackid,
+                    outfile=None,
+                    topk=500):
+    """ Writes the predictions as submission file to disk """
+    # TODO sort topk items per playlist
+    with open(outfile, 'w') as fhandle:
+        print(SUBMISSION_HEADER, file=fhandle)
+        # Line format
+        # playlist_id, trackid1, trackid2, trackid500
 
 
 def main():
@@ -33,6 +49,8 @@ def main():
                         help="Do not use the playlist titles")
     parser.add_argument('--max-items', type=int, default=None,
                         help="Limit the max number of considered items")
+    parser.add_argument('-o', '--outfile', default="submission.csv",
+                        type=str, help="Write submissions to this path")
     args = parser.parse_args()
 
     # Create the model as specified by command line args
@@ -55,17 +73,29 @@ def main():
 
     print("Loading data...")
     playlists = playlists_from_slices(DATA_PATH)
-    data = unpack_playlists(playlists)
-    # data is: raw items, playlist ids, side info
-    data = Bags(data[0], data[1], {"title": data[3]})
+    train_set = Bags(*unpack_playlists(playlists))
 
     print("Building vocabulary")
-    data = data.build_vocab(max_features=args.max_items, apply=True)
+    vocab, __counts = train_set.build_vocab(max_features=args.max_items,
+                                            apply=True)
 
     print("Training...")
-    model.train(data)
+    model.train(train_set)
 
-    # TODO load test set and apply model
+    # Training finished, training set not necessary anymore
+    del train_set
+    print("Loading test set")
+    data, index2playlist, side_info = unpack_playlists(load(TEST_PATH))
+    test_set = Bags(data, index2playlist, side_info)
+    # Apply same vocabulary as in training
+    test_set.apply_vocab(vocab)
+
+    pred = model.predict(test_set)
+    # TODO: make non sparse
+    # TODO: remove non-missing
+
+    index2trackid = {v: k for k, v in vocab.items()}
+    make_submission(pred, index2playlist, index2trackid, outfile=args.outfile)
 
 
 if __name__ == '__main__':

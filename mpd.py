@@ -86,7 +86,8 @@ def unpack_playlists(playlists):
 
     # bag_of_tracks and pids should have corresponding indices
     # In side info the pid is the key
-    return bags_of_tracks, pids, side_info
+    # Re-use 'title' property here because methods rely on it
+    return bags_of_tracks, pids, {"title": side_info}
 
 
 def prepare_evaluation(bags, test_size=0.1, n_items=None):
@@ -131,8 +132,7 @@ def main(outfile=None):
     print("Unpacking json data...")
     bags_of_tracks, pids, side_info = unpack_playlists(playlists)
     del playlists
-    # Re-use 'title' property here because methods rely on it
-    bags = Bags(bags_of_tracks, pids, {"title": side_info})
+    bags = Bags(bags_of_tracks, pids, side_info)
     log("Whole dataset:", logfile=outfile)
     log(bags, logfile=outfile)
     train_set, dev_set, y_test = prepare_evaluation(bags, n_items=N_ITEMS)
