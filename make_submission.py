@@ -15,6 +15,7 @@ from svd import SVDRecommender
 from evaluation import remove_non_missing, argtopk
 
 from mpd import playlists_from_slices, unpack_playlists, load
+from mpd import TRACK_INFO
 
 DATA_PATH = "/data21/lgalke/MPD/data/"
 TEST_PATH = "/data21/lgalke/MPD/challenge_set.json"
@@ -33,7 +34,7 @@ def make_submission(predictions,
     __, topk_iy = argtopk(predictions, topk)
     print("Writing rows to", outfile)
     with open(outfile, 'w') as csvfile:
-        csv_writer = csv.writer(csvfile, delimiter=' , ')
+        csv_writer = csv.writer(csvfile, delimiter=',')
         csv_writer.writerow(SUBMISSION_HEADER)
         # Line format
         # playlist_id, trackid1, trackid2, trackid500
@@ -62,6 +63,8 @@ def main():
                         help="Number of jobs for data loading [4].")
     parser.add_argument('-o', '--outfile', default="submission.csv",
                         type=str, help="Write submissions to this path")
+    parser.add_argument('--aggregate', action='store_true', default=False,
+                        help="Aggregate track metadata as side info input")
     args = parser.parse_args()
 
     # Create the model as specified by command line args
@@ -82,11 +85,14 @@ def main():
                                    n_hidden=args.hidden)
     }[args.model]
 
+    track_attrs = TRACK_INFO if args.aggregate else None
+
+
     # = Training =
     print("Loading data from {} using {} jobs".format(DATA_PATH, args.jobs))
     playlists = playlists_from_slices(DATA_PATH, n_jobs=args.jobs)
     print("Unpacking playlists")
-    train_set = Bags(*unpack_playlists(playlists))
+    train_set = Bags(*unpack_playlists(playlists, aggregate=track_attrs))
 
     print("Building vocabulary of {} most frequent items".format(args.max_items))
     vocab, __counts = train_set.build_vocab(max_features=args.max_items,
@@ -94,7 +100,7 @@ def main():
     train_set = train_set.apply_vocab(vocab)
     print("Training set:", train_set, sep='\n')
 
-    print("Training for {} epochs", args.epochs)
+    print("Training for {} epochs".format(args.epochs))
     try:
         model.train(train_set)
     except KeyboardInterrupt:
@@ -105,7 +111,8 @@ def main():
 
     # = Predictions =
     print("Loading and unpacking test set")
-    data, index2playlist, side_info = unpack_playlists(load(TEST_PATH))
+    data, index2playlist, side_info = unpack_playlists(load(TEST_PATH),
+                                                       aggregate=track_attrs)
     test_set = Bags(data, index2playlist, side_info)
     # Apply same vocabulary as in training
     test_set = test_set.apply_vocab(vocab)

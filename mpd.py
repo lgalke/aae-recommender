@@ -68,16 +68,29 @@ def playlists_from_slices(slices_dir, n_jobs=1):
     return playlists
 
 
-def unpack_playlists(playlists,
-                     flatten_tracknames=False,
-                     flatten_albumnames=False):
-    if flatten_tracknames or flatten_tracknames:
-        raise NotImplementedError
+def aggregate_track_info(playlist, attributes):
+    if 'tracks' not in playlist:
+        return ''
+    acc = []
+    for track in playlist['tracks']:
+        for attribute in attributes:
+            if attribute in track:
+                acc.append(track[attribute])
+    return ' '.join(acc)
+
+
+TRACK_INFO = ['artist_name', 'track_name', 'album_name']
+
+
+def unpack_playlists(playlists, aggregate=None):
     """
     Unpacks list of playlists in a way that is compatible with our Bags dataset
     format. It is not mandatory that playlists are sorted.
     """
     # Assume track_uri is primary key for track
+    if aggregate is not None:
+        for attr in aggregate:
+            assert attr in TRACK_INFO
 
     bags_of_tracks, pids, side_info = [], [], {}
     for playlist in playlists:
@@ -89,10 +102,12 @@ def unpack_playlists(playlists,
         try:
             side_info[playlist["pid"]] = playlist["name"]
         except KeyError:
-            print("Playlist {} does not have a name.".format(playlist["pid"]))
             side_info[playlist["pid"]] = ""
 
         # We could assemble even more side info here from the track names
+        if aggregate is not None:
+            aggregated_track_info = aggregate_track_info(playlist, aggregate)
+            side_info[playlist["pid"]] += ' ' + aggregated_track_info
 
     # bag_of_tracks and pids should have corresponding indices
     # In side info the pid is the key
