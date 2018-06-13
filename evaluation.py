@@ -18,10 +18,19 @@ def argtopk(X, k):
 
     >>> X = np.arange(10).reshape(1, -1)
     >>> i = argtopk(X, 3)
+    >>> i
+    (array([[0]]), array([[9, 8, 7]]))
     >>> X[argtopk(X, 3)]
     array([[9, 8, 7]])
     >>> X = np.arange(20).reshape(2,10)
-    >>> X[argtopk(X, 3)]
+    >>> ix, iy = argtopk(X, 3)
+    >>> ix
+    array([[0],
+           [1]])
+    >>> iy
+    array([[9, 8, 7],
+           [9, 8, 7]])
+    >>> X[ix, iy]
     array([[ 9,  8,  7],
            [19, 18, 17]])
     >>> X = np.arange(6).reshape(2,3)
@@ -119,7 +128,7 @@ class MAP(RankingMetric):
         >>> Y_true = np.array([[1,0,1],[1,1,1]])
         >>> Y_pred = np.array([[0.4,0.3,0.2],[0.4,0.3,0.2]])
         >>> MAP(3)(Y_true, Y_pred)
-        (0.91666666666666663, 0.08333333333333337)
+        (0.9166666666666666, 0.08333333333333337)
         """
         rs = super().__call__(y_true, y_pred)
         return rm.mean_average_precision(rs)
@@ -162,11 +171,13 @@ METRICS = { **BOUNDED_METRICS, **UNBOUNDED_METRICS }
 
 def remove_non_missing(Y_pred, X_test, copy=True):
     """
+    Scales the predicted values between 0 and 1 and  sets the known values to
+    zero.
     >>> Y_pred = np.array([[0.6,0.5,-1], [40,-20,10]])
     >>> X_test = np.array([[1, 0, 1], [0, 1, 0]])
     >>> remove_non_missing(Y_pred, X_test)
-    array([[ 0.    ,  0.9375,  0.    ],
-           [ 1.    ,  0.    ,  0.5   ]])
+    array([[0.    , 0.9375, 0.    ],
+           [1.    , 0.    , 0.5   ]])
     """
     Y_pred_scaled = minmax_scale(Y_pred,
                                  feature_range=(0, 1),

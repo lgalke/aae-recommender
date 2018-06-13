@@ -50,7 +50,8 @@ def playlists_from_slices(slices_dir, n_jobs=1):
     optionally sorted by id
     """
     it = glob.iglob(os.path.join(slices_dir, '*.json'))
-    if int(n_jobs) == 1:
+    n_jobs = int(n_jobs)
+    if n_jobs == 1:
         playlists = []
         for i, fpath in enumerate(it):
             playlists.extend(load(fpath))
@@ -67,7 +68,11 @@ def playlists_from_slices(slices_dir, n_jobs=1):
     return playlists
 
 
-def unpack_playlists(playlists):
+def unpack_playlists(playlists,
+                     flatten_tracknames=False,
+                     flatten_albumnames=False):
+    if flatten_tracknames or flatten_tracknames:
+        raise NotImplementedError
     """
     Unpacks list of playlists in a way that is compatible with our Bags dataset
     format. It is not mandatory that playlists are sorted.
@@ -81,7 +86,12 @@ def unpack_playlists(playlists):
         # Put all tracks of the playlists in here
         bags_of_tracks.append([t["track_uri"] for t in playlist["tracks"]])
         # Use dict here such that we can also deal with unsorted pids
-        side_info[playlist["pid"]] = playlist["name"]
+        try:
+            side_info[playlist["pid"]] = playlist["name"]
+        except KeyError:
+            print("Playlist {} does not have a name.".format(playlist["pid"]))
+            side_info[playlist["pid"]] = ""
+
         # We could assemble even more side info here from the track names
 
     # bag_of_tracks and pids should have corresponding indices

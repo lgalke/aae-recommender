@@ -1,24 +1,26 @@
-
+#!/usr/bin/env python3
 """
 Executable to make a submission using AAE on the Spotify MDP dataset
 """
 import argparse
-import glob
-import itertools
-import json
-import os
+import csv
+
+import numpy as np
+import scipy.sparse as sp
 
 from datasets import Bags
 from baselines import Countbased
 from aae import AAERecommender, DecodingRecommender
 from svd import SVDRecommender
+from evaluation import remove_non_missing, argtopk
 
 from mpd import playlists_from_slices, unpack_playlists, load
 
 DATA_PATH = "/data21/lgalke/MPD/data/"
 TEST_PATH = "/data21/lgalke/MPD/challenge_set.json"
 
-SUBMISSION_HEADER = "team_info,Unconscious Bias,lga@informatik.uni-kiel.de"
+SUBMISSION_HEADER = ["team_info", "Unconscious Bias",
+                     "lga@informatik.uni-kiel.de"]
 
 
 def make_submission(predictions,
@@ -27,11 +29,18 @@ def make_submission(predictions,
                     outfile=None,
                     topk=500):
     """ Writes the predictions as submission file to disk """
-    # TODO sort topk items per playlist
-    with open(outfile, 'w') as fhandle:
-        print(SUBMISSION_HEADER, file=fhandle)
+    print("Sorting top {} items for each playlist".format(topk))
+    __, topk_iy = argtopk(predictions, topk)
+    print("Writing rows to", outfile)
+    with open(outfile, 'w') as csvfile:
+        csv_writer = csv.writer(csvfile, delimiter=' , ')
+        csv_writer.writerow(SUBMISSION_HEADER)
         # Line format
         # playlist_id, trackid1, trackid2, trackid500
+        for row_ix, item_ixs in enumerate(topk_iy):
+            playlist = index2playlist[row_ix]
+            items = [index2trackid[ix] for ix in item_ixs]
+            csv_writer.writerow([playlist] + items)
 
 
 def main():
@@ -49,6 +58,8 @@ def main():
                         help="Do not use the playlist titles")
     parser.add_argument('--max-items', type=int, default=None,
                         help="Limit the max number of considered items")
+    parser.add_argument('-j', '--jobs', type=int, default=4,
+                        help="Number of jobs for data loading [4].")
     parser.add_argument('-o', '--outfile', default="submission.csv",
                         type=str, help="Write submissions to this path")
     args = parser.parse_args()
@@ -71,31 +82,48 @@ def main():
                                    n_hidden=args.hidden)
     }[args.model]
 
-    print("Loading data...")
-    playlists = playlists_from_slices(DATA_PATH)
+    # = Training =
+    print("Loading data from {} using {} jobs".format(DATA_PATH, args.jobs))
+    playlists = playlists_from_slices(DATA_PATH, n_jobs=args.jobs)
+    print("Unpacking playlists")
     train_set = Bags(*unpack_playlists(playlists))
 
-    print("Building vocabulary")
+    print("Building vocabulary of {} most frequent items".format(args.max_items))
     vocab, __counts = train_set.build_vocab(max_features=args.max_items,
-                                            apply=True)
+                                            apply=False)
+    train_set = train_set.apply_vocab(vocab)
+    print("Training set:", train_set, sep='\n')
 
-    print("Training...")
-    model.train(train_set)
+    print("Training for {} epochs", args.epochs)
+    try:
+        model.train(train_set)
+    except KeyboardInterrupt:
+        print("Training interrupted by keyboard, pass.")
 
-    # Training finished, training set not necessary anymore
+    # Not required anymore
     del train_set
-    print("Loading test set")
+
+    # = Predictions =
+    print("Loading and unpacking test set")
     data, index2playlist, side_info = unpack_playlists(load(TEST_PATH))
     test_set = Bags(data, index2playlist, side_info)
     # Apply same vocabulary as in training
-    test_set.apply_vocab(vocab)
+    test_set = test_set.apply_vocab(vocab)
+    print("Test set:", test_set, sep='\n')
 
     pred = model.predict(test_set)
-    # TODO: make non sparse
-    # TODO: remove non-missing
+    if sp.issparse(pred):
+        pred = pred.toarray()
+    else:
+        pred = np.asarray(pred)
+    print("Scaling and removing non-missing items")
+    pred = remove_non_missing(pred, test_set.tocsr(), copy=False)
 
     index2trackid = {v: k for k, v in vocab.items()}
+    print("Making submission:", args.outfile)
     make_submission(pred, index2playlist, index2trackid, outfile=args.outfile)
+    print("Success.")
+    print("Make sure to verify the submission format with the provided script")
 
 
 if __name__ == '__main__':

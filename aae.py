@@ -385,7 +385,7 @@ class DecodingRecommender(Recommender):
         loss.backward()
         self.mlp_optim.step()
         if self.verbose:
-            print("\rLoss: {}".format(loss.data[0]), flush=True, end='')
+            print("\rLoss: {}".format(loss.data.item()), flush=True, end='')
         return self
 
     def fit(self, X, y):
