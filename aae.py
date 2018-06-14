@@ -420,14 +420,31 @@ class DecodingRecommender(Recommender):
 
 
     def predict(self, test_set):
+        # condition = test_set.get_attribute("title")
+        # condition = self.vect.transform(condition).toarray()
+        # condition = torch.FloatTensor(condition)
+        # if torch.cuda.is_available():
+        #     condition = condition.cuda()
+        # self.mlp.eval()
+        # x_pred = self.mlp(Variable(condition))
+        # Batched variant to save gpu memory
         condition = test_set.get_attribute("title")
-        condition = self.vect.transform(condition).toarray()
-        condition = torch.FloatTensor(condition)
-        if torch.cuda.is_available():
-            condition = condition.cuda()
+        condition = self.vect.transform(condition)
         self.mlp.eval()
-        x_pred = self.mlp(Variable(condition))
-        return x_pred.data.cpu().numpy()
+        batch_results = []
+        for start in range(0, condition.shape[0], self.batch_size):
+            batch = condition[start:(start+self.batch_size)].toarray()
+            batch = torch.FloatTensor(batch)
+            # Shift data to gpu
+            if torch.cuda.is_available():
+                batch = batch.cuda()
+            res = self.mlp(Variable(batch))
+            # Shift results back to cpu
+            batch_results.append(res.cpu().numpy())
+        
+        x_pred = np.vstack(batch_results)
+        assert x_pred.shape[0] == condition.shape[0]
+        return x_pred
 
 
 
