@@ -99,3 +99,11 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# MPD submissions
+submissions/*
+!submissions/.gitkeep
+
+# Results
+results/*
+!results/.gitkeep
