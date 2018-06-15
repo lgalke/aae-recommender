@@ -44,12 +44,15 @@ def load(path):
     return obj["playlists"]
 
 
-def playlists_from_slices(slices_dir, n_jobs=1):
+def playlists_from_slices(slices_dir, n_jobs=1, debug=False):
     """
     Loads a bunch of slices into a list of playlists,
     optionally sorted by id
     """
     it = glob.iglob(os.path.join(slices_dir, '*.json'))
+    if debug:
+        print("Debug mode: using only two slices")
+        it = itertools.islice(it, 2)
     n_jobs = int(n_jobs)
     if n_jobs == 1:
         playlists = []

@@ -416,6 +416,7 @@ class DecodingRecommender(Recommender):
         
         condition = training_set.get_attribute("title")
         condition = self.vect.fit_transform(condition)
+        print("{} distinct words in condition" .format(len(self.vect.vocabulary_)))
         self.fit(condition, X)
 
 
@@ -438,9 +439,9 @@ class DecodingRecommender(Recommender):
             # Shift data to gpu
             if torch.cuda.is_available():
                 batch = batch.cuda()
-            res = self.mlp(Variable(batch))
+            res = self.mlp(Variable(batch, requires_grad=False))
             # Shift results back to cpu
-            batch_results.append(res.cpu().numpy())
+            batch_results.append(res.cpu().detach().numpy())
         
         x_pred = np.vstack(batch_results)
         assert x_pred.shape[0] == condition.shape[0]

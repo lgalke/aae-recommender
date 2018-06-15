@@ -3,6 +3,7 @@
 Executable to make a submission using AAE on the Spotify MDP dataset
 """
 import argparse
+import os
 import csv
 
 import numpy as np
@@ -17,10 +18,15 @@ from evaluation import remove_non_missing, argtopk
 from mpd import playlists_from_slices, unpack_playlists, load
 from mpd import TRACK_INFO
 
-DATA_PATH = "/data21/lgalke/MPD/data/"
-TEST_PATH = "/data21/lgalke/MPD/challenge_set.json"
+MPD_BASE_PATH = "/data21/lgalke/MPD"
 
-SUBMISSION_HEADER = ["team_info", "Unconscious Bias",
+DATA_PATH = os.path.join(MPD_BASE_PATH, "data")
+TEST_PATH = os.path.join(MPD_BASE_PATH, "challenge_set.json")
+VERIFY_SCRIPT = os.path.join(MPD_BASE_PATH, "verify_submission.py")
+
+SUBMISSION_HEADER = ["team_info",
+                     "main",
+                     "Unconscious Bias",
                      "lga@informatik.uni-kiel.de"]
 
 
@@ -59,13 +65,26 @@ def main():
                         help="Do not use the playlist titles")
     parser.add_argument('--max-items', type=int, default=None,
                         help="Limit the max number of considered items")
+    parser.add_argument('--vocab-size', type=int, default=None,
+                        help="Limit the max number of distinct condition words")
     parser.add_argument('-j', '--jobs', type=int, default=4,
                         help="Number of jobs for data loading [4].")
     parser.add_argument('-o', '--outfile', default="submission.csv",
                         type=str, help="Write submissions to this path")
     parser.add_argument('--aggregate', action='store_true', default=False,
                         help="Aggregate track metadata as side info input")
+    parser.add_argument('--debug', action='store_true', default=False,
+                        help="Activate debug mode, run only on small sample")
     args = parser.parse_args()
+    
+    # Dump args into submission file
+    if os.path.exists(args.outfile) and \
+            input("Path '{}' exists. Overwrite? [y/N]"
+                  .format(args.outfile)) != 'y':
+        exit(-1)
+
+    with open(args.outfile, 'w') as out:
+        print('#', args, file=out)
 
     # Create the model as specified by command line args
     # Count-based never uses title
@@ -76,13 +95,17 @@ def main():
         'ae': AAERecommender(use_title=args.use_title,
                              adversarial=False,
                              n_hidden=args.hidden,
-                             n_epochs=args.epochs),
+                             n_epochs=args.epochs,
+                             tfidf_params={'max_features': args.vocab_size}),
         'aae': AAERecommender(use_title=args.use_title,
                               adversarial=True,
                               n_hidden=args.hidden,
-                              n_epochs=args.epochs),
+                              n_epochs=args.epochs,
+                              tfidf_params={'max_features': args.vocab_size}),
         'mlp': DecodingRecommender(n_epochs=args.epochs,
-                                   n_hidden=args.hidden)
+                                   n_hidden=args.hidden,
+                                   tfidf_params={'max_features':
+                                                 args.vocab_size})
     }[args.model]
 
     track_attrs = TRACK_INFO if args.aggregate else None
@@ -90,7 +113,7 @@ def main():
 
     # = Training =
     print("Loading data from {} using {} jobs".format(DATA_PATH, args.jobs))
-    playlists = playlists_from_slices(DATA_PATH, n_jobs=args.jobs)
+    playlists = playlists_from_slices(DATA_PATH, n_jobs=args.jobs, debug=args.debug)
     print("Unpacking playlists")
     train_set = Bags(*unpack_playlists(playlists, aggregate=track_attrs))
 
@@ -130,7 +153,7 @@ def main():
     print("Making submission:", args.outfile)
     make_submission(pred, index2playlist, index2trackid, outfile=args.outfile)
     print("Success.")
-    print("Make sure to verify the submission format with the provided script")
+    print("Make sure to verify the submission format via", VERIFY_SCRIPT)
 
 
 if __name__ == '__main__':
