@@ -39,7 +39,7 @@ def make_submission(predictions,
     print("Sorting top {} items for each playlist".format(topk))
     __, topk_iy = argtopk(predictions, topk)
     print("Writing rows to", outfile)
-    with open(outfile, 'w') as csvfile:
+    with open(outfile, 'a') as csvfile:
         csv_writer = csv.writer(csvfile, delimiter=',')
         csv_writer.writerow(SUBMISSION_HEADER)
         # Line format
