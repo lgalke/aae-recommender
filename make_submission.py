@@ -25,8 +25,8 @@ TEST_PATH = os.path.join(MPD_BASE_PATH, "challenge_set.json")
 VERIFY_SCRIPT = os.path.join(MPD_BASE_PATH, "verify_submission.py")
 
 SUBMISSION_HEADER = ["team_info",
-                     "main",
                      "Unconscious Bias",
+                     "main",
                      "lga@informatik.uni-kiel.de"]
 
 
