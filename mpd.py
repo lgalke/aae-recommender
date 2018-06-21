@@ -44,15 +44,24 @@ def load(path):
     return obj["playlists"]
 
 
-def playlists_from_slices(slices_dir, n_jobs=1, debug=False):
+def playlists_from_slices(slices_dir, n_jobs=1, debug=False, only=None, without=None):
     """
     Loads a bunch of slices into a list of playlists,
     optionally sorted by id
     """
-    it = glob.iglob(os.path.join(slices_dir, '*.json'))
+    it = glob.glob(os.path.join(slices_dir, '*.json'))
+
+    # Stuff to deal with dev set penc
+    if only:
+        it = [path for path in it if os.path.split(path)[1] in only]
+    if without:
+        it = [path for path in it if os.path.split(path)[1] not in without]
+
     if debug:
         print("Debug mode: using only two slices")
-        it = itertools.islice(it, 2)
+        it = it[:2]
+
+    print("Loading", len(it), "slices using", n_jobs, "jobs.")
     n_jobs = int(n_jobs)
     if n_jobs == 1:
         playlists = []

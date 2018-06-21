@@ -75,6 +75,8 @@ def main():
                         help="Aggregate track metadata as side info input")
     parser.add_argument('--debug', action='store_true', default=False,
                         help="Activate debug mode, run only on small sample")
+    parser.add_argument('-x', '--exclude', type=argparse.FileType('r'),  default=None,
+                        help="Path to file with slice filenames to exclude for training")
     args = parser.parse_args()
     
     # Dump args into submission file
@@ -110,10 +112,17 @@ def main():
 
     track_attrs = TRACK_INFO if args.aggregate else None
 
+    if args.exclude is not None:
+        # Dev set case, exclude dev set data
+        exclude = [line.strip() for line in args.exclude]
+    else:
+        # Real submission case, do not exclude any training data
+        exclude = None
 
     # = Training =
     print("Loading data from {} using {} jobs".format(DATA_PATH, args.jobs))
-    playlists = playlists_from_slices(DATA_PATH, n_jobs=args.jobs, debug=args.debug)
+    playlists = playlists_from_slices(DATA_PATH, n_jobs=args.jobs, debug=args.debug,
+                                      without=exclude)
     print("Unpacking playlists")
     train_set = Bags(*unpack_playlists(playlists, aggregate=track_attrs))
 
