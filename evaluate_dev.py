@@ -1,9 +1,21 @@
 #!/usr/bin/env python3
 import argparse
 
-from mpd import playlists_from_slices, DATA_PATH, load
+from mpd import playlists_from_slices, DATA_PATH
 from mpd_metrics import aggregate_metrics
 
+
+def load_submission(path):
+    """ Returns dict of list: pid -> track_ids """
+    sub = {}
+    with open(path, 'r') as fh:
+        for line in fh:
+            line = line.strip()
+            if line[0] == '#' or line.startswith('team_info'):
+                continue
+            pid, *tracks = line.split(',')
+            sub[int(pid)] = tracks
+    return sub
 
 def main():
     parser = argparse.ArgumentParser()
@@ -14,22 +26,28 @@ def main():
 
     args = parser.parse_args()
 
-    dev_slices = [line.split() for line in args.exclude]
+    dev_slices = [line.strip() for line in args.exclude]
+    print("Loading ground truth from", dev_slices)
 
     ground_truth = playlists_from_slices(DATA_PATH, only=dev_slices)
-    predictions = load(args.submission)
+    # Make the json stuff dictionaries from pid to track uris
+    ground_truth = {p['pid']: [t['track_uri'] for t in p['tracks']] for p in ground_truth}
 
-    # Make the lists dictionaries based on pids
-    ground_truth = {p['pid']: p for p in ground_truth}
-    predictions  = {p['pid']: p for p in predictions}
+    predictions = load_submission(args.submission)
+
 
     # Verify that pids match
     pids = set(ground_truth.keys())
     pids_pred = set(predictions.keys())
-    #  no pids in one of them but not both
+    print(list(pids)[:5])
+    print(list(pids_pred)[:5])
+    print(len(pids), "pids in ground truth")
+    print(len(pids_pred), "pids in predictions")
+    print(len(set.intersection(pids, pids_pred)), "pids in intersection")
+    # Super strict: All pids in both are the same
     assert len(pids ^ pids_pred) == 0
-    # all predicted pids should be also in gold
-    assert len(pids - pids_pred) == 0
+    # Less strict: all predicted pids should be also in gold
+    assert len(pids_pred - pids) == 0
 
 
 

@@ -8,6 +8,7 @@ import csv
 
 import numpy as np
 import scipy.sparse as sp
+from gensim.models.keyedvectors import KeyedVectors
 
 from datasets import Bags
 from baselines import Countbased
@@ -23,6 +24,9 @@ MPD_BASE_PATH = "/data21/lgalke/MPD"
 DATA_PATH = os.path.join(MPD_BASE_PATH, "data")
 TEST_PATH = os.path.join(MPD_BASE_PATH, "challenge_set.json")
 VERIFY_SCRIPT = os.path.join(MPD_BASE_PATH, "verify_submission.py")
+
+W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
+W2V_IS_BINARY = True
 
 SUBMISSION_HEADER = ["team_info",
                      "Unconscious Bias",
@@ -71,14 +75,25 @@ def main():
                         help="Number of jobs for data loading [4].")
     parser.add_argument('-o', '--outfile', default="submission.csv",
                         type=str, help="Write submissions to this path")
+    parser.add_argument('--use-embedding', default=False, action='store_true',
+                        help="Use embedding (SGNS GoogleNews) [false]")
     parser.add_argument('--aggregate', action='store_true', default=False,
                         help="Aggregate track metadata as side info input")
     parser.add_argument('--debug', action='store_true', default=False,
                         help="Activate debug mode, run only on small sample")
     parser.add_argument('-x', '--exclude', type=argparse.FileType('r'),  default=None,
                         help="Path to file with slice filenames to exclude for training")
+    parser.add_argument('--dev', type=str, default=None,
+                        help='Path to dev set, use in combination with (-x, --exclude)')
     args = parser.parse_args()
-    
+
+    # Either exclude and dev set, or no exclude and test set
+    assert (args.dev is None) == (args.exclude is None)
+    if args.dev is not None:
+        print("Making submission for dev set:", args.dev)
+        assert os.path.isfile(args.dev)
+
+
     # Dump args into submission file
     if os.path.exists(args.outfile) and \
             input("Path '{}' exists. Overwrite? [y/N]"
@@ -87,6 +102,12 @@ def main():
 
     with open(args.outfile, 'w') as out:
         print('#', args, file=out)
+
+    print("Loading embedding:", W2V_PATH)
+    if args.use_embedding:
+        vectors = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
+    else:
+        vectors = None
 
     # Create the model as specified by command line args
     # Count-based never uses title
@@ -98,14 +119,17 @@ def main():
                              adversarial=False,
                              n_hidden=args.hidden,
                              n_epochs=args.epochs,
+                             embedding=vectors,
                              tfidf_params={'max_features': args.vocab_size}),
         'aae': AAERecommender(use_title=args.use_title,
                               adversarial=True,
                               n_hidden=args.hidden,
                               n_epochs=args.epochs,
+                              embedding=vectors,
                               tfidf_params={'max_features': args.vocab_size}),
         'mlp': DecodingRecommender(n_epochs=args.epochs,
                                    n_hidden=args.hidden,
+                                   embedding=vectors,
                                    tfidf_params={'max_features':
                                                  args.vocab_size})
     }[args.model]
@@ -142,9 +166,14 @@ def main():
     del train_set
 
     # = Predictions =
-    print("Loading and unpacking test set")
-    data, index2playlist, side_info = unpack_playlists(load(TEST_PATH),
-                                                       aggregate=track_attrs)
+    if args.dev is not None:
+        print("Loading and unpacking DEV set")
+        data, index2playlist, side_info = unpack_playlists(load(args.dev),
+                                                           aggregate=track_attrs)
+    else:
+        print("Loading and unpacking test set")
+        data, index2playlist, side_info = unpack_playlists(load(TEST_PATH),
+                                                           aggregate=track_attrs)
     test_set = Bags(data, index2playlist, side_info)
     # Apply same vocabulary as in training
     test_set = test_set.apply_vocab(vocab)
