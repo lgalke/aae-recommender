@@ -85,6 +85,8 @@ def main():
                         help="Path to file with slice filenames to exclude for training")
     parser.add_argument('--dev', type=str, default=None,
                         help='Path to dev set, use in combination with (-x, --exclude)')
+    parser.add_argument('--no-idf', action='store_false', default=True,
+                        dest='use_idf', help="Do **not** use idf re-weighting")
     args = parser.parse_args()
 
     # Either exclude and dev set, or no exclude and test set
@@ -120,7 +122,8 @@ def main():
                              n_hidden=args.hidden,
                              n_epochs=args.epochs,
                              embedding=vectors,
-                             tfidf_params={'max_features': args.vocab_size}),
+                             tfidf_params={'max_features': args.vocab_size,
+                                           'use_idf': args.use_idf}),
         'aae': AAERecommender(use_title=args.use_title,
                               adversarial=True,
                               n_hidden=args.hidden,
@@ -131,7 +134,8 @@ def main():
                                    n_hidden=args.hidden,
                                    embedding=vectors,
                                    tfidf_params={'max_features':
-                                                 args.vocab_size})
+                                                 args.vocab_size,
+                                                 'use_idf': args.use_idf})
     }[args.model]
 
     track_attrs = TRACK_INFO if args.aggregate else None

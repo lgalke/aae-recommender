@@ -184,7 +184,7 @@ class AutoEncoder():
     def __init__(self,
                  n_hidden=100,
                  n_code=50,
-                 lr=0.0001,
+                 lr=0.001,
                  batch_size=100,
                  n_epochs=500,
                  optimizer='adam',
@@ -399,8 +399,12 @@ class DecodingRecommender(Recommender):
         for __epoch in range(self.n_epochs):
             X_shuf, y_shuf = sklearn.utils.shuffle(X, y)
             for start in range(0, X.shape[0], self.batch_size):
-                X_batch = X_shuf[start:(start+self.batch_size)].toarray()
+                X_batch = X_shuf[start:(start+self.batch_size)]
+                if sp.issparse(X_batch):
+                    X_batch = X_batch.toarray()
                 y_batch = y_shuf[start:(start+self.batch_size)].toarray()
+                if sp.issparse(y_batch):
+                    y_batch = y_batch.toarray()
                 self.partial_fit(X_batch, y_batch)
 
             if self.verbose:
@@ -436,7 +440,9 @@ class DecodingRecommender(Recommender):
         self.mlp.eval()
         batch_results = []
         for start in range(0, condition.shape[0], self.batch_size):
-            batch = condition[start:(start+self.batch_size)].toarray()
+            batch = condition[start:(start+self.batch_size)]
+            if sp.issparse(batch):
+                batch = batch.toarray()
             batch = torch.FloatTensor(batch)
             # Shift data to gpu
             if torch.cuda.is_available():
@@ -457,8 +463,8 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
     def __init__(self,
                  n_hidden=100,
                  n_code=50,
-                 gen_lr=0.0001,
-                 reg_lr=0.00005,
+                 gen_lr=0.001,
+                 reg_lr=0.001,
                  prior='gauss',
                  prior_scale=None,
                  batch_size=100,
@@ -672,7 +678,9 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         pred = []
         for start in range(0, X.shape[0], self.batch_size):
             # batched predictions, yet inclusive
-            X_batch = X[start:(start+self.batch_size)].toarray()
+            X_batch = X[start:(start+self.batch_size)]
+            if sp.issparse(X_batch):
+                X_batch = X_batch.toarray()
             X_batch = Variable(torch.FloatTensor(X_batch))
             if torch.cuda.is_available():
                 X_batch = X_batch.cuda()
