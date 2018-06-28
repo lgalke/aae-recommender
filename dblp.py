@@ -7,15 +7,15 @@ import itertools
 import json
 import os
 
-import numpy as np
-import scipy.sparse as sp
-#from joblib import Parallel, delayed
+# from joblib import Parallel, delayed
 
 from datasets import Bags, corrupt_sets
-from transforms import lists2sparse
-from evaluation import remove_non_missing, evaluate
+from mpd import log
+from evaluation import Evaluation
+from svd import SVDRecommender
 from baselines import Countbased
-#from aae import AAERecommender, DecodingRecommender
+from aae import AAERecommender, DecodingRecommender
+from gensim.models.keyedvectors import KeyedVectors
 
 # Should work on kdsrv03
 #DATA_PATH = "/data21/lgalke/MPD/data/"
@@ -27,6 +27,55 @@ N_ITEMS = 50000
 # N_ITEMS = None
 # authors is an array of strings, n_citation is an integer: do they make sense used in this way?
 PAPER_INFO = ['title', 'venue', 'abstract']
+METRICS = ['mrr', 'map']
+
+W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
+W2V_IS_BINARY = True
+VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
+
+ae_params = {
+    'n_code': 50,
+    'n_epochs': 100,
+    'embedding': VECTORS,
+    'batch_size': 100,
+    'n_hidden': 100,
+    'normalize_inputs': True,
+}
+
+BASELINES = [
+    # RandomBaseline(),
+    # MostPopular(),
+    Countbased(),
+    SVDRecommender(1000, use_title=False),
+]
+
+ae_params = {
+    'n_code': 50,
+    'n_epochs': 100,
+    'embedding': VECTORS,
+    'batch_size': 100,
+    'n_hidden': 100,
+    'normalize_inputs': True,
+}
+
+RECOMMENDERS = [
+    AAERecommender(use_title=False, adversarial=False, lr=0.0001,
+                   **ae_params),
+    AAERecommender(use_title=False, prior='gauss', gen_lr=0.0001,
+                   reg_lr=0.0001, **ae_params),
+]
+
+TITLE_ENHANCED = [
+    SVDRecommender(1000, use_title=True),
+    DecodingRecommender(n_epochs=100, batch_size=100, optimizer='adam',
+                        n_hidden=100, embedding=VECTORS,
+                        lr=0.001, verbose=True),
+    AAERecommender(adversarial=False, use_title=True, lr=0.001,
+                   **ae_params),
+    AAERecommender(adversarial=True, use_title=True,
+                   prior='gauss', gen_lr=0.001, reg_lr=0.001,
+                   **ae_params),
+]
 
 
 def load(path):
@@ -114,23 +163,39 @@ def unpack_papers(papers, aggregate=None):
     return bags_of_refs, ids, {"title": side_info, "year": years}
 
 
-def main(outfile=None):
+def main(year=None, min_count=None, outfile=None):
     """ Main function for training and evaluating AAE methods on DBLP data """
     print("Loading data from", DATA_PATH)
-    papers = papers_from_files(DATA_PATH, n_jobs=1)
+    papers = papers_from_files(DATA_PATH, n_jobs=-1)
     print("Unpacking json data...")
-    #print(papers)
-    print(papers[0]["title"])
-    print(papers[0]["references"])
     bags_of_papers, ids, side_info = unpack_papers(papers)
     del papers
     bags = Bags(bags_of_papers, ids, side_info)
-    print(bags)
+
+    log("Whole dataset:", logfile=outfile)
+    log(bags, logfile=outfile)
+
+    evaluation = Evaluation(bags, year, logfile=outfile)
+    evaluation.setup(min_count=min_count, min_elements=2)
+    print("Loading pre-trained embedding", W2V_PATH)
+
+    with open(outfile, 'a') as fh:
+        print("~ Partial List", "~" * 42, file=fh)
+    evaluation(BASELINES + RECOMMENDERS)
+
+    with open(outfile, 'a') as fh:
+        print("~ Partial List + Titles", "~" * 42, file=fh)
+    evaluation(TITLE_ENHANCED)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-o', '--outfile',
                         help="File to store the results.")
+    parser.add_argument('year', type=int,
+                        help='First year of the testing set.')
+    parser.add_argument('-m', '--min-count', type=int,
+                        help='Pruning parameter', default=50)
+    parser.add_argument('-o', '--outfile', type=str, default=None)
     args = parser.parse_args()
-    main(outfile=args.outfile)
+    main(year=args.year, min_count=args.min_count, outfile=args.outfile)
