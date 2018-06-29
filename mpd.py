@@ -44,7 +44,7 @@ def load(path):
     return obj["playlists"]
 
 
-def playlists_from_slices(slices_dir, n_jobs=1, debug=False, only=None, without=None):
+def playlists_from_slices(slices_dir, n_jobs=1, debug=False, only=None, without=None, verbose=5):
     """
     Loads a bunch of slices into a list of playlists,
     optionally sorted by id
@@ -61,20 +61,23 @@ def playlists_from_slices(slices_dir, n_jobs=1, debug=False, only=None, without=
         print("Debug mode: using only two slices")
         it = it[:2]
 
-    print("Loading", len(it), "slices using", n_jobs, "jobs.")
+    if verbose: 
+        print("Loading", len(it), "slices using", n_jobs, "jobs.")
     n_jobs = int(n_jobs)
     if n_jobs == 1:
         playlists = []
         for i, fpath in enumerate(it):
             playlists.extend(load(fpath))
-            print("\r{}".format(i+1), end='', flush=True)
+            if verbose:
+                print("\r{}".format(i+1), end='', flush=True)
             if DEBUG_LIMIT and i > DEBUG_LIMIT:
                 # Stop after `DEBUG_LIMIT` files
                 # (for quick testing)
                 break
-        print()
+        if verbose:
+            print()
     else:
-        pps = Parallel(n_jobs=n_jobs, verbose=5)(delayed(load)(p) for p in it)
+        pps = Parallel(n_jobs=n_jobs, verbose=verbose)(delayed(load)(p) for p in it)
         playlists = itertools.chain.from_iterable(pps)
 
     return playlists

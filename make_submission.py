@@ -56,20 +56,20 @@ def make_submission(predictions,
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('model', type=str,
+    parser.add_argument('--model', type=str, defaule='aae',
                         # All possible method should appear here
                         choices=['cm', 'svd', 'ae', 'aae', 'mlp'],
-                        help="Specify the model to use")
-    parser.add_argument('--epochs', type=int, default=50,
+                        help="Specify the model to use [aae]")
+    parser.add_argument('--epochs', type=int, default=20,
                         help="Specify the number of training epochs [50]")
-    parser.add_argument('--hidden', type=int, default=100,
+    parser.add_argument('--hidden', type=int, default=200,
                         help="Number of hidden units [100]")
     parser.add_argument('--no-title', action='store_false', default=True,
                         dest='use_title',
                         help="Do not use the playlist titles")
-    parser.add_argument('--max-items', type=int, default=None,
+    parser.add_argument('--max-items', type=int, default=75000,
                         help="Limit the max number of considered items")
-    parser.add_argument('--vocab-size', type=int, default=None,
+    parser.add_argument('--vocab-size', type=int, default=50000,
                         help="Limit the max number of distinct condition words")
     parser.add_argument('-j', '--jobs', type=int, default=4,
                         help="Number of jobs for data loading [4].")
@@ -77,7 +77,7 @@ def main():
                         type=str, help="Write submissions to this path")
     parser.add_argument('--use-embedding', default=False, action='store_true',
                         help="Use embedding (SGNS GoogleNews) [false]")
-    parser.add_argument('--aggregate', action='store_true', default=False,
+    parser.add_argument('--dont-aggregate', action='store_false', dest='aggregate', default=True,
                         help="Aggregate track metadata as side info input")
     parser.add_argument('--debug', action='store_true', default=False,
                         help="Activate debug mode, run only on small sample")
@@ -87,6 +87,10 @@ def main():
                         help='Path to dev set, use in combination with (-x, --exclude)')
     parser.add_argument('--no-idf', action='store_false', default=True,
                         dest='use_idf', help="Do **not** use idf re-weighting")
+    parser.add_argument('--lr', type=float, default=0.001,
+                        help="Initial learning rate [0.001]")
+    parser.add_argument('--code', type=int, default=100,
+                        help="Code dimension [50]")
     args = parser.parse_args()
 
     # Either exclude and dev set, or no exclude and test set
@@ -114,28 +118,36 @@ def main():
     # Create the model as specified by command line args
     # Count-based never uses title
     # Decoding recommender always uses title
+
+    tfidf_params = {
+        'max_features': args.vocab_size,
+        'use_idf': args.use_idf
+    }
+
     model = {
         'cm': Countbased(),
         'svd': SVDRecommender(use_title=args.use_title),
         'ae': AAERecommender(use_title=args.use_title,
                              adversarial=False,
                              n_hidden=args.hidden,
+                             n_code=args.code,
                              n_epochs=args.epochs,
                              embedding=vectors,
-                             tfidf_params={'max_features': args.vocab_size,
-                                           'use_idf': args.use_idf}),
+                             lr=args.lr,
+                             tfidf_params=tfidf_params),
         'aae': AAERecommender(use_title=args.use_title,
                               adversarial=True,
                               n_hidden=args.hidden,
+                              n_code=args.code,
                               n_epochs=args.epochs,
+                              gen_lr=args.lr,
+                              reg_lr=args.lr, # same gen and reg lrs
                               embedding=vectors,
-                              tfidf_params={'max_features': args.vocab_size}),
+                              tfidf_params=tfidf_params),
         'mlp': DecodingRecommender(n_epochs=args.epochs,
                                    n_hidden=args.hidden,
                                    embedding=vectors,
-                                   tfidf_params={'max_features':
-                                                 args.vocab_size,
-                                                 'use_idf': args.use_idf})
+                                   tfidf_params=tfidf_params)
     }[args.model]
 
     track_attrs = TRACK_INFO if args.aggregate else None
