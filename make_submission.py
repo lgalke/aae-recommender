@@ -10,11 +10,11 @@ import numpy as np
 import scipy.sparse as sp
 from gensim.models.keyedvectors import KeyedVectors
 
-from datasets import Bags
-from baselines import Countbased
-from aae import AAERecommender, DecodingRecommender
-from svd import SVDRecommender
-from evaluation import remove_non_missing, argtopk
+from aaerec.datasets import Bags
+from aaerec.baselines import Countbased
+from aaerec.aae import AAERecommender, DecodingRecommender
+from aaerec.svd import SVDRecommender
+from aaerec.evaluation import remove_non_missing, argtopk
 
 from mpd import playlists_from_slices, unpack_playlists, load
 from mpd import TRACK_INFO
