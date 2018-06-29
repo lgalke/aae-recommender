@@ -10,17 +10,17 @@ from torch.autograd import Variable
 # sklearn
 import sklearn
 from sklearn.feature_extraction.text import TfidfVectorizer
-from ub import AutoEncoderMixin
+from .ub import AutoEncoderMixin
 
 # numpy
 import numpy as np
 import scipy.sparse as sp
 
 # own recommender stuff
-from base import Recommender
-from datasets import Bags
-from evaluation import Evaluation
-from ub import GensimEmbeddedVectorizer
+from .base import Recommender
+from .datasets import Bags
+from .evaluation import Evaluation
+from .ub import GensimEmbeddedVectorizer
 from gensim.models.keyedvectors import KeyedVectors
 
 

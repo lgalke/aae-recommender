@@ -8,8 +8,8 @@ from sklearn.preprocessing import minmax_scale
 import numpy as np
 import scipy.sparse as sp
 import rank_metrics_with_std as rm
-from datasets import corrupt_sets
-from transforms import lists2sparse
+from .datasets import corrupt_sets
+from .transforms import lists2sparse
 
 
 def argtopk(X, k):

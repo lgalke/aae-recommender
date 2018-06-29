@@ -1,7 +1,7 @@
 """ Baselines """
 import numpy as np
 from numpy.random import rand
-from base import Recommender
+from .base import Recommender
 
 
 class RandomBaseline(Recommender):
