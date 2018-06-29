@@ -1,9 +1,10 @@
-from base import Recommender
-from ub import AutoEncoderMixin
-from sklearn.decomposition import TruncatedSVD
-from sklearn.feature_extraction.text import TfidfVectorizer
 import scipy.sparse as sp
 
+from sklearn.decomposition import TruncatedSVD
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+from .base import Recommender
+from .ub import AutoEncoderMixin
 
 class SVDRecommender(Recommender, AutoEncoderMixin):
     """ SVD Baseline, capable of dealing with text """

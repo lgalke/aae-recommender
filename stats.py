@@ -1,5 +1,5 @@
 import numpy as np
-from datasets import Bags
+from aaerec.datasets import Bags
 # path = '../Data/Economics/econbiz62k.tsv'
 path = '../Data/PMC/citations_pmc.tsv'
 bags = Bags.load_tabcomma_format(path, unique=True)

@@ -23,13 +23,15 @@ def main():
                         help="Path to exclude file, determines ground truth.")
     parser.add_argument('submission', type=str,
                         help="Path to dev submission file")
+    parser.add_argument('-v', '--verbose', default=0, type=int)
 
     args = parser.parse_args()
 
     dev_slices = [line.strip() for line in args.exclude]
-    print("Loading ground truth from", dev_slices)
+    if args.verbose:
+        print("Loading ground truth from", dev_slices)
 
-    ground_truth = playlists_from_slices(DATA_PATH, only=dev_slices)
+    ground_truth = playlists_from_slices(DATA_PATH, only=dev_slices, verbose=args.verbose)
     # Make the json stuff dictionaries from pid to track uris
     ground_truth = {p['pid']: [t['track_uri'] for t in p['tracks']] for p in ground_truth}
 
@@ -39,13 +41,16 @@ def main():
     # Verify that pids match
     pids = set(ground_truth.keys())
     pids_pred = set(predictions.keys())
-    print(list(pids)[:5])
-    print(list(pids_pred)[:5])
-    print(len(pids), "pids in ground truth")
-    print(len(pids_pred), "pids in predictions")
-    print(len(set.intersection(pids, pids_pred)), "pids in intersection")
+    if not pids_pred:
+        print(args.submission, 'is empty.')
+        exit(1)
+    if args.verbose:
+        print(len(pids), "pids in ground truth")
+        print(len(pids_pred), "pids in predictions")
+        print(len(set.intersection(pids, pids_pred)), "pids in intersection")
     # Super strict: All pids in both are the same
     assert len(pids ^ pids_pred) == 0
+
     # Less strict: all predicted pids should be also in gold
     assert len(pids_pred - pids) == 0
 

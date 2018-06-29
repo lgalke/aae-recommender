@@ -1,9 +1,9 @@
 import argparse
-from datasets import Bags
-from evaluation import Evaluation
-from aae import AAERecommender, DecodingRecommender
-from baselines import RandomBaseline, Countbased, MostPopular
-from svd import SVDRecommender
+from aaerec.datasets import Bags
+from aaerec.evaluation import Evaluation
+from aaerec.aae import AAERecommender, DecodingRecommender
+from aaerec.baselines import RandomBaseline, Countbased, MostPopular
+from aaerec.svd import SVDRecommender
 from gensim.models.keyedvectors import KeyedVectors
 W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
 W2V_IS_BINARY = True
