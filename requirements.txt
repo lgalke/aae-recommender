@@ -4,3 +4,4 @@ sklearn
 torch
 gensim
 pandas
+joblib
