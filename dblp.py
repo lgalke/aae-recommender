@@ -7,19 +7,18 @@ import itertools
 import json
 import os
 
-# from joblib import Parallel, delayed
+from joblib import Parallel, delayed
 
-from datasets import Bags, corrupt_sets
+from datasets import Bags
 from mpd import log
 from evaluation import Evaluation
 from svd import SVDRecommender
 from baselines import Countbased
-from aae import AAERecommender, DecodingRecommender
+from aaerec.aae import AAERecommender, DecodingRecommender
 from gensim.models.keyedvectors import KeyedVectors
 
 # Should work on kdsrv03
-#DATA_PATH = "/data21/lgalke/MPD/data/"
-DATA_PATH = "data/"
+DATA_PATH = "/data21/lgalke/aminer/"
 DEBUG_LIMIT = None
 # Use only this many most frequent items
 N_ITEMS = 50000
@@ -49,15 +48,6 @@ BASELINES = [
     SVDRecommender(1000, use_title=False),
 ]
 
-ae_params = {
-    'n_code': 50,
-    'n_epochs': 100,
-    'embedding': VECTORS,
-    'batch_size': 100,
-    'n_hidden': 100,
-    'normalize_inputs': True,
-}
-
 RECOMMENDERS = [
     AAERecommender(use_title=False, adversarial=False, lr=0.0001,
                    **ae_params),
@@ -78,19 +68,53 @@ TITLE_ENHANCED = [
 ]
 
 
-def load(path):
+def load_dblp(path):
     """ Loads a single file """
     with open(path, 'r') as fhandle:
         obj = [json.loads(line.rstrip('\n')) for line in fhandle]
     return obj
 
 
-def papers_from_files(slices_dir, n_jobs=1, debug=False):
+def load_acm(path):
+    """ Loads a single file """
+    with open(path, 'r') as fhandle:
+        obj = []
+        paper = {}
+        paper["references"] = []
+
+        for line in fhandle:
+            line = line.rstrip('\n')
+
+            if len(line) == 0:
+                obj.append(paper)
+                paper = {}
+                paper["references"] = []
+
+            elif line[1] == '*':
+                paper["title"] = line[2:]
+            elif line[1] == '@':
+                paper["authors"] = line[2:].split(",")
+            elif line[1] == 't':
+                paper["year"] = int(line[2:])
+            elif line[1] == 'c':
+                paper["venue"] = line[2:]
+            elif line[1] == 'i':
+                paper["id"] = line[6:]
+            else:
+                paper["references"].append(line[2:])
+
+    return obj
+
+
+def papers_from_files(path, dataset, n_jobs=1, debug=False):
     """
     Loads a bunch of files into a list of papers,
     optionally sorted by id
     """
-    it = glob.iglob(os.path.join(slices_dir, '*.json'))
+    if dataset == "acm":
+        return load_acm(path)
+
+    it = glob.iglob(os.path.join(path, '*.json'))
     if debug:
         print("Debug mode: using only two slices")
         it = itertools.islice(it, 2)
@@ -98,7 +122,7 @@ def papers_from_files(slices_dir, n_jobs=1, debug=False):
     if n_jobs == 1:
         papers = []
         for i, fpath in enumerate(it):
-            papers.extend(load(fpath))
+            papers.extend(load_dblp(fpath))
             print("\r{}".format(i+1), end='', flush=True)
             if DEBUG_LIMIT and i > DEBUG_LIMIT:
                 # Stop after `DEBUG_LIMIT` files
@@ -113,8 +137,6 @@ def papers_from_files(slices_dir, n_jobs=1, debug=False):
 
 
 def aggregate_paper_info(paper, attributes):
-    if 'tracks' not in paper:
-        return ''
     acc = []
     for attribute in attributes:
         if attribute in paper:
@@ -163,11 +185,12 @@ def unpack_papers(papers, aggregate=None):
     return bags_of_refs, ids, {"title": side_info, "year": years}
 
 
-def main(year=None, min_count=None, outfile=None):
+def main(year, dataset, min_count=None, outfile=None):
     """ Main function for training and evaluating AAE methods on DBLP data """
-    print("Loading data from", DATA_PATH)
-    papers = papers_from_files(DATA_PATH, n_jobs=-1)
-    print("Unpacking json data...")
+    path = DATA_PATH + ("dblp/" if dataset == "dblp" else "acm.txt")
+    print("Loading data from", path)
+    papers = papers_from_files(path, dataset, n_jobs=1)
+    print("Unpacking {} data...".format(dataset))
     bags_of_papers, ids, side_info = unpack_papers(papers)
     del papers
     bags = Bags(bags_of_papers, ids, side_info)
@@ -190,12 +213,14 @@ def main(year=None, min_count=None, outfile=None):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-o', '--outfile',
-                        help="File to store the results.")
     parser.add_argument('year', type=int,
                         help='First year of the testing set.')
+    parser.add_argument('-d', '--dataset', type=str,
+                        help="Parse the DBLP or ACM dataset", default="dblp")
     parser.add_argument('-m', '--min-count', type=int,
                         help='Pruning parameter', default=50)
-    parser.add_argument('-o', '--outfile', type=str, default=None)
+    parser.add_argument('-o', '--outfile',
+                        help="File to store the results.",
+                        type=str, default=None)
     args = parser.parse_args()
-    main(year=args.year, min_count=args.min_count, outfile=args.outfile)
+    main(year=args.year, dataset=args.dataset, min_count=args.min_count, outfile=args.outfile)
