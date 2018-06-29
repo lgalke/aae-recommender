@@ -9,11 +9,11 @@ import os
 
 from joblib import Parallel, delayed
 
-from datasets import Bags
+from aaerec.datasets import Bags
 from mpd import log
-from evaluation import Evaluation
-from svd import SVDRecommender
-from baselines import Countbased
+from aaerec.evaluation import Evaluation
+from aaerec.svd import SVDRecommender
+from aaerec.baselines import Countbased
 from aaerec.aae import AAERecommender, DecodingRecommender
 from gensim.models.keyedvectors import KeyedVectors
 
