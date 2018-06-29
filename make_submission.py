@@ -109,8 +109,8 @@ def main():
     with open(args.outfile, 'w') as out:
         print('#', args, file=out)
 
-    print("Loading embedding:", W2V_PATH)
     if args.use_embedding:
+        print("Loading embedding:", W2V_PATH)
         vectors = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
     else:
         vectors = None
