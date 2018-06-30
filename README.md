@@ -9,12 +9,22 @@ Adversarial Autoencoders for Recommendation Tasks
 - scipy
 - sklearn
 - gensim
+- pandas
+- joblib
 
 If possible, numpy and scipy should be installed as system packages.
 The dependencies `gensim` and `sklearn` can be installed via `pip`.
 For pytorch, please refer to their [installation
 instructions](http://pytorch.org/) that depend on the python/CUDA setup you are
 working in.
+
+## Installation
+
+You can install this package and all necessary dependencies via pip.
+
+```sh
+pip install -e .
+```
 
 ## Running
 
