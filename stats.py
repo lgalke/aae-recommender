@@ -1,9 +1,20 @@
 import numpy as np
 from aaerec.datasets import Bags
+from aminer import unpack_papers
 # path = '../Data/Economics/econbiz62k.tsv'
 path = '../Data/PMC/citations_pmc.tsv'
-bags = Bags.load_tabcomma_format(path, unique=True)
-bags = bags.build_vocab(apply=True)
+dataset = "dblp"
+
+if dataset == "dblp" or dataset == "acm":
+    path = '/data22/ivagliano/aminer/'
+    path = path + ("dblp-ref/" if dataset == "dblp" else "acm.txt")
+    papers = papers_from_files(path, dataset, n_jobs=1)
+    print("Unpacking {} data...".format(dataset))
+    bags_of_papers, ids, side_info = unpack_papers(papers)
+else:
+    bags = Bags.load_tabcomma_format(path, unique=True)
+    bags = bags.build_vocab(apply=True)
+
 
 csr = bags.tocsr()
 print("N ratings:", csr.sum())
