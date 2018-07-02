@@ -1,4 +1,7 @@
+import matplotlib
+matplotlib.use('agg')
 import numpy as np
+import matplotlib.pyplot as plt
 from aaerec.datasets import Bags
 from aminer import unpack_papers, papers_from_files
 # path = '../Data/Economics/econbiz62k.tsv'
@@ -9,12 +12,28 @@ if dataset == "dblp" or dataset == "acm":
     path = '/data22/ivagliano/aminer/'
     path += ("dblp-ref/" if dataset == "dblp" else "acm.txt")
     papers = papers_from_files(path, dataset, n_jobs=1)
+
+    years = {}
+    for paper in papers:
+        try:
+            years[paper["year"]] += 1
+        except KeyError:
+            years[paper["year"]] = 0
+
+    y_pos = np.arange(len(years.keys()))
+    plt.bar(y_pos, years.values(), align='center', alpha=0.5)
+    plt.xticks(y_pos, years.keys())
+    plt.ylabel('Papers')
+    plt.title('Papers per year')
+    plt.savefig('papersPerYear_{}.pdf'.format(dataset))
+
     print("Unpacking {} data...".format(dataset))
     bags_of_papers, ids, side_info = unpack_papers(papers)
     bags = Bags(bags_of_papers, ids, side_info)
 else:
     bags = Bags.load_tabcomma_format(path, unique=True)
-    bags = bags.build_vocab(apply=True)
+
+bags = bags.build_vocab(apply=True)
 
 csr = bags.tocsr()
 print("N ratings:", csr.sum())

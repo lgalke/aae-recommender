@@ -5,3 +5,4 @@ torch
 gensim
 pandas
 joblib
+matplotlib
