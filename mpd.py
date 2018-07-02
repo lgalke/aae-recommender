@@ -11,11 +11,11 @@ import numpy as np
 import scipy.sparse as sp
 from joblib import Parallel, delayed
 
-from datasets import Bags, corrupt_sets
-from transforms import lists2sparse
-from evaluation import remove_non_missing, evaluate
-from baselines import Countbased
-from aae import AAERecommender, DecodingRecommender
+from aaerec.datasets import Bags, corrupt_sets
+from aaerec.transforms import lists2sparse
+from aaerec.evaluation import remove_non_missing, evaluate
+from aaerec.baselines import Countbased
+from aaerec.aae import AAERecommender, DecodingRecommender
 
 # Should work on kdsrv03
 DATA_PATH = "/data21/lgalke/MPD/data/"
