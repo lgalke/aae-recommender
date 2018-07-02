@@ -18,7 +18,7 @@ from aaerec.aae import AAERecommender, DecodingRecommender
 from gensim.models.keyedvectors import KeyedVectors
 
 # Should work on kdsrv03
-DATA_PATH = "/data21/lgalke/aminer/"
+DATA_PATH = "/data22/ivagliano/aminer/"
 DEBUG_LIMIT = None
 # Use only this many most frequent items
 N_ITEMS = 50000
@@ -187,7 +187,7 @@ def unpack_papers(papers, aggregate=None):
 
 def main(year, dataset, min_count=None, outfile=None):
     """ Main function for training and evaluating AAE methods on DBLP data """
-    path = DATA_PATH + ("dblp/" if dataset == "dblp" else "acm.txt")
+    path = DATA_PATH + ("dblp-ref/" if dataset == "dblp" else "acm.txt")
     print("Loading data from", path)
     papers = papers_from_files(path, dataset, n_jobs=1)
     print("Unpacking {} data...".format(dataset))
