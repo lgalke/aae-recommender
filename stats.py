@@ -17,6 +17,7 @@ def plot(objects, dataset, title):
     plt.ylabel('Papers')
     plt.title('Papers by {}'.format(title))
     plt.savefig('papers_by{}_{}.pdf'.format(title, dataset))
+    plt.close()
 
 
 def paper_by_n_citations(citations):
@@ -25,7 +26,7 @@ def paper_by_n_citations(citations):
     to a dictionary with citation numbers as keys and paper numbers as values
     '''
     papers_by_citations = {}
-    for paper in citations.keys()
+    for paper in citations.keys():
         try:
             papers_by_citations[citations[paper]] += 1
         except KeyError:
@@ -60,9 +61,12 @@ if dataset == "dblp" or dataset == "acm":
                 except KeyError:
                     citations[ref] = 1
 
+    print("Plotting paper distribution by year on file")
     plot(years, dataset, "year")
     if dataset == "acm":
         citations = paper_by_n_citations(citations)
+# FIXME add a new figure for the 2nd plot
+    print("Plotting paper distribution by number of citations on file")
     plot(citations, dataset, "number of citations")
 
     print("Unpacking {} data...".format(dataset))
