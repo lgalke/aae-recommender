@@ -13,12 +13,16 @@ if dataset == "dblp" or dataset == "acm":
     path += ("dblp-ref/" if dataset == "dblp" else "acm.txt")
     papers = papers_from_files(path, dataset, n_jobs=1)
 
-    years = {}
+    years, citations = {}, {}
     for paper in papers:
         try:
             years[paper["year"]] += 1
         except KeyError:
             years[paper["year"]] = 0
+        try:
+            citations[paper["citations"]] += 1
+        except KeyError:
+            citations = [paper["citations"]] = 0
 
     y_pos = np.arange(len(years.keys()))
     plt.bar(y_pos, years.values(), align='center', alpha=0.5)
@@ -26,10 +30,18 @@ if dataset == "dblp" or dataset == "acm":
     plt.ylabel('Papers')
     plt.title('Papers per year')
     plt.savefig('papersPerYear_{}.pdf'.format(dataset))
+    
+    y_pos = np.arange(len(citations.keys()))
+    plt.bar(y_pos, citations.values(), align='center', alpha=0.5)
+    plt.xticks(y_pos, citations.keys())
+    plt.ylabel('Papers')
+    plt.title('Papers by number of citations')
+    plt.savefig('papersByCitations_{}.pdf'.format(dataset))
 
     print("Unpacking {} data...".format(dataset))
     bags_of_papers, ids, side_info = unpack_papers(papers)
     bags = Bags(bags_of_papers, ids, side_info)
+
 else:
     bags = Bags.load_tabcomma_format(path, unique=True)
 
