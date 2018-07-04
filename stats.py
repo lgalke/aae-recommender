@@ -16,7 +16,7 @@ def plot(objects, dataset, title):
     plt.xticks(y_pos, objects.keys())
     plt.ylabel('Papers')
     plt.title('Papers by {}'.format(title))
-    plt.savefig('papers_by{}_{}.pdf'.format(title, dataset))
+    plt.savefig('papers_by_{}_{}.pdf'.format(title.replace(" ", "_"), dataset))
     plt.close()
 
 
