@@ -1,3 +1,4 @@
+import collections
 import matplotlib
 matplotlib.use('agg')
 import numpy as np
@@ -13,10 +14,11 @@ def compute_stats(A):
 def plot(objects, dataset, title):
     y_pos = np.arange(len(objects.keys()))
     plt.bar(y_pos, objects.values(), align='center', alpha=0.5)
-    plt.xticks(y_pos, objects.keys())
+    plt.xticks(y_pos, objects.keys(), rotation='vertical')
     plt.ylabel('Papers')
     plt.title('Papers by {}'.format(title))
     plt.savefig('papers_by_{}_{}.pdf'.format(title.replace(" ", "_"), dataset))
+    # plt.show()
     plt.close()
 
 
@@ -32,7 +34,7 @@ def paper_by_n_citations(citations):
         except KeyError:
             papers_by_citations[citations[paper]] += 1
 
-    return papers_by_citations
+    return collections.OrderedDict(sorted(papers_by_citations.items()))
 
 # path = '../Data/Economics/econbiz62k.tsv'
 path = '/data21/lgalke/PMC/citations_pmc.tsv'
@@ -61,11 +63,13 @@ if dataset == "dblp" or dataset == "acm":
                 except KeyError:
                     citations[ref] = 1
 
+    years = collections.OrderedDict(sorted(years.items()))
     print("Plotting paper distribution by year on file")
     plot(years, dataset, "year")
     if dataset == "acm":
         citations = paper_by_n_citations(citations)
 
+    citations = collections.OrderedDict(sorted(citations.items()))
     print("Plotting paper distribution by number of citations on file")
     plot(citations, dataset, "number of citations")
 
