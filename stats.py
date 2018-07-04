@@ -65,7 +65,7 @@ if dataset == "dblp" or dataset == "acm":
     plot(years, dataset, "year")
     if dataset == "acm":
         citations = paper_by_n_citations(citations)
-# FIXME add a new figure for the 2nd plot
+
     print("Plotting paper distribution by number of citations on file")
     plot(citations, dataset, "number of citations")
 
@@ -93,4 +93,3 @@ print("Items per document")
 print(FMT.format(*compute_stats(row_sums)))
 print("Documents per item")
 print(FMT.format(*compute_stats(column_sums)))
-
