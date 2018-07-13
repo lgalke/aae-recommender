@@ -15,6 +15,7 @@ from aaerec.datasets import Bags, corrupt_sets
 from aaerec.transforms import lists2sparse
 from aaerec.evaluation import remove_non_missing, evaluate
 from aaerec.baselines import Countbased
+from aaerec.svd import SVDRecommender
 from aaerec.aae import AAERecommender, DecodingRecommender
 
 # Should work on kdsrv03
@@ -22,6 +23,7 @@ DATA_PATH = "/data21/lgalke/MPD/data/"
 DEBUG_LIMIT = None
 # Use only this many most frequent items
 N_ITEMS = 50000
+N_WORDS = 50000
 # Use all present items
 # N_ITEMS = None
 
@@ -29,10 +31,14 @@ N_ITEMS = 50000
 METRICS = ['mrr', 'map']
 
 MODELS = [
-    Countbased(),
-    AAERecommender(adversarial=True, use_title=True, n_epochs=25),
-    AAERecommender(adversarial=False, use_title=True, n_epochs=25),
-    DecodingRecommender(n_epochs=25)
+    Countbased(),  # Only item sets
+    SVDRecommender(1000, use_title=False, max_features=N_WORDS),
+    AAERecommender(adversarial=True, use_title=False, n_epochs=25, max_features=N_WORDS),
+    AAERecommender(adversarial=False, use_title=False, n_epochs=25, max_features=N_WORDS),
+    SVDRecommender(1000, use_title=True, max_features=N_WORDS),  # Title-enhanced
+    AAERecommender(adversarial=True, use_title=True, n_epochs=25, max_features=N_WORDS),
+    AAERecommender(adversarial=False, use_title=True, n_epochs=25, max_features=N_WORDS),
+    DecodingRecommender(n_epochs=25)  # Only Title
     # Put more here...
 ]
 
@@ -168,7 +174,7 @@ def log(*print_args, logfile=None):
 def main(outfile=None):
     """ Main function for training and evaluating AAE methods on MDP data """
     print("Loading data from", DATA_PATH)
-    playlists = playlists_from_slices(DATA_PATH, n_jobs=-1)
+    playlists = playlists_from_slices(DATA_PATH, n_jobs=4)
     print("Unpacking json data...")
     bags_of_tracks, pids, side_info = unpack_playlists(playlists)
     del playlists

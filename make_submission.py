@@ -56,7 +56,7 @@ def make_submission(predictions,
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, defaule='aae',
+    parser.add_argument('--model', type=str, default='aae',
                         # All possible method should appear here
                         choices=['cm', 'svd', 'ae', 'aae', 'mlp'],
                         help="Specify the model to use [aae]")
