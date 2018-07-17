@@ -189,7 +189,7 @@ def main(year, dataset, min_count=None, outfile=None):
     """ Main function for training and evaluating AAE methods on DBLP data """
     path = DATA_PATH + ("dblp-ref/" if dataset == "dblp" else "acm.txt")
     print("Loading data from", path)
-    papers = papers_from_files(path, dataset, n_jobs=1)
+    papers = papers_from_files(path, dataset, n_jobs=4)
     print("Unpacking {} data...".format(dataset))
     bags_of_papers, ids, side_info = unpack_papers(papers)
     del papers

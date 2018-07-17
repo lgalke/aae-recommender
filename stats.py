@@ -11,7 +11,9 @@ def compute_stats(A):
     return A.shape[1], A.min(), A.max(), np.median(A, axis=1)[0,0], A.mean(), A.std()
 
 
-def plot(objects, dataset, title):
+def plot(objects, dataset, title, min_key):
+    if min_key != -1:
+    	objects = {x : objects[x] for x in objects if x >= min_key}
     y_pos = np.arange(len(objects.keys()))
     plt.bar(y_pos, objects.values(), align='center', alpha=0.5)
     plt.xticks(y_pos, objects.keys(), rotation='vertical')
@@ -48,7 +50,7 @@ if dataset == "dblp" or dataset == "acm":
     years, citations = {}, {}
     for paper in papers:
         try:
-            years[paper["year"]] += 1
+            years[paper["year"]] += 1 
         except KeyError:
             years[paper["year"]] = 0
         if dataset == "dblp":
@@ -57,6 +59,8 @@ if dataset == "dblp" or dataset == "acm":
             except KeyError:
                 citations[paper["n_citation"]] = 1
         else:
+            if "references" not in papers.keys():
+                continue
             for ref in paper["references"]:
                 try:
                     citations[ref] += 1
@@ -64,14 +68,24 @@ if dataset == "dblp" or dataset == "acm":
                     citations[ref] = 1
 
     years = collections.OrderedDict(sorted(years.items()))
+    sum = 0
+
+    for key, value in years.items():
+        sum += value
+        if sum/len(papers) >= 0.9:
+            print("90:10 ratio at year {}".format(key))
+            break
+
     print("Plotting paper distribution by year on file")
-    plot(years, dataset, "year")
+    # plot papers from 1970
+    plot(years, dataset, "year", 1970)
     if dataset == "acm":
         citations = paper_by_n_citations(citations)
 
     citations = collections.OrderedDict(sorted(citations.items()))
     print("Plotting paper distribution by number of citations on file")
-    plot(citations, dataset, "number of citations")
+    #plot papers with at least 100 citations
+    plot(citations, dataset, "number of citations", 100)
 
     print("Unpacking {} data...".format(dataset))
     bags_of_papers, ids, side_info = unpack_papers(papers)
