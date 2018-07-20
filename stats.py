@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from aaerec.datasets import Bags
 from aminer import unpack_papers, papers_from_files
 from fiv import load, parse_en_labels
+import re
 
 
 def compute_stats(A):
@@ -55,17 +56,25 @@ if dataset == "dblp" or dataset == "acm" or "swp":
     key = "year" if dataset != "swp" else "date"
     for paper in papers:
         try:
-            if key == "date" and len(paper[key]) > 4:
-                # FIXME manage properly
-                print(paper[key])
+            y = paper[key]
+            if key == "date" and len(y) > 4:
+                matches = re.findall(r'.*([1-3][0-9]{3})', y)
+                # if no or more than one match skip string
+                if len(matches) == 0 or len(matches) > 1:
+                    print(paper[key])
+                    continue
+                else:
+                    y = int(matches[0])
+                years[y] += 1
             else:
-                #FIXME check if convertion in int fails
                 years[int(paper[key])] += 1
         except KeyError:
             if key not in paper.keys():
                 # skip papers without a year
                 continue
-            years[int(paper[key])] = 0
+            years[int(y)] = 0
+        except ValueError:
+            continue
         if dataset == "dblp":
             try:
                 citations[paper["n_citation"]] += 1
