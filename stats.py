@@ -34,9 +34,9 @@ def paper_by_n_citations(citations):
         try:
             papers_by_citations[citations[paper]] += 1
         except KeyError:
-            papers_by_citations[citations[paper]] += 1
+            papers_by_citations[citations[paper]] = 1
 
-    return collections.OrderedDict(sorted(papers_by_citations.items()))
+    return papers_by_citations
 
 # path = '../Data/Economics/econbiz62k.tsv'
 path = '/data21/lgalke/PMC/citations_pmc.tsv'
@@ -52,6 +52,9 @@ if dataset == "dblp" or dataset == "acm":
         try:
             years[paper["year"]] += 1 
         except KeyError:
+            if "year" not in paper.keys():
+                # skip papers without a year
+                continue
             years[paper["year"]] = 0
         if dataset == "dblp":
             try:
@@ -59,7 +62,7 @@ if dataset == "dblp" or dataset == "acm":
             except KeyError:
                 citations[paper["n_citation"]] = 1
         else:
-            if "references" not in papers.keys():
+            if "references" not in paper.keys():
                 continue
             for ref in paper["references"]:
                 try:
