@@ -41,7 +41,7 @@ def paper_by_n_citations(citations):
 
 # path = '../Data/Economics/econbiz62k.tsv'
 path = '/data21/lgalke/PMC/citations_pmc.tsv'
-dataset = "dblp"
+dataset = "swp"
 
 if dataset == "dblp" or dataset == "acm" or "swp":
     if dataset != "swp":
@@ -55,12 +55,17 @@ if dataset == "dblp" or dataset == "acm" or "swp":
     key = "year" if dataset != "swp" else "date"
     for paper in papers:
         try:
-            years[paper[key]] += 1
+            if key == "date" and len(paper[key]) > 4:
+                # FIXME manage properly
+                print(paper[key])
+            else:
+                #FIXME check if convertion in int fails
+                years[int(paper[key])] += 1
         except KeyError:
             if key not in paper.keys():
                 # skip papers without a year
                 continue
-            years[paper[key]] = 0
+            years[int(paper[key])] = 0
         if dataset == "dblp":
             try:
                 citations[paper["n_citation"]] += 1
@@ -84,7 +89,8 @@ if dataset == "dblp" or dataset == "acm" or "swp":
                     citations[subject] = 1
 
     years = collections.OrderedDict(sorted(years.items()))
-    print("First year {}, last year {}".format(years.keys()[0], years.keys()[-1]))
+    l = list(years.keys())
+    print("First year {}, last year {}".format(l[0], l[-1]))
     cnt = 0
 
     for key, value in years.items():
