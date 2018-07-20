@@ -30,14 +30,16 @@ N_WORDS = 50000
 # These need to be implemented in evaluation.py
 METRICS = ['mrr', 'map']
 
+TFIDF_PARAMS = { 'max_features': N_WORDS }
+
 MODELS = [
     Countbased(),  # Only item sets
-    SVDRecommender(1000, use_title=False, max_features=N_WORDS),
-    AAERecommender(adversarial=True, use_title=False, n_epochs=25, max_features=N_WORDS),
-    AAERecommender(adversarial=False, use_title=False, n_epochs=25, max_features=N_WORDS),
-    SVDRecommender(1000, use_title=True, max_features=N_WORDS),  # Title-enhanced
-    AAERecommender(adversarial=True, use_title=True, n_epochs=25, max_features=N_WORDS),
-    AAERecommender(adversarial=False, use_title=True, n_epochs=25, max_features=N_WORDS),
+    SVDRecommender(1000, use_title=False, tfidf_params=TFIDF_PARAMS),
+    AAERecommender(adversarial=True, use_title=False, n_epochs=25, tfidf_params=TFIDF_PARAMS),
+    AAERecommender(adversarial=False, use_title=False, n_epochs=25, tfidf_params=TFIDF_PARAMS),
+    SVDRecommender(1000, use_title=True, tfidf_params=TFIDF_PARAMS),  # Title-enhanced
+    AAERecommender(adversarial=True, use_title=True, n_epochs=25, tfidf_params=TFIDF_PARAMS),
+    AAERecommender(adversarial=False, use_title=True, n_epochs=25, tfidf_params=TFIDF_PARAMS),
     DecodingRecommender(n_epochs=25)  # Only Title
     # Put more here...
 ]

@@ -90,7 +90,7 @@ def main():
     parser.add_argument('--lr', type=float, default=0.001,
                         help="Initial learning rate [0.001]")
     parser.add_argument('--code', type=int, default=100,
-                        help="Code dimension [50]")
+                        help="Code dimension [100]")
     args = parser.parse_args()
 
     # Either exclude and dev set, or no exclude and test set

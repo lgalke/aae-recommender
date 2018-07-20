@@ -326,8 +326,9 @@ class AutoEncoder():
 
             if condition is not None:
                 c_batch = condition[start:(start+self.batch_size)]
-                c_batch = c_batch.astype('float32').toarray()
-                c_batch = torch.from_numpy(c_batch)
+                if sp.issparse(c_batch):
+                    c_batch = c_batch.toarray()
+                c_batch = torch.FloatTensor(c_batch)
                 if torch.cuda.is_available():
                     c_batch = c_batch.cuda()
                 c_batch = Variable(c_batch)
