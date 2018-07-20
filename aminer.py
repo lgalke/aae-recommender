@@ -34,7 +34,7 @@ VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 
 ae_params = {
     'n_code': 50,
-    'n_epochs': 100,
+    'n_epochs': 20,
     'embedding': VECTORS,
     'batch_size': 100,
     'n_hidden': 100,
@@ -130,7 +130,7 @@ def papers_from_files(path, dataset, n_jobs=1, debug=False):
                 break
         print()
     else:
-        pps = Parallel(n_jobs=n_jobs, verbose=5)(delayed(load)(p) for p in it)
+        pps = Parallel(n_jobs=n_jobs, verbose=5)(delayed(load_dblp)(p) for p in it)
         papers = itertools.chain.from_iterable(pps)
 
     return papers
