@@ -57,8 +57,10 @@ if dataset == "dblp" or dataset == "acm" or "swp":
     for paper in papers:
         try:
             y = paper[key]
-            if key == "date" and len(y) > 4:
-                matches = re.findall(r'.*([1-3][0-9]{3})', y)
+            if key == "date" and len(y) < 4:
+                continue
+            if key == "date" and len(y) >= 4:
+                matches = re.findall(r'.*([1-2][0-9]{3})', y)
                 # if no or more than one match skip string
                 if len(matches) == 0 or len(matches) > 1:
                     print(paper[key])
