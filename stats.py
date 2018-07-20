@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from aaerec.datasets import Bags
 from aminer import unpack_papers, papers_from_files
+from fiv import load, parse_en_labels
 
 
 def compute_stats(A):
@@ -13,7 +14,7 @@ def compute_stats(A):
 
 def plot(objects, dataset, title, min_key):
     if min_key != -1:
-    	objects = {x : objects[x] for x in objects if x >= min_key}
+        objects = {x : objects[x] for x in objects if x >= min_key}
     y_pos = np.arange(len(objects.keys()))
     plt.bar(y_pos, objects.values(), align='center', alpha=0.5)
     plt.xticks(y_pos, objects.keys(), rotation='vertical')
@@ -42,26 +43,30 @@ def paper_by_n_citations(citations):
 path = '/data21/lgalke/PMC/citations_pmc.tsv'
 dataset = "dblp"
 
-if dataset == "dblp" or dataset == "acm":
-    path = '/data22/ivagliano/aminer/'
-    path += ("dblp-ref/" if dataset == "dblp" else "acm.txt")
-    papers = papers_from_files(path, dataset, n_jobs=1)
+if dataset == "dblp" or dataset == "acm" or "swp":
+    if dataset != "swp":
+        path = '/data22/ivagliano/aminer/'
+        path += ("dblp-ref/" if dataset == "dblp" else "acm.txt")
+        papers = papers_from_files(path, dataset, n_jobs=1)
+    else:
+        papers = load("/data22/ivagliano/SWP/FivMetadata.json")
 
     years, citations = {}, {}
+    key = "year" if dataset != "swp" else "date"
     for paper in papers:
         try:
-            years[paper["year"]] += 1 
+            years[paper[key]] += 1
         except KeyError:
-            if "year" not in paper.keys():
+            if key not in paper.keys():
                 # skip papers without a year
                 continue
-            years[paper["year"]] = 0
+            years[paper[key]] = 0
         if dataset == "dblp":
             try:
                 citations[paper["n_citation"]] += 1
             except KeyError:
                 citations[paper["n_citation"]] = 1
-        else:
+        elif dataset == "acm":
             if "references" not in paper.keys():
                 continue
             for ref in paper["references"]:
@@ -69,26 +74,36 @@ if dataset == "dblp" or dataset == "acm":
                     citations[ref] += 1
                 except KeyError:
                     citations[ref] = 1
+        else:
+            if "subjects" not in paper.keys():
+                continue
+            for subject in parse_en_labels(paper["subject"]):
+                try:
+                    citations[subject] += 1
+                except KeyError:
+                    citations[subject] = 1
 
     years = collections.OrderedDict(sorted(years.items()))
-    sum = 0
+    print("First year {}, last year {}".format(years.keys()[0], years.keys()[-1]))
+    cnt = 0
 
     for key, value in years.items():
-        sum += value
-        if sum/len(papers) >= 0.9:
+        cnt += value
+        if cnt/len(papers) >= 0.9:
             print("90:10 ratio at year {}".format(key))
             break
 
     print("Plotting paper distribution by year on file")
     # plot papers from 1970
     plot(years, dataset, "year", 1970)
-    if dataset == "acm":
+    if dataset == "acm" or dataset == "swp":
         citations = paper_by_n_citations(citations)
 
     citations = collections.OrderedDict(sorted(citations.items()))
-    print("Plotting paper distribution by number of citations on file")
-    #plot papers with at least 100 citations
-    plot(citations, dataset, "number of citations", 100)
+    x_dim = "citations" if dataset != "swp" else "occurrences"
+    print("Plotting paper distribution by number of {} on file".format(x_dim))
+    # plot papers with at least 100 citations
+    plot(citations, dataset, "number of {}".format(x_dim), 100)
 
     print("Unpacking {} data...".format(dataset))
     bags_of_papers, ids, side_info = unpack_papers(papers)
