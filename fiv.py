@@ -89,6 +89,8 @@ def clean(path, papers):
                     except ValueError:
                         print("Value error for {}".format(matches[0]))
                         continue
+            if (p["year"] > 2016):
+                continue
             write_file.write(json.dumps(p) + "\n")
 
 
@@ -117,7 +119,7 @@ def unpack_papers(papers):
         # Put all subjects assigned to the paper in here
         try:
             # Subject may be missing
-            bags_of_labels.append(parse_en_labels(paper["subject"]))
+            bags_of_labels.append(paper["subjects"])
         except KeyError:
             bags_of_labels.append([])
         # Use dict here such that we can also deal with unsorted ids
@@ -126,7 +128,7 @@ def unpack_papers(papers):
         except KeyError:
             side_info[paper["id"]] = ""
         try:
-            years[paper["id"]] = paper["date"]
+            years[paper["id"]] = paper["year"]
         except KeyError:
             years[paper["id"]] = -1
 
@@ -138,14 +140,16 @@ def unpack_papers(papers):
 
 def main(year, min_count=None, outfile=None):
     """ Main function for training and evaluating AAE methods on DBLP data """
-    print("Loading data from", DATA_PATH)
-    papers = load(DATA_PATH)
     if (CLEAN == True):
+        print("Loading data from", DATA_PATH)
+        papers = load(DATA_PATH)
         print("Cleaning data...")
         clean(CLEAN_DATA_PATH, papers)
         print("Clean data in {}".format(CLEAN_DATA_PATH))
         return
 
+    print("Loading data from", CLEAN_DATA_PATH)
+    papers = load(CLEAN_DATA_PATH)
     print("Unpacking {} data...".format(dataset))
     bags_of_papers, ids, side_info = unpack_papers(papers)
     del papers

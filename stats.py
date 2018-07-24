@@ -50,33 +50,17 @@ if dataset == "dblp" or dataset == "acm" or "swp":
         path += ("dblp-ref/" if dataset == "dblp" else "acm.txt")
         papers = papers_from_files(path, dataset, n_jobs=1)
     else:
-        papers = load("/data22/ivagliano/SWP/FivMetadata.json")
+        papers = load("/data22/ivagliano/SWP/FivMetadata_clean.json")
 
     years, citations = {}, {}
-    key = "year" if dataset != "swp" else "date"
     for paper in papers:
         try:
-            y = paper[key]
-            if key == "date" and len(y) < 4:
-                continue
-            if key == "date" and len(y) >= 4:
-                matches = re.findall(r'.*([1-2][0-9]{3})', y)
-                # if no or more than one match skip string
-                if len(matches) == 0 or len(matches) > 1:
-                    print(paper[key])
-                    continue
-                else:
-                    y = int(matches[0])
-                years[y] += 1
-            else:
-                years[int(paper[key])] += 1
+             years[paper["year"]] += 1 
         except KeyError:
-            if key not in paper.keys():
+            if "year" not in paper.keys():
                 # skip papers without a year
                 continue
-            years[int(y)] = 0
-        except ValueError:
-            continue
+            years[paper["year"]] = 0
         if dataset == "dblp":
             try:
                 citations[paper["n_citation"]] += 1
@@ -93,7 +77,7 @@ if dataset == "dblp" or dataset == "acm" or "swp":
         else:
             if "subjects" not in paper.keys():
                 continue
-            for subject in parse_en_labels(paper["subject"]):
+            for subject in paper["subjects"]:
                 try:
                     citations[subject] += 1
                 except KeyError:
