@@ -11,9 +11,12 @@ from aaerec.svd import SVDRecommender
 from aaerec.baselines import Countbased
 from aaerec.aae import AAERecommender, DecodingRecommender
 from gensim.models.keyedvectors import KeyedVectors
+import re
 
 # Should work on kdsrv03
 DATA_PATH = "/data22/ivagliano/SWP/FivMetadata.json"
+CLEAN_DATA_PATH = "/data22/ivagliano/SWP/FivMetadata_clean.json"
+CLEAN = False
 DEBUG_LIMIT = None
 METRICS = ['mrr', 'map']
 
@@ -64,6 +67,31 @@ def load(path):
     return obj
 
 
+def clean(path, papers):
+    with open(path, "w") as write_file:
+        for p in papers:
+            try:
+                p["year"] = p.pop("date")
+            except KeyError:
+                continue
+            p["subjects"] = parse_en_labels(p.pop("subject"))
+            if len(p["year"]) < 4:
+                continue
+            if len(p["year"]) >= 4:
+                matches = re.findall(r'.*([1-2][0-9]{3})', p["year"])
+                # if no or more than one match skip string
+                if len(matches) == 0 or len(matches) > 1:
+                    print("no match for {}".format(p["year"]))
+                    continue
+                else:
+                    try:
+                        p["year"] = int(matches[0])
+                    except ValueError:
+                        print("Value error for {}".format(matches[0]))
+                        continue
+            write_file.write(json.dumps(p) + "\n")
+
+
 def parse_en_labels(subjects):
     """
     From subjects in the json formats to a list of english descriptors of subjects
@@ -108,10 +136,16 @@ def unpack_papers(papers):
     return bags_of_labels, ids, {"title": side_info, "year": years}
 
 
-def main(year, dataset, min_count=None, outfile=None):
+def main(year, min_count=None, outfile=None):
     """ Main function for training and evaluating AAE methods on DBLP data """
     print("Loading data from", DATA_PATH)
     papers = load(DATA_PATH)
+    if (CLEAN == True):
+        print("Cleaning data...")
+        clean(CLEAN_DATA_PATH, papers)
+        print("Clean data in {}".format(CLEAN_DATA_PATH))
+        return
+
     print("Unpacking {} data...".format(dataset))
     bags_of_papers, ids, side_info = unpack_papers(papers)
     del papers
@@ -137,12 +171,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('year', type=int,
                         help='First year of the testing set.')
-    parser.add_argument('-d', '--dataset', type=str,
-                        help="Parse the DBLP or ACM dataset", default="dblp")
     parser.add_argument('-m', '--min-count', type=int,
                         help='Pruning parameter', default=50)
     parser.add_argument('-o', '--outfile',
                         help="File to store the results.",
                         type=str, default=None)
     args = parser.parse_args()
-    main(year=args.year, dataset=args.dataset, min_count=args.min_count, outfile=args.outfile)
+    main(year=args.year, min_count=args.min_count, outfile=args.outfile)
