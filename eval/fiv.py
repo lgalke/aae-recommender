@@ -3,15 +3,16 @@ Executable to run AAE on the IREON dataset
 """
 import argparse
 import json
+import re
 
+from gensim.models.keyedvectors import KeyedVectors
+
+from aaerec.aae import AAERecommender, DecodingRecommender
+from aaerec.baselines import Countbased
 from aaerec.datasets import Bags
-from mpd import log
 from aaerec.evaluation import Evaluation
 from aaerec.svd import SVDRecommender
-from aaerec.baselines import Countbased
-from aaerec.aae import AAERecommender, DecodingRecommender
-from gensim.models.keyedvectors import KeyedVectors
-import re
+from eval.mpd.mpd import log
 
 # Should work on kdsrv03
 DATA_PATH = "/data22/ivagliano/SWP/FivMetadata.json"

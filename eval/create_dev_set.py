@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 import argparse
-import os
 import json
-from collections import Counter
-from datetime import date
-
+import os
 import random
+from datetime import date
 
 import numpy as np
 
-from mpd import playlists_from_slices
+from eval.mpd.mpd import playlists_from_slices
 
 # Ratio between named and nameless playlists
 P_NAMELESS = 0.2

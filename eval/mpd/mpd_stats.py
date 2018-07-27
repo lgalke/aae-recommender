@@ -3,7 +3,8 @@ from collections import Counter
 
 import numpy as np
 
-from mpd import load
+from eval.mpd.mpd import load
+
 
 def main():
     parser = argparse.ArgumentParser()

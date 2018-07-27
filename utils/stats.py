@@ -1,12 +1,13 @@
 import collections
+
 import matplotlib
+
 matplotlib.use('agg')
 import numpy as np
 import matplotlib.pyplot as plt
 from aaerec.datasets import Bags
-from aminer import unpack_papers, papers_from_files
-from fiv import load, parse_en_labels
-import re
+from eval.aminer import unpack_papers, papers_from_files
+from eval.fiv import load
 
 
 def compute_stats(A):

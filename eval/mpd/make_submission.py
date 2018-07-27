@@ -3,21 +3,20 @@
 Executable to make a submission using AAE on the Spotify MDP dataset
 """
 import argparse
-import os
 import csv
+import os
 
 import numpy as np
 import scipy.sparse as sp
 from gensim.models.keyedvectors import KeyedVectors
 
-from aaerec.datasets import Bags
-from aaerec.baselines import Countbased
 from aaerec.aae import AAERecommender, DecodingRecommender
-from aaerec.svd import SVDRecommender
+from aaerec.baselines import Countbased
+from aaerec.datasets import Bags
 from aaerec.evaluation import remove_non_missing, argtopk
-
-from mpd import playlists_from_slices, unpack_playlists, load
-from mpd import TRACK_INFO
+from aaerec.svd import SVDRecommender
+from eval.mpd.mpd import TRACK_INFO
+from eval.mpd.mpd import playlists_from_slices, unpack_playlists, load
 
 MPD_BASE_PATH = "/data21/lgalke/MPD"
 

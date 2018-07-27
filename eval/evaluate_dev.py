@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 import argparse
 
-from mpd import playlists_from_slices, DATA_PATH
 from mpd_metrics import aggregate_metrics
+
+from eval.mpd.mpd import playlists_from_slices, DATA_PATH
 
 
 def load_submission(path):
