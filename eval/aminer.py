@@ -15,7 +15,7 @@ from aaerec.baselines import Countbased
 from aaerec.datasets import Bags
 from aaerec.evaluation import Evaluation
 from aaerec.svd import SVDRecommender
-from eval.mpd.mpd import log
+from mpd.mpd import log
 
 # Should work on kdsrv03
 DATA_PATH = "/data22/ivagliano/aminer/"
