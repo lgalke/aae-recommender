@@ -6,8 +6,8 @@ matplotlib.use('agg')
 import numpy as np
 import matplotlib.pyplot as plt
 from aaerec.datasets import Bags
-from eval.aminer import unpack_papers, papers_from_files
-from eval.fiv import load
+from aminer import unpack_papers, papers_from_files
+from fiv import load
 
 
 def compute_stats(A):
