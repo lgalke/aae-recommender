@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from aaerec.datasets import Bags
 from aminer import unpack_papers, papers_from_files
-from fiv import load
+from fiv import load, unpack_papers as unpack_papers_fiv
 
 
 def compute_stats(A):
@@ -45,12 +45,13 @@ def paper_by_n_citations(citations):
 path = '/data21/lgalke/PMC/citations_pmc.tsv'
 dataset = "swp"
 
-if dataset == "dblp" or dataset == "acm" or "swp":
+if dataset == "dblp" or dataset == "acm" or dataset == "swp":
     if dataset != "swp":
         path = '/data22/ivagliano/aminer/'
         path += ("dblp-ref/" if dataset == "dblp" else "acm.txt")
         papers = papers_from_files(path, dataset, n_jobs=1)
     else:
+        print("Loading SWP dataset")
         papers = load("/data22/ivagliano/SWP/FivMetadata_clean.json")
 
     years, citations = {}, {}
@@ -108,7 +109,10 @@ if dataset == "dblp" or dataset == "acm" or "swp":
     plot(citations, dataset, "number of {}".format(x_dim), 100)
 
     print("Unpacking {} data...".format(dataset))
-    bags_of_papers, ids, side_info = unpack_papers(papers)
+    if dataset != "swp":
+        bags_of_papers, ids, side_info = unpack_papers(papers)
+    else:
+        bags_of_papers, ids, side_info = unpack_papers_fiv(papers)
     bags = Bags(bags_of_papers, ids, side_info)
 
 else:
