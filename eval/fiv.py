@@ -140,7 +140,7 @@ def unpack_papers(papers):
 
 
 def main(year, min_count=None, outfile=None):
-    """ Main function for training and evaluating AAE methods on DBLP data """
+    """ Main function for training and evaluating AAE methods on IREON data """
     if (CLEAN == True):
         print("Loading data from", DATA_PATH)
         papers = load(DATA_PATH)
@@ -151,7 +151,7 @@ def main(year, min_count=None, outfile=None):
 
     print("Loading data from", CLEAN_DATA_PATH)
     papers = load(CLEAN_DATA_PATH)
-    print("Unpacking {} data...".format(dataset))
+    print("Unpacking IREON data...")
     bags_of_papers, ids, side_info = unpack_papers(papers)
     del papers
     bags = Bags(bags_of_papers, ids, side_info)
