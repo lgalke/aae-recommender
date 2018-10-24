@@ -1,15 +1,25 @@
 """
 Executable to run AAE on the Spotify Million Playlist Dataset
+
+Run via:
+
+`python3 eval/mpd/mpd.py -o logfile.txt`
+
 """
 import argparse
 import glob
 import itertools
 import json
 import os
+import sys
 
 import numpy as np
 import scipy.sparse as sp
 from joblib import Parallel, delayed
+
+
+# Imports are broken, you can quickfix via symlink
+# cd eval/mpd/; ln -s ../../aaerec aaerec
 
 from aaerec.datasets import Bags, corrupt_sets
 from aaerec.transforms import lists2sparse
@@ -28,8 +38,6 @@ MIN_COUNT = 50
 
 
 N_WORDS = 50000
-# Use all present items
-# N_ITEMS = None
 
 # These need to be implemented in evaluation.py
 METRICS = ['mrr', 'map']
