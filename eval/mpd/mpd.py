@@ -22,7 +22,11 @@ from aaerec.aae import AAERecommender, DecodingRecommender
 DATA_PATH = "/data21/lgalke/MPD/data/"
 DEBUG_LIMIT = None
 # Use only this many most frequent items
-N_ITEMS = 50000
+N_ITEMS = None
+# Use only items that appear this many times
+MIN_COUNT = 50
+
+
 N_WORDS = 50000
 # Use all present items
 # N_ITEMS = None
@@ -138,7 +142,7 @@ def unpack_playlists(playlists, aggregate=None):
     return bags_of_tracks, pids, {"title": side_info}
 
 
-def prepare_evaluation(bags, test_size=0.1, n_items=None):
+def prepare_evaluation(bags, test_size=0.1, n_items=None, min_count=None):
     """
     Split data into train and dev set.
     Build vocab on train set and applies it to both train and test set.
@@ -148,6 +152,7 @@ def prepare_evaluation(bags, test_size=0.1, n_items=None):
     # Builds vocabulary only on training set
     # Limit of most frequent 50000 distinct items is for testing purposes
     vocab, __counts = train_set.build_vocab(max_features=n_items,
+                                            min_count=min_count,
                                             apply=False)
 
     # Apply vocab (turn track ids into indices)
@@ -183,7 +188,9 @@ def main(outfile=None):
     bags = Bags(bags_of_tracks, pids, side_info)
     log("Whole dataset:", logfile=outfile)
     log(bags, logfile=outfile)
-    train_set, dev_set, y_test = prepare_evaluation(bags, n_items=N_ITEMS)
+    train_set, dev_set, y_test = prepare_evaluation(bags,
+                                                    n_items=N_ITEMS,
+                                                    min_count=MIN_COUNT)
 
     log("Train set:", logfile=outfile)
     log(train_set, logfile=outfile)
