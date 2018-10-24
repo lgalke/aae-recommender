@@ -34,7 +34,8 @@ DEBUG_LIMIT = None
 # Use only this many most frequent items
 N_ITEMS = None
 # Use only items that appear this many times
-MIN_COUNT = 50
+# MIN_COUNT = 50
+# Use command line arg '-m' instead
 
 
 N_WORDS = 50000
@@ -185,8 +186,7 @@ def log(*print_args, logfile=None):
     print(*print_args)
 
 
-
-def main(outfile=None):
+def main(outfile=None, min_count=None):
     """ Main function for training and evaluating AAE methods on MDP data """
     print("Loading data from", DATA_PATH)
     playlists = playlists_from_slices(DATA_PATH, n_jobs=4)
@@ -198,7 +198,7 @@ def main(outfile=None):
     log(bags, logfile=outfile)
     train_set, dev_set, y_test = prepare_evaluation(bags,
                                                     n_items=N_ITEMS,
-                                                    min_count=MIN_COUNT)
+                                                    min_count=min_count)
 
     log("Train set:", logfile=outfile)
     log(train_set, logfile=outfile)
@@ -245,5 +245,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-o', '--outfile',
                         help="File to store the results.")
+    parser.add_argument('-m', '--min-count', type=int,
+                        default=None,
+                        help="Minimum count of items")
     args = parser.parse_args()
-    main(outfile=args.outfile)
+    print(args)
+    main(outfile=args.outfile, min_count=args.min_count)
