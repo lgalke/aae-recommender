@@ -1,15 +1,25 @@
 """
 Executable to run AAE on the Spotify Million Playlist Dataset
+
+Run via:
+
+`python3 eval/mpd/mpd.py -o logfile.txt`
+
 """
 import argparse
 import glob
 import itertools
 import json
 import os
+import sys
 
 import numpy as np
 import scipy.sparse as sp
 from joblib import Parallel, delayed
+
+
+# Imports are broken, you can quickfix via symlink
+# cd eval/mpd/; ln -s ../../aaerec aaerec
 
 from aaerec.datasets import Bags, corrupt_sets
 from aaerec.transforms import lists2sparse
@@ -22,10 +32,13 @@ from aaerec.aae import AAERecommender, DecodingRecommender
 DATA_PATH = "/data21/lgalke/MPD/data/"
 DEBUG_LIMIT = None
 # Use only this many most frequent items
-N_ITEMS = 50000
+N_ITEMS = None
+# Use only items that appear this many times
+# MIN_COUNT = 50
+# Use command line arg '-m' instead
+
+
 N_WORDS = 50000
-# Use all present items
-# N_ITEMS = None
 
 # These need to be implemented in evaluation.py
 METRICS = ['mrr', 'map']
@@ -138,7 +151,7 @@ def unpack_playlists(playlists, aggregate=None):
     return bags_of_tracks, pids, {"title": side_info}
 
 
-def prepare_evaluation(bags, test_size=0.1, n_items=None):
+def prepare_evaluation(bags, test_size=0.1, n_items=None, min_count=None):
     """
     Split data into train and dev set.
     Build vocab on train set and applies it to both train and test set.
@@ -148,6 +161,7 @@ def prepare_evaluation(bags, test_size=0.1, n_items=None):
     # Builds vocabulary only on training set
     # Limit of most frequent 50000 distinct items is for testing purposes
     vocab, __counts = train_set.build_vocab(max_features=n_items,
+                                            min_count=min_count,
                                             apply=False)
 
     # Apply vocab (turn track ids into indices)
@@ -172,8 +186,7 @@ def log(*print_args, logfile=None):
     print(*print_args)
 
 
-
-def main(outfile=None):
+def main(outfile=None, min_count=None):
     """ Main function for training and evaluating AAE methods on MDP data """
     print("Loading data from", DATA_PATH)
     playlists = playlists_from_slices(DATA_PATH, n_jobs=4)
@@ -183,7 +196,9 @@ def main(outfile=None):
     bags = Bags(bags_of_tracks, pids, side_info)
     log("Whole dataset:", logfile=outfile)
     log(bags, logfile=outfile)
-    train_set, dev_set, y_test = prepare_evaluation(bags, n_items=N_ITEMS)
+    train_set, dev_set, y_test = prepare_evaluation(bags,
+                                                    n_items=N_ITEMS,
+                                                    min_count=min_count)
 
     log("Train set:", logfile=outfile)
     log(train_set, logfile=outfile)
@@ -230,5 +245,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-o', '--outfile',
                         help="File to store the results.")
+    parser.add_argument('-m', '--min-count', type=int,
+                        default=None,
+                        help="Minimum count of items")
     args = parser.parse_args()
-    main(outfile=args.outfile)
+    print(args)
+    main(outfile=args.outfile, min_count=args.min_count)
