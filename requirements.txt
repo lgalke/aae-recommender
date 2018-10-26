@@ -6,3 +6,5 @@ gensim
 pandas
 joblib
 matplotlib
+seaborn
+
