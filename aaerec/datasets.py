@@ -331,7 +331,7 @@ class Bags(object):
         """
         # loading
         # TODO FIXME make the year and the month column int? c0
-        df = pd.read_csv(path, sep="\t", dtype=str)
+        df = pd.read_csv(path, sep="\t", dtype=str, error_bad_lines=False)
         df = df.fillna("")
 
         header = list(df.columns.values)
