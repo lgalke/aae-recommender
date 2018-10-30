@@ -46,7 +46,7 @@ ae_params = {
 
 MODELS = [
     Countbased(),  # Only item sets
-    SVDRecommender(1000, use_title=False),
+    SVDRecommender(10, use_title=False),
     AAERecommender(adversarial=False, use_title=False, lr=0.0001,
                    **ae_params),
     AAERecommender(adversarial=True, use_title=False, prior='gauss', gen_lr=0.0001,
