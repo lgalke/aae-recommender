@@ -52,7 +52,7 @@ MODELS = [
     AAERecommender(adversarial=True, use_title=False, prior='gauss', gen_lr=0.0001,
                    reg_lr=0.0001, **ae_params),
     # Title-enhanced
-    SVDRecommender(1000, use_title=True),
+    SVDRecommender(10, use_title=True),
     AAERecommender(adversarial=False, use_title=True, lr=0.001,
                    **ae_params),
     AAERecommender(adversarial=True, use_title=True, prior='gauss', gen_lr=0.0001,
