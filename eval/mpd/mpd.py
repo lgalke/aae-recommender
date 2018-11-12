@@ -16,7 +16,7 @@ import sys
 import numpy as np
 import scipy.sparse as sp
 from joblib import Parallel, delayed
-
+from gensim.models.keyedvectors import KeyedVectors
 
 # Imports are broken, you can quickfix via symlink
 # cd eval/mpd/; ln -s ../../aaerec aaerec
@@ -38,23 +38,34 @@ N_ITEMS = None
 # Use command line arg '-m' instead
 
 
-N_WORDS = 50000
+#N_WORDS = 50000
+#TFIDF_PARAMS = { 'max_features': N_WORDS }
+
+W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
+W2V_IS_BINARY = True
+VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 
 # These need to be implemented in evaluation.py
 METRICS = ['mrr', 'map']
 
-TFIDF_PARAMS = { 'max_features': N_WORDS }
 
 MODELS = [
     Countbased(),  # Only item sets
-    SVDRecommender(1000, use_title=False, tfidf_params=TFIDF_PARAMS),
-    AAERecommender(adversarial=True, use_title=False, n_epochs=25, tfidf_params=TFIDF_PARAMS),
-    AAERecommender(adversarial=False, use_title=False, n_epochs=25, tfidf_params=TFIDF_PARAMS),
-    SVDRecommender(1000, use_title=True, tfidf_params=TFIDF_PARAMS),  # Title-enhanced
-    AAERecommender(adversarial=True, use_title=True, n_epochs=25, tfidf_params=TFIDF_PARAMS),
-    AAERecommender(adversarial=False, use_title=True, n_epochs=25, tfidf_params=TFIDF_PARAMS),
-    DecodingRecommender(n_epochs=25)  # Only Title
+    #SVDRecommender(1000, use_title=False, tfidf_params=TFIDF_PARAMS),
+    #AAERecommender(adversarial=True, use_title=False, n_epochs=25, tfidf_params=TFIDF_PARAMS),
+    #AAERecommender(adversarial=False, use_title=False, n_epochs=25, tfidf_params=TFIDF_PARAMS),
+    #SVDRecommender(1000, use_title=True, tfidf_params=TFIDF_PARAMS),  # Title-enhanced
+    #AAERecommender(adversarial=True, use_title=True, n_epochs=25, tfidf_params=TFIDF_PARAMS),
+    #AAERecommender(adversarial=False, use_title=True, n_epochs=25, tfidf_params=TFIDF_PARAMS),
+    #DecodingRecommender(n_epochs=25)  # Only Title
     # Put more here...
+    SVDRecommender(1000, use_title=False),
+    AAERecommender(adversarial=True, use_title=False, n_epochs=25, embedding=VECTORS),
+    AAERecommender(adversarial=False, use_title=False, n_epochs=25, embedding=VECTORS),
+    SVDRecommender(1000, use_title=True),  # Title-enhanced
+    AAERecommender(adversarial=True, use_title=True, n_epochs=25, embedding=VECTORS),
+    AAERecommender(adversarial=False, use_title=True, n_epochs=25, embedding=VECTORS),
+    DecodingRecommender(n_epochs=25, embedding=VECTORS)  # Only Title
 ]
 
 
