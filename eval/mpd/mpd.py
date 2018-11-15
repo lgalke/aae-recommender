@@ -50,22 +50,17 @@ METRICS = ['mrr', 'map']
 
 
 MODELS = [
-    Countbased(),  # Only item sets
-    #SVDRecommender(1000, use_title=False, tfidf_params=TFIDF_PARAMS),
-    #AAERecommender(adversarial=True, use_title=False, n_epochs=25, tfidf_params=TFIDF_PARAMS),
-    #AAERecommender(adversarial=False, use_title=False, n_epochs=25, tfidf_params=TFIDF_PARAMS),
-    #SVDRecommender(1000, use_title=True, tfidf_params=TFIDF_PARAMS),  # Title-enhanced
-    #AAERecommender(adversarial=True, use_title=True, n_epochs=25, tfidf_params=TFIDF_PARAMS),
-    #AAERecommender(adversarial=False, use_title=True, n_epochs=25, tfidf_params=TFIDF_PARAMS),
-    #DecodingRecommender(n_epochs=25)  # Only Title
-    # Put more here...
+    # Only item sets
+    Countbased(),
     SVDRecommender(1000, use_title=False),
-    AAERecommender(adversarial=True, use_title=False, n_epochs=50, embedding=VECTORS),
-    AAERecommender(adversarial=False, use_title=False, n_epochs=50, embedding=VECTORS),
-    SVDRecommender(1000, use_title=True),  # Title-enhanced
-    AAERecommender(adversarial=True, use_title=True, n_epochs=50, embedding=VECTORS),
-    AAERecommender(adversarial=False, use_title=True, n_epochs=50, embedding=VECTORS),
-    DecodingRecommender(n_epochs=50, embedding=VECTORS)  # Only Title
+    AAERecommender(adversarial=True, use_title=False, n_epochs=55, embedding=VECTORS),
+    AAERecommender(adversarial=False, use_title=False, n_epochs=55, embedding=VECTORS),
+    # Title-enhanced
+    SVDRecommender(1000, use_title=True),
+    AAERecommender(adversarial=True, use_title=True, n_epochs=55, embedding=VECTORS),
+    AAERecommender(adversarial=False, use_title=True, n_epochs=55, embedding=VECTORS),
+    DecodingRecommender(n_epochs=55, embedding=VECTORS)
+    # Put more here...
 ]
 
 
