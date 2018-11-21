@@ -41,9 +41,10 @@ def paper_by_n_citations(citations):
 
     return papers_by_citations
 
-# path = '../Data/Economics/econbiz62k.tsv'
-path = '/data21/lgalke/PMC/citations_pmc.tsv'
-dataset = "swp"
+# path = '/data21/lgalke/datasets/econbiz62k.tsv'
+# path = '/data21/lgalke/datasets/PMC/citations_pmc.tsv'
+path = '/data22/ivagliano/Reuters/rcv1.tsv'
+dataset = "rcv"
 
 if dataset == "dblp" or dataset == "acm" or dataset == "swp":
     if dataset != "swp":
@@ -116,6 +117,7 @@ if dataset == "dblp" or dataset == "acm" or dataset == "swp":
     bags = Bags(bags_of_papers, ids, side_info)
 
 else:
+    print("Unpacking {} data...".format(dataset))
     bags = Bags.load_tabcomma_format(path, unique=True)
 
 bags = bags.build_vocab(apply=True)
