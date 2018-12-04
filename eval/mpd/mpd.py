@@ -29,8 +29,8 @@ from aaerec.svd import SVDRecommender
 from aaerec.aae import AAERecommender, DecodingRecommender
 
 # Should work on kdsrv03
-DATA_PATH = "/data21/lgalke/MPD/data/"
-DEBUG_LIMIT = None
+DATA_PATH = "/workData/zbw/citation/local_data"
+DEBUG_LIMIT = 1000
 # Use only this many most frequent items
 N_ITEMS = None
 # Use only items that appear this many times
@@ -43,6 +43,8 @@ N_WORDS = 50000
 # These need to be implemented in evaluation.py
 METRICS = ['mrr', 'map']
 
+
+TRACK_INFO = ['artist_name', 'track_name', 'album_name']
 TFIDF_PARAMS = { 'max_features': N_WORDS }
 
 MODELS = [
@@ -115,9 +117,6 @@ def aggregate_track_info(playlist, attributes):
     return ' '.join(acc)
 
 
-TRACK_INFO = ['artist_name', 'track_name', 'album_name']
-
-
 def unpack_playlists(playlists, aggregate=None):
     """
     Unpacks list of playlists in a way that is compatible with our Bags dataset
@@ -149,6 +148,44 @@ def unpack_playlists(playlists, aggregate=None):
     # In side info the pid is the key
     # Re-use 'title' property here because methods rely on it
     return bags_of_tracks, pids, {"title": side_info}
+
+
+
+def unpack_playlists_for_models_concatenated(playlists,condition_name, aggregate=None):
+    """
+    Unpacks list of playlists in a way that makes them ready for the models .train step.
+    It is not mandatory that playlists are sorted.
+    :param playlists: a dictionary, of playlists
+    :param aggregate: an iterable, of potential names in the track model name space
+    :param condition_name: a string, side info name, which to retrieve
+    :return:
+    """
+    # Assume track_uri is primary key for track
+    if aggregate is not None:
+        for attr in aggregate:
+            assert attr in TRACK_INFO
+
+    bags_of_tracks, side_info = [], {}
+    for playlist in playlists:
+        # Put all tracks of the playlists in here
+        bags_of_tracks.append([t["track_uri"] for t in playlist["tracks"]])
+        # ignore: Use dict here such that we can also deal with unsorted pids
+        # Use list (numpy array?) here as the order needs to be stable for train/test split
+        try:
+            side_info[playlist["pid"]] = playlist["name"]
+        except KeyError:
+            side_info[playlist["pid"]] = ""
+
+        # We could assemble even more side info here from the track names
+        if aggregate is not None:
+            aggregated_track_info = aggregate_track_info(playlist, aggregate)
+            side_info[playlist["pid"]] += ' ' + aggregated_track_info
+
+    # bag_of_tracks and pids should have corresponding indices
+    # In side info the pid is the key
+    # Re-use 'title' property here because methods rely on it
+    return bags_of_tracks, {"title": side_info}
+
 
 
 def prepare_evaluation(bags, test_size=0.1, n_items=None, min_count=None):

@@ -220,9 +220,17 @@ class AutoEncoder():
         self.enc.zero_grad()
         self.dec.zero_grad()
 
+    # why is this double? to AdversarialAutoEncoder
     def ae_step(self, batch, condition=None):
-        """ Perform one autoencoder training step """
+        """
+        Perform one autoencoder training step
+            :param batch: # self.enc() based in models
+            :param condition: I belive:
+            :return: I belive: binary_cross_entropy for this step
+            """
         z_sample = self.enc(batch)
+        # what is "condition"?
+
         if condition is not None:
             z_sample = torch.cat((z_sample, condition), 1)
 
@@ -531,11 +539,27 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         self.dec.zero_grad()
         self.disc.zero_grad()
 
-    def ae_step(self, batch, condition=None):
-        """ Perform one autoencoder training step """
+    # why is this double? to AdversarialAutoEncoder
+    def ae_step(self, batch, condition=None, conditions=None):
+        """
+        # why is this double? to
+        Perform one autoencoder training step
+        :param batch:
+        :param condition: ??? ~ training_set.get_attribute("title") <~ side_info = unpack_playlists(playlists)
+        :return:
+        """
+        print("batch",batch,"condition",condition)
         z_sample = self.enc(batch)
+        # what is condition?
         if condition is not None:
             z_sample = torch.cat((z_sample, condition), 1)
+
+        # diesen teil rausziehen, weil der concat ist --> ggf neue
+        if conditions is not None:
+            # there might be several "conditions"
+            for cond in conditions:
+                z_sample = torch.cat((z_sample, cond), 1)
+
 
         x_sample = self.dec(z_sample)
         recon_loss = F.binary_cross_entropy(x_sample + TINY,
@@ -761,8 +785,21 @@ class AAERecommender(Recommender):
             else:
                 self.vect = TfidfVectorizer(**self.tfidf_params)
 
+
+            # change the attributes/conditions/side_infos here
+
+
             titles = training_set.get_attribute("title")
             titles = self.vect.fit_transform(titles)
+
+            # möglichkeit zum anderen vectorisieren -> muss für kleine Batches dann acuh gemacht werden --> in klasse speichern
+            # Lukas Idee: Objektorientiert ~"condition" beerbt von nn.module  .encode um batch von callback (= mitgegebene funktion) transformieren
+            # in dem Falll in forward methode
+            # wie kann man das anhand vom globalen Loss abhängig ändern, da on the fly gelernt
+            # und nicht im preprocessing. ~~> etwas wie backpropagation
+            # auf loss .backward aufrufbar --> backprobagation entsprechend berechnet
+            # nn.module wird viel beerbt. ~get_attributes bekommt man alle names aus modul
+            #
             assert titles.shape[0] == X.shape[0], "Dims dont match"
             # X = sp.hstack([X, titles])
         else:
