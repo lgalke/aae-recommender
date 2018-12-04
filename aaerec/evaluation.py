@@ -188,19 +188,32 @@ def remove_non_missing(Y_pred, X_test, copy=True):
     return Y_pred_scaled
 
 
-def evaluate(ground_truth, predictions, metrics):
+def evaluate(ground_truth, predictions, metrics, batch_size=2**12):
     """
     Main evaluation function, used by Evaluation class but can also be
     reused to recompute metrics
     """
-    if sp.issparse(predictions):
-        predictions = predictions.toarray()
-    if sp.issparse(ground_truth):
-        ground_truth = ground_truth.toarray()
+
+    n_samples = ground_truth.shape[0]
+    assert predictions.shape[0] == n_samples
 
     metrics = [m if callable(m) else METRICS[m] for m in metrics]
-    results = [metric(ground_truth, predictions) for metric in metrics]
-    return results
+
+    results_cma = np.zeros(len(metrics))
+    for start in range(0, n_samples, batch_size):
+        end = min(start + batch_size, n_samples) 
+        pred_batch = predictions[start:end, :]
+        gold_batch = ground_truth[start:end, :]
+        if sp.issparse(pred_batch):
+            pred_batch = pred_batch.toarray()
+        if sp.issparse(gold_batch):
+            gold_batch = gold_batch.toarray()
+
+        results_batch = np.array([metric(gold_batch, pred_batch) for metric in metrics])
+        results_cma = (results_cma * start + results_batch * (end-start)) / end
+
+    # results = [metric(ground_truth, predictions) for metric in metrics]
+    return list(results_cma)
 
 
 def reevaluate(gold_file, predictions_file, metrics):
