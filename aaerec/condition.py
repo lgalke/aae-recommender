@@ -15,6 +15,18 @@ and (optional) to update its parameters wrt (global) ae loss.
 # TODO FIXME this is an implementation *draft*
 
 class ConditionBase():
+
+
+    # TODO: find a way to make class itself OR list of it easyly iterable --> backwards compatible
+    # TODO: ~ returning attribute name upon call
+    # TODO: substitute workaround of condtion.condition_name = "playlist name" / "description tokens"
+    condition_name = None
+    def condition_name(self):
+        return self.condition_name
+
+    def __init__(self,condition_name):
+        raise NotImplementedError("NotImplemented: trying to call abstract method")
+
     def encode(self, input):
         """ Encodes the input """
         raise NotImplementedError("NotImplemented: trying to call abstract method")

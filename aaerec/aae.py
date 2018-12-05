@@ -432,6 +432,7 @@ class DecodingRecommender(Recommender):
         # TODO: add other side_infos separately
         # TODO: propagate setting condition upwards to calling methods
         # TODO: overthink where to do this (should belong to preprocessing, not in model)
+        # TODO: Do it here to test, will be integrated in preprocessing with condition class
         condition = training_set.get_attribute("title")
         condition = self.vect.fit_transform(condition)
         print("{} distinct words in condition" .format(len(self.vect.vocabulary_)))
