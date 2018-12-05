@@ -226,7 +226,7 @@ class AutoEncoder():
         """
         Perform one autoencoder training step
             :param batch: # self.enc() based in models
-            :param condition: I belive:
+            :param condition: probably some matrix (.shape works)
             :return: I belive: binary_cross_entropy for this step
             """
 
@@ -269,7 +269,9 @@ class AutoEncoder():
         X = Variable(torch.FloatTensor(X))
         if torch.cuda.is_available():
             X = X.cuda()
-       
+
+        # condition doesn't seem to be a string anymore
+        # TODO: find origin of condition to make docstring and get understanding
         if condition is not None:
             condition = condition.astype('float32')
             if sp.issparse(condition):
@@ -296,6 +298,7 @@ class AutoEncoder():
                            final_activation='linear',
                            normalize_inputs=self.normalize_inputs,
                            dropout=self.dropout, activation=self.activation)
+        # TODO: separate type(condition) == str for attribute_name and type(condition) == some matrix? for clearness
         if condition is not None:
             self.dec = Decoder(self.n_code+condition.shape[1], self.n_hidden,
                                X.shape[1], dropout=self.dropout, activation=self.activation)
