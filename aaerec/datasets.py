@@ -167,6 +167,7 @@ class Bags(object):
         assert len(owners) == len(data)
         self.data = data
         self.bag_owners = owners
+        # attributes are called by keys --> just adding new key will suffice
         self.owner_attributes = owner_attributes
 
         # consumes performance
@@ -269,7 +270,7 @@ class Bags(object):
         Builds the vocabulary from the training set.
 
         :param on_year: int, split on this year
-        :param **split_params: 
+        :param **split_params:
         :return: tuple, first training bag instance, second test bag instance
         """
         if on_year is not None:
