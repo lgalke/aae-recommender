@@ -3,6 +3,8 @@ python:
   - "3.5"
   - "3.6"
 
+cache: pip
+
 
 # Hack to fix broken boto package on travis
 before_install:
