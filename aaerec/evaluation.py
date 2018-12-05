@@ -58,7 +58,7 @@ class Metric(ABC):
         super().__init__()
 
     @abstractmethod
-    def __call__(self, y_true, y_pred):
+    def __call__(self, y_true, y_pred, average=True):
         pass
 
 
@@ -72,7 +72,7 @@ class RankingMetric(Metric):
         self.k = kwargs.pop('k', None)
         super().__init__()
 
-    def __call__(self, y_true, y_pred):
+    def __call__(self, y_true, y_pred, average=True):
         """ Gets relevance scores,
         Sort based on y_pred, then lookup in y_true
         >>> Y_true = np.array([[1,0,0],[0,0,1]])
@@ -104,10 +104,10 @@ class MRR(RankingMetric):
     def __init__(self, k=None):
         super().__init__(k=k)
 
-    def __call__(self, y_true, y_pred):
+    def __call__(self, y_true, y_pred, average=True):
         # compute mrr wrt k
         rs = super().__call__(y_true, y_pred)
-        return rm.mean_reciprocal_rank(rs)
+        return rm.mean_reciprocal_rank(rs, average=average)
 
 
 class MAP(RankingMetric):
@@ -115,7 +115,7 @@ class MAP(RankingMetric):
     def __init__(self, k=None):
         super().__init__(k=k)
 
-    def __call__(self, y_true, y_pred):
+    def __call__(self, y_true, y_pred, average=True):
         """
         >>> Y_true = np.array([[1,0,0],[0,0,1]])
         >>> Y_pred = np.array([[0.2,0.3,0.1],[0.2,0.5,0.7]])
@@ -131,14 +131,17 @@ class MAP(RankingMetric):
         (0.9166666666666666, 0.08333333333333337)
         """
         rs = super().__call__(y_true, y_pred)
-        return rm.mean_average_precision(rs)
+        if average:
+            return rm.mean_average_precision(rs)
+        else:
+            return np.array([rm.average_precision(r) for r in rs])
 
 
 class P(RankingMetric):
     def __init__(self, k=None):
         super().__init__(k=k)
 
-    def __call__(self, y_true, y_pred):
+    def __call__(self, y_true, y_pred, average=True):
         """
         >>> Y_true = np.array([[1,0,1,0],[1,0,1,0]])
         >>> Y_pred = np.array([[0.2,0.3,0.1,0.05],[0.2,0.5,0.7,0.05]])
@@ -150,7 +153,10 @@ class P(RankingMetric):
         # compute p wrt k
         rs = super().__call__(y_true, y_pred)
         ps = (rs > 0).mean(axis=1)
-        return ps.mean(), ps.std()
+        if average:
+            return ps.mean(), ps.std()
+        else:
+            return ps
 
 BOUNDED_METRICS = {
     # (bounded) ranking metrics
@@ -188,18 +194,44 @@ def remove_non_missing(Y_pred, X_test, copy=True):
     return Y_pred_scaled
 
 
-def evaluate(ground_truth, predictions, metrics):
+def evaluate(ground_truth, predictions, metrics, batch_size=None):
     """
     Main evaluation function, used by Evaluation class but can also be
     reused to recompute metrics
     """
-    if sp.issparse(predictions):
-        predictions = predictions.toarray()
-    if sp.issparse(ground_truth):
-        ground_truth = ground_truth.toarray()
+
+    n_samples = ground_truth.shape[0]
+    assert predictions.shape[0] == n_samples
 
     metrics = [m if callable(m) else METRICS[m] for m in metrics]
-    results = [metric(ground_truth, predictions) for metric in metrics]
+
+    if batch_size is not None:
+        batch_size = int(batch_size)
+
+        # Important: Results consist of Mean + Std dev
+        # Add all results per sample to array
+        # Average later
+        results_per_metric = [[] for _ in range(len(metrics))]
+        for start in range(0, n_samples, batch_size):
+            end = min(start + batch_size, n_samples) 
+            pred_batch = predictions[start:end, :]
+            gold_batch = ground_truth[start:end, :]
+            if sp.issparse(pred_batch):
+                pred_batch = pred_batch.toarray()
+            if sp.issparse(gold_batch):
+                gold_batch = gold_batch.toarray()
+
+            for i, metric in enumerate(metrics):
+                results_per_metric[i].extend(metric(gold_batch, pred_batch, average=False))
+
+        results = [(x.mean(), x.std()) for x in map(np.array, results_per_metric)]
+    else:
+        if sp.issparse(ground_truth):
+            ground_truth = ground_truth.toarray()
+        if sp.issparse(predictions):
+            predictions = predictions.toarray()
+        results = [metric(ground_truth, predictions) for metric in metrics]
+
     return results
 
 

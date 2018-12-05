@@ -1,10 +1,10 @@
-numpy
-scipy
-sklearn
-torch
-gensim
-pandas
-joblib
-matplotlib
-seaborn
+--index-url https://pypi.python.org/simple/
 
+# Requirements specified in setup.py
+
+-e .
+
+# Development requirements
+pytest
+pylint
+jedi
