@@ -433,7 +433,10 @@ class DecodingRecommender(Recommender):
         # TODO: propagate setting condition upwards to calling methods
         # TODO: overthink where to do this (should belong to preprocessing, not in model)
         # TODO: Do it here to test, will be integrated in preprocessing with condition class
+
         condition = training_set.get_attribute("title")
+        # this is specific to the title (and other textual features)
+        # TODO: potentially adapt other vectorizer for non-textual features
         condition = self.vect.fit_transform(condition)
         print("{} distinct words in condition" .format(len(self.vect.vocabulary_)))
         self.fit(condition, X)
@@ -546,7 +549,9 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
     # why is this double? to AdversarialAutoEncoder
     def ae_step(self, batch, condition=None, conditions=None):
         """
-        # why is this double? to
+        # why is this double? to AdversarialAutoEncoder
+        # what is relationship to train?
+        # Condition is used explicitly here, and hard coded but non-explicitly here
         Perform one autoencoder training step
         :param batch:
         :param condition: ??? ~ training_set.get_attribute("title") <~ side_info = unpack_playlists(playlists)
@@ -554,7 +559,6 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         """
         print("batch",batch,"condition",condition)
         z_sample = self.enc(batch)
-        # what is condition?
         if condition is not None:
             z_sample = torch.cat((z_sample, condition), 1)
 
