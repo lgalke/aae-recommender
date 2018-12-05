@@ -161,7 +161,7 @@ class Bags(object):
 
         :param data: ???, ???
         :param owners: iterable (prob list), of ids
-        :param owner_attributes: ???, ???
+        :param owner_attributes: dict, of dicts in form of {attribute: {id: <unknown>}}
         """
         assert len(owners) == len(data)
         self.data = data
@@ -206,11 +206,12 @@ class Bags(object):
         Retrieves the attribute 'attribute' of each bag owner and returns them as a list
         in the same order as self.bag_owners.
         :param attribute: hashable, key in owner_attributes (~ side_info)
-        :return: list, of attributes of length and order of Bag data
+        :return: list, ordered like Bag data containing respective attribute
         """
         if self.owner_attributes is None or self.bag_owners is None:
             raise ValueError("Owners not present")
 
+        # TODO: find how attribues are used --> starting at top level to see what is needed
         attributes = []
         for owner in self.bag_owners:
             attributes.append(self.owner_attributes[attribute][owner])

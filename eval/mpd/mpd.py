@@ -151,7 +151,7 @@ def unpack_playlists(playlists, aggregate=None):
 
 
 
-def unpack_playlists_for_models_concatenated(playlists,condition_name, aggregate=None):
+def unpack_playlists_for_models_concatenated(playlists,condition_names, aggregate=None):
     """
     Unpacks list of playlists in a way that makes them ready for the models .train step.
     It is not mandatory that playlists are sorted.
@@ -175,7 +175,9 @@ def unpack_playlists_for_models_concatenated(playlists,condition_name, aggregate
         try:
             # TODO: also put other side infos here
             # TODO: find how it is used (in Bags class) to fit interface
-            side_info[playlist["pid"]] = playlist["name"]
+
+            for condition in condition_names:
+                side_info[playlist["pid"]] = playlist[condition]
         except KeyError:
             side_info[playlist["pid"]] = ""
 
