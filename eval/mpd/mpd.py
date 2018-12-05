@@ -165,13 +165,16 @@ def unpack_playlists_for_models_concatenated(playlists,condition_name, aggregate
         for attr in aggregate:
             assert attr in TRACK_INFO
 
-    bags_of_tracks, side_info = [], {}
+    bags_of_tracks, pids, side_info = [], [], {}
     for playlist in playlists:
+        # Extract pids
+        pids.append(playlist["pid"])
         # Put all tracks of the playlists in here
         bags_of_tracks.append([t["track_uri"] for t in playlist["tracks"]])
-        # ignore: Use dict here such that we can also deal with unsorted pids
-        # Use list (numpy array?) here as the order needs to be stable for train/test split
+        # Use dict here such that we can also deal with unsorted pids
         try:
+            # TODO: also put other side infos here
+            # TODO: find how it is used (in Bags class) to fit interface
             side_info[playlist["pid"]] = playlist["name"]
         except KeyError:
             side_info[playlist["pid"]] = ""
@@ -230,7 +233,7 @@ def main(outfile=None, min_count=None):
     print("Unpacking json data...")
     bags_of_tracks, pids, side_info = unpack_playlists(playlists)
     del playlists
-    bags = Bags(bags_of_tracks, pids, side_info)
+    bags = Bags(data=bags_of_tracks, owners=pids, owner_attributes=side_info)
     log("Whole dataset:", logfile=outfile)
     log(bags, logfile=outfile)
     train_set, dev_set, y_test = prepare_evaluation(bags,

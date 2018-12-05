@@ -157,6 +157,12 @@ class Bags(object):
                  data,
                  owners,
                  owner_attributes=None):
+        """
+
+        :param data: ???, ???
+        :param owners: iterable (prob list), of ids
+        :param owner_attributes: ???, ???
+        """
         assert len(owners) == len(data)
         self.data = data
         self.bag_owners = owners
@@ -199,6 +205,8 @@ class Bags(object):
         """
         Retrieves the attribute 'attribute' of each bag owner and returns them as a list
         in the same order as self.bag_owners.
+        :param attribute: hashable, key in owner_attributes (~ side_info)
+        :return: list, of attributes of length and order of Bag data
         """
         if self.owner_attributes is None or self.bag_owners is None:
             raise ValueError("Owners not present")
@@ -209,118 +217,6 @@ class Bags(object):
 
         return attributes
 
-    ### Attribute features to be dropped ###
-
-    # def reverse_vocab(self):
-    #     # This essentially recomputes index2token
-    #     reverse = {}
-    #     for token in self.vocab:
-    #         reverse[self.vocab[token]] = token
-    #     return reverse
-
-    # def get_element_attributes(self, attribute, default_value = None):
-    #    """
-    #    Returns a list of element attributes sorted in the same order as the index.
-    #    Hence, bag.get_element_attributes("<attribute>")[i] returns the value of <attribute>
-    #    of the element represented in column bag.tocsr()[:, i].
-
-    #    Arguments:
-    #    ==========
-    #    attribute : str
-    #        The name of the attribute.
-    #    default_value : default = None
-    #        If a token can not be found in the vocabulary, this value is inserted instead.
-    #    """
-    #    #reverse_voc = self.reverse_vocab()
-    #    reverse_voc = self.index2token
-    #    indices = [idx for idx in reverse_voc]  # No-op
-    #    indices = sorted(indices)
-
-    #    attribute_values = []
-    #    for idx in indices:
-    #        att_dict = self.element_attributes[attribute]
-    #        token = reverse_voc[idx]
-    #        if token in att_dict:
-    #            attribute_values.append(att_dict[token])
-    #        else:
-    #            attribute_values.append(default_value)
-
-    #    return attribute_values
-
-    # def populate_element_attributes(self, element_attributes_file, attributes):
-    #    """
-    #    Fills the bag with element attributes by extracting them from a file.
-    #    Iterates over all elements in all sets, extracts their token, and fills the element_attributes dictionary with
-    #    respective values.
-
-    #    Arguments:
-    #    =========
-    #    element_attributes_file : str
-    #        A .CSV file that contains the values for 'attributes'. Must contain a column 'token' that contains
-    #        the token of the element to retrieve the attribute for, and it must contain a column for each attribute field in the
-    #        list of attributes <attributes>.
-    #    attributes : list of str
-    #        Contains the names of the attributes to extract from the file.
-    #    """
-    #    tokens_in_bag = set([key for key in self.vocab])
-    #    df = pd.read_csv(element_attributes_file, dtype = {"token" : str})
-    #    tokens_in_df = set(df["token"].values)
-
-    #    tokens_in_df_and_bag = tokens_in_df.intersection(tokens_in_bag)
-    #    relevant_df = df[df["token"].isin(tokens_in_df_and_bag)]
-
-    #    for row in relevant_df.iterrows():
-    #        row = row[1]
-    #        for att_name in attributes:
-    #            self.element_attributes[att_name][row["token"]] = row[att_name]
-
-    ### Attribute features to be dropped ###
-
-    # @classmethod
-    # def from_sets(
-    #         self,
-    #         sets,
-    #         set_owners,  # stores the identifier associated with each bag, i.e., the id of the citing document
-    #         owner_attributes,
-    #         max_features=None,
-    #         min_count=None,  # min cited
-    #         min_elements=1):  # min citing
-    #     # this corrups natural order.
-    #     print("Removing duplicate elements...")
-    #     sets = [list(set(x)) for x in sets]  # remove duplicates
-    #     print("Data:", len(sets))
-    #     vocab, counts = build_vocab(
-    #         sets, max_features=max_features, min_count=min_count)
-    #     print("Pruned vocab has", len(vocab), "elements with minimum",
-    #           min_count, "occurences.")
-    #     # TMP disable Dont use
-    #     # print("Filtering set owners...")
-    #     # set_owners = filter_set_owners(set_owners, sets, vocab, min_elements)
-    #     # set_owners = filter_set_owners_slow(set_owners, sets, max_features,
-    #     #                                     min_count, min_elements)
-    #     # ^^^ this is essentially the same vvv there must be a better way
-    #     print("Filtering rare tokens...")
-    #     sets = filter_vocab(sets, vocab)
-    #     print("Converting tokens to indices...")
-    #     data = apply_vocab(sets, vocab)
-    #     # filter too small sets
-    #     print("First 5 bags", data[:5])
-    #     if min_elements:
-    #         print("Filtering sets that contain minimum", min_elements,
-    #               "elements")
-    #         enough = [len(bag) >= min_elements for bag in data]
-    #         data = [b for i, b in enumerate(data) if enough[i]] 
-    #         set_owners = [o for i, o in enumerate(set_owners) if enough[i]] 
-    #         # filtered = filter(lambda row: len(row[0]) >= min_elements,
-    #         #                   zip(data, set_owners))
-    #         # data, set_owners = tuple(zip(*filtered))
-    #         # could also filter owner_attributes here...
-    #     assert len(data) == len(set_owners)
-    #     print("Retained", len(data), "records.")
-    #     # TODO FIXME pass constraints to store in Bags class for rebuilding vocab
-    #     bags = Bags(data, vocab, counts, set_owners, owner_attributes)
-
-    #     return bags
 
     @classmethod
     def load_tabcomma_format(self, path, unique=False):
