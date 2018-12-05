@@ -222,16 +222,19 @@ class AutoEncoder():
 
     # why is this double? to AdversarialAutoEncoder
     def ae_step(self, batch, condition=None, conditions=None):
-        """
-        # why is this double? to AdversarialAutoEncoder
-        # what is relationship to train?
-        # Condition is used explicitly here, and hard coded but non-explicitly here
 
+        """
         Perform one autoencoder training step
             :param batch: # self.enc() based in models
             :param condition: I belive:
             :return: I belive: binary_cross_entropy for this step
             """
+
+        # why is this double? to AdversarialAutoEncoder
+        # what is relationship to train?
+        # Condition is used explicitly here, and hard coded but non-explicitly here
+        # this is the autoEncoder, train is in DecodingRecommender
+        # what does this mean?
         z_sample = self.enc(batch)
         # what is "condition"?
 
