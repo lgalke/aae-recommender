@@ -228,12 +228,15 @@ def log(*print_args, logfile=None):
     print(*print_args)
 
 
-def main(outfile=None, min_count=None):
+def main(outfile=None, min_count=None, condition= None):
     """ Main function for training and evaluating AAE methods on MDP data """
     print("Loading data from", DATA_PATH)
     playlists = playlists_from_slices(DATA_PATH, n_jobs=4)
     print("Unpacking json data...")
-    bags_of_tracks, pids, side_info = unpack_playlists(playlists)
+    if condition is not None:
+        bags_of_tracks, pids, side_info = unpack_playlists_for_models_concatenated(playlists,condition_names=condition)
+    else:
+        bags_of_tracks, pids, side_info = unpack_playlists(playlists)
     del playlists
     bags = Bags(data=bags_of_tracks, owners=pids, owner_attributes=side_info)
     log("Whole dataset:", logfile=outfile)
@@ -290,6 +293,9 @@ if __name__ == '__main__':
     parser.add_argument('-m', '--min-count', type=int,
                         default=None,
                         help="Minimum count of items")
+    parser.add_argument('-s', '--side_information', type=str,
+                        default=None,
+                        help="list of incorporated additional attributes")
     args = parser.parse_args()
     print(args)
-    main(outfile=args.outfile, min_count=args.min_count)
+    main(outfile=args.outfile, min_count=args.min_count, condition= args.side_information)
