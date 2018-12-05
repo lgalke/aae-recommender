@@ -163,6 +163,7 @@ class Bags(object):
         :param owners: iterable (prob list), of ids
         :param owner_attributes: dict, of dicts in form of {attribute: {id: <unknown>}}
         """
+        # TODO: think about: split between prediction relevant attributes and data splitting infos like year
         assert len(owners) == len(data)
         self.data = data
         self.bag_owners = owners
@@ -212,6 +213,7 @@ class Bags(object):
             raise ValueError("Owners not present")
 
         # TODO: find how attribues are used --> starting at top level to see what is needed
+        #
         attributes = []
         for owner in self.bag_owners:
             attributes.append(self.owner_attributes[attribute][owner])
@@ -263,8 +265,12 @@ class Bags(object):
         return bags
 
     def train_test_split(self, on_year=None, **split_params):
-        """ Returns one training bags instance and one test bag instance.
+        """ Returns one training bag instance and one test bag instance.
         Builds the vocabulary from the training set.
+
+        :param on_year: int, split on this year
+        :param **split_params: 
+        :return: tuple, first training bag instance, second test bag instance
         """
         if on_year is not None:
             print("Splitting data on year:", on_year)
@@ -321,69 +327,6 @@ class Bags(object):
         self.bag_owners = owners
         self.owner_attributes = attributes
         return self
-
-    # END BASIC FUNCTIONALITY
-
-    # def split(self, is_test, is_train = lambda x : True):
-    #     """
-    #     Splits the bag into two parts between which the data is disjoint.
-
-    #     Parameters:
-    #         - is_test: A function 'token' -> Bool that determines for each
-    #         token whether it should belong to the second set returned or not.
-    #         - is_train: A function 'token' -> Bool that determines for each
-    #         token whether it should belong to the first set returned or not.
-    #         Note that it will only be assigned to the first set if it has not
-    #         already been assigned to the second one. By default, it will
-    #         automatically be assigned
-    #         to the first set if is_test yields False for the token.
-
-    #     Returns:
-    #         - train_bag : The first bag
-    #         - test_bag : The second bag
-    #     """
-    #     raise DeprecationWarning("Use train_test_split() instead.")
-
-    #     # split owners
-    #     train_owners = []
-    #     test_owners = []
-
-    #     n_ignored = 0
-    #     for i, owner in enumerate(self.bag_owners):
-    #         # are 2 *different* criterions really necessary TODO FIXME
-    #         if is_test(owner):
-    #             test_owners.append(i)
-    #         elif is_train(owner):
-    #             train_owners.append(i)
-    #         else:
-    #             n_ignored += 1
-    #             # raise ValueError("{} is neither train nor test.".format(owner))
-
-    #     print("{} train documents, {} test documents".format(len(train_owners), len(test_owners)))
-    #     print(n_ignored, "documents are neither train nor test.")
-
-    #     train_bag_owners = [self.bag_owners[i] for i in train_owners]
-    #     test_bag_owners = [self.bag_owners[i] for i in test_owners]
-
-    #     # select data columns accordingly
-    #     train_data = [self.data[i] for i in train_owners]
-    #     test_data = [self.data[i] for i in test_owners]
-
-    #     # build new bags
-    #     train_bag = Bags(
-    #         train_data,
-    #         self.vocab,
-    #         self.counts,
-    #         train_bag_owners,
-    #         owner_attributes=self.owner_attributes)
-    #     test_bag = Bags(
-    #         test_data,
-    #         self.vocab,
-    #         self.counts,
-    #         test_bag_owners,
-    #         owner_attributes=self.owner_attributes)
-
-    #     return train_bag, test_bag
 
     def inflate(self, factor):
         # TODO FIXME
