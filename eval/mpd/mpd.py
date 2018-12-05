@@ -151,7 +151,7 @@ def unpack_playlists(playlists, aggregate=None):
 
 
 
-def unpack_playlists_for_models_concatenated(playlists,condition_names, aggregate=None):
+def unpack_playlists_for_models_concatenated(playlists,condition_names = "name", aggregate=None):
     """
     Unpacks list of playlists in a way that makes them ready for the models .train step.
     It is not mandatory that playlists are sorted.
@@ -182,6 +182,7 @@ def unpack_playlists_for_models_concatenated(playlists,condition_names, aggregat
             side_info[playlist["pid"]] = ""
 
         # We could assemble even more side info here from the track names
+        # TODO: check intuitiveness: titles are added to side_info, but returned as "tiltes"
         if aggregate is not None:
             aggregated_track_info = aggregate_track_info(playlist, aggregate)
             side_info[playlist["pid"]] += ' ' + aggregated_track_info
@@ -294,7 +295,7 @@ if __name__ == '__main__':
                         default=None,
                         help="Minimum count of items")
     parser.add_argument('-s', '--side_information', type=str,
-                        default=None,
+                        default="name",
                         help="list of incorporated additional attributes")
     args = parser.parse_args()
     print(args)
