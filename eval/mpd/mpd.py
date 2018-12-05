@@ -183,6 +183,7 @@ def unpack_playlists_for_models_concatenated(playlists,condition_names = "name",
 
         # We could assemble even more side info here from the track names
         # TODO: check intuitiveness: titles are added to side_info, but returned as "tiltes"
+        # TODO: check if just title is used, or information can be called seperately
         if aggregate is not None:
             aggregated_track_info = aggregate_track_info(playlist, aggregate)
             side_info[playlist["pid"]] += ' ' + aggregated_track_info
@@ -190,7 +191,7 @@ def unpack_playlists_for_models_concatenated(playlists,condition_names = "name",
     # bag_of_tracks and pids should have corresponding indices
     # In side info the pid is the key
     # Re-use 'title' property here because methods rely on it
-    return bags_of_tracks, {"title": side_info}
+    return bags_of_tracks, pids, {"title": side_info}
 
 
 

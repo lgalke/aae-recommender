@@ -428,7 +428,10 @@ class DecodingRecommender(Recommender):
             self.vect = GensimEmbeddedVectorizer(self.embedding, **self.tfidf_params)
         else:
             self.vect = TfidfVectorizer(**self.tfidf_params)
-        
+
+        # TODO: add other side_infos separately
+        # TODO: propagate setting condition upwards to calling methods
+        # TODO: overthink where to do this (should belong to preprocessing, not in model)
         condition = training_set.get_attribute("title")
         condition = self.vect.fit_transform(condition)
         print("{} distinct words in condition" .format(len(self.vect.vocabulary_)))
