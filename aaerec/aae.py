@@ -221,7 +221,7 @@ class AutoEncoder():
         self.dec.zero_grad()
 
     # why is this double? to AdversarialAutoEncoder
-    def ae_step(self, batch, condition=None, conditions=None):
+    def ae_step(self, batch, condition=None, conditions=[]):
 
         """
         Perform one autoencoder training step
@@ -230,22 +230,26 @@ class AutoEncoder():
             :return: I belive: binary_cross_entropy for this step
             """
 
-        # why is this double? to AdversarialAutoEncoder
-        # what is relationship to train?
-        # Condition is used explicitly here, and hard coded but non-explicitly here
-        # this is the autoEncoder, train is in DecodingRecommender
-        # what does this mean?
+        # why is this double to AdversarialAutoEncoder? Lukas: it's likely the two models will diverge
+        # what is relationship to train in DecodingRecommender? Train only uses Condition. Those are implementet seperately
+
         z_sample = self.enc(batch)
-        # what is "condition"?
 
-        if condition is not None:
-            z_sample = torch.cat((z_sample, condition), 1)
+        #if condition is not None:
+        #    z_sample = torch.cat((z_sample, condition), 1)
 
-        # diesen teil rausziehen, weil der concat ist --> ggf neue
-        if conditions is not None:
-            # there might be several "conditions"
-            for cond in conditions:
-                z_sample = torch.cat((z_sample, cond), 1)
+        # TODO: pull this out later, when alternatives are present
+        def torch_concat_side_info(z_sample,condition):
+            """ Combine two different feature spaces into one by unprocessed concatenation.
+
+            :param z_sample: ??? torch encoding, the old feature space
+            :param condition: hashable, key to side_info attributes
+            :return: ??? torch encoding, the new feature space
+            """
+            return torch.cat((z_sample, condition), 1)
+
+        for cond in conditions:
+            z_sample = torch_concat_side_info(z_sample=z_sample,condition=cond)
 
         x_sample = self.dec(z_sample)
         recon_loss = F.binary_cross_entropy(x_sample + TINY,
