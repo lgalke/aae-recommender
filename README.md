@@ -1,5 +1,7 @@
 # aae-recommender
 
+[![Build Status](https://travis-ci.org/lgalke/aae-recommender.svg?branch=master)](https://travis-ci.org/lgalke/aae-recommender)
+
 Adversarial Autoencoders for Recommendation Tasks
 
 ## Dependencies

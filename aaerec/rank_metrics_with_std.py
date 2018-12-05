@@ -10,7 +10,7 @@ Learning to Rank for Information Retrieval (Tie-Yan Liu)
 import numpy as np
 
 
-def mean_reciprocal_rank(rs):
+def mean_reciprocal_rank(rs, average=True):
     """Score is reciprocal of the rank of the first relevant item
 
     First element is 'rank 1'.  Relevance is binary (nonzero is relevant).
@@ -35,7 +35,10 @@ def mean_reciprocal_rank(rs):
     """
     rs = (np.asarray(r).nonzero()[0] for r in rs)
     mrrs = np.array([1. / (r[0] + 1) if r.size else 0. for r in rs])
-    return mrrs.mean(), mrrs.std()
+    if average:
+        return mrrs.mean(), mrrs.std()
+    else:
+        return mrrs
 
 
 def r_precision(r):
