@@ -221,8 +221,12 @@ class AutoEncoder():
         self.dec.zero_grad()
 
     # why is this double? to AdversarialAutoEncoder
-    def ae_step(self, batch, condition=None):
+    def ae_step(self, batch, condition=None, conditions=None):
         """
+        # why is this double? to AdversarialAutoEncoder
+        # what is relationship to train?
+        # Condition is used explicitly here, and hard coded but non-explicitly here
+
         Perform one autoencoder training step
             :param batch: # self.enc() based in models
             :param condition: I belive:
@@ -233,6 +237,12 @@ class AutoEncoder():
 
         if condition is not None:
             z_sample = torch.cat((z_sample, condition), 1)
+
+        # diesen teil rausziehen, weil der concat ist --> ggf neue
+        if conditions is not None:
+            # there might be several "conditions"
+            for cond in conditions:
+                z_sample = torch.cat((z_sample, cond), 1)
 
         x_sample = self.dec(z_sample)
         recon_loss = F.binary_cross_entropy(x_sample + TINY,
