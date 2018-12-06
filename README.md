@@ -1,6 +1,8 @@
 # aae-recommender
 
 [![Build Status](https://travis-ci.org/lgalke/aae-recommender.svg?branch=master)](https://travis-ci.org/lgalke/aae-recommender)
+[![DOI](https://zenodo.org/badge/DOI/10.1145/3209219.3209236.svg)](https://doi.org/10.1145/3209219.3209236)
+
 
 Adversarial Autoencoders for Recommendation Tasks
 
