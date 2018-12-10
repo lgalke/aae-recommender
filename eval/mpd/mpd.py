@@ -238,7 +238,7 @@ def main(outfile=None, min_count=None):
         y_pred = remove_non_missing(y_pred, x_test, copy=False)
 
         # Evaluate metrics
-        results = evaluate(y_test, y_pred, METRICS)
+        results = evaluate(y_test, y_pred, METRICS, batch_size=1000)
 
         log("-" * 78, logfile=outfile)
         for metric, stats in zip(METRICS, results):
