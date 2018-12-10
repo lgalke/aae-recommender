@@ -46,7 +46,7 @@ W2V_IS_BINARY = True
 VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 
 # These need to be implemented in evaluation.py
-METRICS = ['mrr', 'map']
+METRICS = ['mrr']
 
 
 MODELS = [
