@@ -1,5 +1,9 @@
 # aae-recommender
 
+[![Build Status](https://travis-ci.org/lgalke/aae-recommender.svg?branch=master)](https://travis-ci.org/lgalke/aae-recommender)
+[![DOI](https://zenodo.org/badge/DOI/10.1145/3267471.3267476.svg)](https://doi.org/10.1145/3267471.3267476)
+[![DOI](https://zenodo.org/badge/DOI/10.1145/3209219.3209236.svg)](https://doi.org/10.1145/3209219.3209236)
+
 Adversarial Autoencoders for Recommendation Tasks
 
 ## Dependencies
@@ -59,3 +63,52 @@ Therefore we operate only the PubMed dataset for citation recommendation.
 For subject label recommendation, we used the the economics dataset `EconBiz`, provided by [ZBW](https://zbw.eu).
 We are currently asserting that copyright issues do not prevent us from publishing the
 metadata of the documents in the aforementioned format.
+
+## References and cite
+
+Please see our papers for additional information on the models implemented and the experiments conducted:
+
+- [Multi-Modal Adversarial Autoencoders for Recommendations of Citations and Subject Labels](https://zenodo.org/record/1313577)
+
+- [Using Adversarial Autoencoders for Multi-Modal Automatic Playlist Continuation](https://zenodo.org/record/1455214) 
+
+
+If you use our code in your own work please cite one of these papers:
+
+    @inproceedings{Vagliano:2018,
+         author = {Vagliano, Iacopo and Galke, Lukas and Mai, Florian and Scherp, Ansgar},
+         title = {Using Adversarial Autoencoders for Multi-Modal Automatic Playlist Continuation},
+         booktitle = {Proceedings of the ACM Recommender Systems Challenge 2018},
+         series = {RecSys Challenge '18},
+         year = {2018},
+         isbn = {978-1-4503-6586-4},
+         location = {Vancouver, BC, Canada},
+         pages = {5:1--5:6},
+         articleno = {5},
+         numpages = {6},
+         url = {http://doi.acm.org/10.1145/3267471.3267476},
+         doi = {10.1145/3267471.3267476},
+         acmid = {3267476},
+         publisher = {ACM},
+         address = {New York, NY, USA},
+         keywords = {adversarial autoencoders, automatic playlist continuation, multi-modal recommender, music recommender systems, neural networks},
+    }
+
+    @inproceedings{Galke:2018,
+         author = {Galke, Lukas and Mai, Florian and Vagliano, Iacopo and Scherp, Ansgar},
+         title = {Multi-Modal Adversarial Autoencoders for Recommendations of Citations and Subject Labels},
+         booktitle = {Proceedings of the 26th Conference on User Modeling, Adaptation and Personalization},
+         series = {UMAP '18},
+         year = {2018},
+         isbn = {978-1-4503-5589-6},
+         location = {Singapore, Singapore},
+         pages = {197--205},
+         numpages = {9},
+         url = {http://doi.acm.org/10.1145/3209219.3209236},
+         doi = {10.1145/3209219.3209236},
+         acmid = {3209236},
+         publisher = {ACM},
+         address = {New York, NY, USA},
+         keywords = {adversarial autoencoders, multi-modal, neural networks, recommender systems, sparsity},
+    }
+  

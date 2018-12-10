@@ -1,0 +1,17 @@
+language: python
+python:
+  - "3.5"
+  - "3.6"
+
+cache: pip
+
+
+# Hack to fix broken boto package on travis
+before_install:
+  - export BOTO_CONFIG=/dev/null
+
+install:
+  - travis_wait 30 pip install -r requirements.txt 
+
+script:
+  - cd tests; python -m pytest
