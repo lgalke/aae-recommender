@@ -30,6 +30,7 @@ from aaerec.aae import AAERecommender, DecodingRecommender
 
 # Should work on kdsrv03
 DATA_PATH = "/data21/lgalke/datasets/MPD/data/"
+DATA_PATH = "/workData/zbw/citation/local_data"
 DEBUG_LIMIT = None
 # Use only this many most frequent items
 N_ITEMS = None
