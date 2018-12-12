@@ -771,7 +771,7 @@ class AAERecommender(Recommender):
     n_hidden: Dimension for hidden layers
     n_code: Code Dimension
 
-    Keyword Arguments
+    Keyword Argumentsec
     -----------------
     n_epochs: Number of epochs to train
     batch_size: Batch size to use for training
@@ -807,7 +807,7 @@ class AAERecommender(Recommender):
 
     def train(self, training_set):
         X = training_set.tocsr()
-        if self.use_title:
+        if self.use_side_info:
 
 
             # TODO: later with condition: use attribute respective vectorizer
@@ -817,9 +817,8 @@ class AAERecommender(Recommender):
             else:
                 self.vect = TfidfVectorizer(**self.tfidf_params)
 
-
+            # TODO: from here on will be basically copyed in predict --> find general solution? probably with Condition class
             # change the attributes/conditions/side_infos here
-            # TODO: concat different attributes
             # TODO: ensure features are appended correctly
 
             attr_vect = []
@@ -862,23 +861,16 @@ class AAERecommender(Recommender):
             attr_vect = []
             # ugly substitute for do_until pattern
             for i, attribute in enumerate(self.use_side_info):
-                attr_data = training_set.get_single_attribute(attribute)
+                attr_data = test_set.get_single_attribute(attribute)
                 if i < 1:
                     attr_vect = self.vect.fit_transform(attr_data)
                 else:
                     attr_vect = np.concatenate((attr_vect, self.vect.fit_transform(attr_data)), axis=1)
 
-            # möglichkeit zum anderen vectorisieren -> muss für kleine Batches dann acuh gemacht werden --> in klasse speichern
-            # Lukas Idee: Objektorientiert ~"condition" beerbt von nn.module  .encode um batch von callback (= mitgegebene funktion) transformieren
-            # in dem Falll in forward methode
-            # wie kann man das anhand vom globalen Loss abhängig ändern, da on the fly gelernt
-            # und nicht im preprocessing. ~~> etwas wie backpropagation
-            # auf loss .backward aufrufbar --> backprobagation entsprechend berechnet
-            # nn.module wird viel beerbt. ~get_attributes bekommt man alle names aus modul
-            #
             assert attr_vect.shape[0] == X.shape[0], "Dims dont match"
-            
-        if self.use_title:
+
+            pred = self.aae.predict(X, condition=attr_vect)
+        elif self.use_title:
             # Use titles as condition
             titles = test_set.get_single_attribute("title")
             titles = self.vect.transform(titles)
