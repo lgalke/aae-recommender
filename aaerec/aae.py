@@ -771,7 +771,7 @@ class AAERecommender(Recommender):
     n_hidden: Dimension for hidden layers
     n_code: Code Dimension
 
-    Keyword Argumentsec
+    Keyword Arguments
     -----------------
     n_epochs: Number of epochs to train
     batch_size: Batch size to use for training

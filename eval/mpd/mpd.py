@@ -53,12 +53,12 @@ MODELS = [
     # Only item sets
     Countbased(),
     SVDRecommender(1000, use_title=False),
-    AAERecommender(adversarial=True, use_title=False, n_epochs=55, embedding=VECTORS),
-    AAERecommender(adversarial=False, use_title=False, n_epochs=55, embedding=VECTORS),
+    #AAERecommender(adversarial=True, use_title=False, n_epochs=55, embedding=VECTORS),
+    #AAERecommender(adversarial=False, use_title=False, n_epochs=55, embedding=VECTORS),
     # Title-enhanced
     SVDRecommender(1000, use_title=True),
-    AAERecommender(adversarial=True, use_title=True, n_epochs=55, embedding=VECTORS),
-    AAERecommender(adversarial=False, use_title=True, n_epochs=55, embedding=VECTORS),
+    AAERecommender(adversarial=True, use_side_info=True, n_epochs=55, embedding=VECTORS),
+    AAERecommender(adversarial=False, use_side_info=True, n_epochs=55, embedding=VECTORS),
     DecodingRecommender(n_epochs=55, embedding=VECTORS)
     # Put more here...
 ]
