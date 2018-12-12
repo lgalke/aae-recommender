@@ -213,7 +213,7 @@ class Bags(object):
         if self.owner_attributes is None or self.bag_owners is None:
             raise ValueError("Owners not present")
 
-        # TODO: find how attribues are used --> starting at top level to see what is needed
+        # TODO: find how attributes are used --> starting at top level to see what is needed
         #
         attribute_l = []
         for owner in self.bag_owners:

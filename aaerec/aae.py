@@ -787,6 +787,7 @@ class AAERecommender(Recommender):
         self.verbose = kwargs.get('verbose', True)
         self.use_title = kwargs.pop('use_title', False)
         self.use_side_info = kwargs.pop('use_side_info', False)
+        self.use_condition = kwargs.pop('use_condition', False)
         self.embedding = kwargs.pop('embedding', None)
         self.vect = None
         self.aae_params = kwargs
