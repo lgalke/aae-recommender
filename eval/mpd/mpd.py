@@ -37,7 +37,7 @@ N_ITEMS = None
 # MIN_COUNT = 50
 # Use command line arg '-m' instead
 
-
+TRACK_INFO = ['artist_name', 'track_name', 'album_name']
 #N_WORDS = 50000
 #TFIDF_PARAMS = { 'max_features': N_WORDS }
 
@@ -169,33 +169,35 @@ def unpack_playlists_for_models_concatenated(playlists,condition_names = "name",
         for attr in aggregate:
             assert attr in TRACK_INFO
 
-    bags_of_tracks, pids, side_info = [], [], {}
+    bags_of_tracks, pids, side_infos = [], [], {}
     for playlist in playlists:
         # Extract pids
         pids.append(playlist["pid"])
         # Put all tracks of the playlists in here
         bags_of_tracks.append([t["track_uri"] for t in playlist["tracks"]])
         # Use dict here such that we can also deal with unsorted pids
+
+
         try:
             # TODO: also put other side infos here
             # TODO: find how it is used (in Bags class) to fit interface
 
             for condition in condition_names:
-                side_info[playlist["pid"]] = playlist[condition]
+                side_infos[condition][playlist["pid"]] = playlist[condition] # whats coming out of playlist here?
         except KeyError:
-            side_info[playlist["pid"]] = ""
+            side_infos["title"][playlist["pid"]] = ""
 
         # We could assemble even more side info here from the track names
-        # TODO: check intuitiveness: titles are added to side_info, but returned as "tiltes"
+        # TODO: check intuitiveness: different attribute names are added to side_info, but returned as "titles"
         # TODO: check if just title is used, or information can be called seperately
         if aggregate is not None:
             aggregated_track_info = aggregate_track_info(playlist, aggregate)
-            side_info[playlist["pid"]] += ' ' + aggregated_track_info
+            side_infos["aggregate"] = {[playlist["pid"]]: aggregated_track_info }
 
     # bag_of_tracks and pids should have corresponding indices
     # In side info the pid is the key
     # Re-use 'title' property here because methods rely on it
-    return bags_of_tracks, pids, {"title": side_info}
+    return bags_of_tracks, pids, side_infos
 
 
 

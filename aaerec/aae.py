@@ -786,6 +786,7 @@ class AAERecommender(Recommender):
         super().__init__()
         self.verbose = kwargs.get('verbose', True)
         self.use_title = kwargs.pop('use_title', False)
+        self.use_side_info = kwargs.pop('use_side_info', False)
         self.embedding = kwargs.pop('embedding', None)
         self.vect = None
         self.aae_params = kwargs
@@ -842,6 +843,11 @@ class AAERecommender(Recommender):
 
     def predict(self, test_set):
         X = test_set.tocsr()
+
+        if self.use_side_info:
+            # Use titles as condition
+
+            side_info = test_set.get_attribute()
         if self.use_title:
             # Use titles as condition
             titles = test_set.get_attribute("title")
