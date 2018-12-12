@@ -808,6 +808,9 @@ class AAERecommender(Recommender):
     def train(self, training_set):
         X = training_set.tocsr()
         if self.use_title:
+
+
+            # TODO: later with condition: use attribute respective vectorizer
             if self.embedding:
                 self.vect = GensimEmbeddedVectorizer(self.embedding,
                                                      **self.tfidf_params)
@@ -816,10 +819,17 @@ class AAERecommender(Recommender):
 
 
             # change the attributes/conditions/side_infos here
+            # TODO: concat different attributes
+            # TODO: ensure features are appended correctly
 
-
-            titles = training_set.get_single_attribute("title")
-            titles = self.vect.fit_transform(titles)
+            attr_vect = []
+            # ugly substitute for do_until pattern
+            for i,attribute in enumerate(self.use_side_info):
+                attr_data = training_set.get_single_attribute(attribute)
+                if i < 1:
+                    attr_vect = self.vect.fit_transform(attr_data)
+                else:
+                    attr_vect = np.concatenate((attr_vect, self.vect.fit_transform(attr_data)), axis=1)
 
             # möglichkeit zum anderen vectorisieren -> muss für kleine Batches dann acuh gemacht werden --> in klasse speichern
             # Lukas Idee: Objektorientiert ~"condition" beerbt von nn.module  .encode um batch von callback (= mitgegebene funktion) transformieren
@@ -829,25 +839,45 @@ class AAERecommender(Recommender):
             # auf loss .backward aufrufbar --> backprobagation entsprechend berechnet
             # nn.module wird viel beerbt. ~get_attributes bekommt man alle names aus modul
             #
-            assert titles.shape[0] == X.shape[0], "Dims dont match"
+            assert attr_vect.shape[0] == X.shape[0], "Dims dont match"
             # X = sp.hstack([X, titles])
         else:
-            titles = None
+            attr_vect = None
 
         if self.adversarial:
             self.aae = AdversarialAutoEncoder(**self.aae_params)
         else:
             self.aae = AutoEncoder(**self.aae_params)
 
-        self.aae.fit(X, condition=titles)
+        self.aae.fit(X, condition=attr_vect)
 
     def predict(self, test_set):
         X = test_set.tocsr()
 
         if self.use_side_info:
-            # Use titles as condition
+            # change the attributes/conditions/side_infos here
+            # TODO: concat different attributes
+            # TODO: ensure features are appended correctly
 
-            side_info = test_set.get_single_attribute()
+            attr_vect = []
+            # ugly substitute for do_until pattern
+            for i, attribute in enumerate(self.use_side_info):
+                attr_data = training_set.get_single_attribute(attribute)
+                if i < 1:
+                    attr_vect = self.vect.fit_transform(attr_data)
+                else:
+                    attr_vect = np.concatenate((attr_vect, self.vect.fit_transform(attr_data)), axis=1)
+
+            # möglichkeit zum anderen vectorisieren -> muss für kleine Batches dann acuh gemacht werden --> in klasse speichern
+            # Lukas Idee: Objektorientiert ~"condition" beerbt von nn.module  .encode um batch von callback (= mitgegebene funktion) transformieren
+            # in dem Falll in forward methode
+            # wie kann man das anhand vom globalen Loss abhängig ändern, da on the fly gelernt
+            # und nicht im preprocessing. ~~> etwas wie backpropagation
+            # auf loss .backward aufrufbar --> backprobagation entsprechend berechnet
+            # nn.module wird viel beerbt. ~get_attributes bekommt man alle names aus modul
+            #
+            assert attr_vect.shape[0] == X.shape[0], "Dims dont match"
+            
         if self.use_title:
             # Use titles as condition
             titles = test_set.get_single_attribute("title")
