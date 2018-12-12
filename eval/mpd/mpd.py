@@ -47,7 +47,7 @@ W2V_IS_BINARY = True
 VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 
 # These need to be implemented in evaluation.py
-METRICS = ['mrr', 'map']
+METRICS = ['mrr']
 
 
 MODELS = [
@@ -287,7 +287,7 @@ def main(outfile=None, min_count=None, condition= None):
         y_pred = remove_non_missing(y_pred, x_test, copy=False)
 
         # Evaluate metrics
-        results = evaluate(y_test, y_pred, METRICS)
+        results = evaluate(y_test, y_pred, METRICS, batch_size=1000)
 
         log("-" * 78, logfile=outfile)
         for metric, stats in zip(METRICS, results):
