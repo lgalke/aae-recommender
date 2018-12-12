@@ -454,7 +454,7 @@ class DecodingRecommender(Recommender):
         # TODO: overthink where to do this (should belong to preprocessing, not in model)
         # TODO: Do it here to test, will be integrated in preprocessing with condition class
 
-        condition = training_set.get_attribute("title")
+        condition = training_set.get_single_attribute("title")
         # this is specific to the title (and other textual features)
         # TODO: potentially adapt other vectorizer for non-textual features
         condition = self.vect.fit_transform(condition)
@@ -463,7 +463,7 @@ class DecodingRecommender(Recommender):
 
 
     def predict(self, test_set):
-        # condition = test_set.get_attribute("title")
+        # condition = test_set.get_single_attribute("title")
         # condition = self.vect.transform(condition).toarray()
         # condition = torch.FloatTensor(condition)
         # if torch.cuda.is_available():
@@ -471,7 +471,7 @@ class DecodingRecommender(Recommender):
         # self.mlp.eval()
         # x_pred = self.mlp(Variable(condition))
         # Batched variant to save gpu memory
-        condition = test_set.get_attribute("title")
+        condition = test_set.get_single_attribute("title")
         condition = self.vect.transform(condition)
         self.mlp.eval()
         batch_results = []
@@ -574,7 +574,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         # Condition is used explicitly here, and hard coded but non-explicitly here
         Perform one autoencoder training step
         :param batch:
-        :param condition: ??? ~ training_set.get_attribute("title") <~ side_info = unpack_playlists(playlists)
+        :param condition: ??? ~ training_set.get_single_attribute("title") <~ side_info = unpack_playlists(playlists)
         :return:
         """
         print("batch",batch,"condition",condition)
@@ -818,7 +818,7 @@ class AAERecommender(Recommender):
             # change the attributes/conditions/side_infos here
 
 
-            titles = training_set.get_attribute("title")
+            titles = training_set.get_single_attribute("title")
             titles = self.vect.fit_transform(titles)
 
             # möglichkeit zum anderen vectorisieren -> muss für kleine Batches dann acuh gemacht werden --> in klasse speichern
@@ -847,10 +847,10 @@ class AAERecommender(Recommender):
         if self.use_side_info:
             # Use titles as condition
 
-            side_info = test_set.get_attribute()
+            side_info = test_set.get_single_attribute()
         if self.use_title:
             # Use titles as condition
-            titles = test_set.get_attribute("title")
+            titles = test_set.get_single_attribute("title")
             titles = self.vect.transform(titles)
             pred = self.aae.predict(X, condition=titles)
         else:

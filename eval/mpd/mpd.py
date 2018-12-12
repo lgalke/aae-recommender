@@ -190,6 +190,7 @@ def unpack_playlists_for_models_concatenated(playlists,condition_names = "name",
         # We could assemble even more side info here from the track names
         # TODO: check intuitiveness: different attribute names are added to side_info, but returned as "titles"
         # TODO: check if just title is used, or information can be called seperately
+            # at the moment: just title used
         if aggregate is not None:
             aggregated_track_info = aggregate_track_info(playlist, aggregate)
             side_infos["aggregate"] = {[playlist["pid"]]: aggregated_track_info }

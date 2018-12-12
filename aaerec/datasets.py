@@ -203,11 +203,11 @@ class Bags(object):
 
 
 
-    def get_attribute(self, attribute):
+    def get_single_attribute(self, attribute):
         """
         Retrieves the attribute 'attribute' of each bag owner and returns them as a list
         in the same order as self.bag_owners.
-        :param attribute: hashable, key in owner_attributes (~ side_info)
+        :param attribute: hashable (str), key in owner_attributes (~ side_info)
         :return: list, ordered like Bag data containing respective attribute
         """
         if self.owner_attributes is None or self.bag_owners is None:
@@ -215,11 +215,11 @@ class Bags(object):
 
         # TODO: find how attribues are used --> starting at top level to see what is needed
         #
-        attributes = []
+        attribute_l = []
         for owner in self.bag_owners:
-            attributes.append(self.owner_attributes[attribute][owner])
+            attribute_l.append(self.owner_attributes[attribute][owner])
 
-        return attributes
+        return attribute_l
 
 
     @classmethod
@@ -277,7 +277,7 @@ class Bags(object):
             print("Splitting data on year:", on_year)
             assert self.owner_attributes['year'], "Cant split on non-existing 'year'"
             on_year = int(on_year)
-            is_train = [int(y) < on_year for y in self.get_attribute('year')]
+            is_train = [int(y) < on_year for y in self.get_single_attribute('year')]
             train_data, test_data = split_by_mask(self.data, is_train)
             train_owners, test_owners = split_by_mask(self.bag_owners, is_train)
         else:
