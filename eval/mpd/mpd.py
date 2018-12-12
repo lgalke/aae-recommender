@@ -307,4 +307,5 @@ if __name__ == '__main__':
                         help="list of incorporated additional attributes")
     args = parser.parse_args()
     print(args)
-    main(outfile=args.outfile, min_count=args.min_count, condition= args.side_information)
+    side_information = TRACK_INFO
+    main(outfile=args.outfile, min_count=args.min_count, condition= side_information)
