@@ -301,6 +301,17 @@ class AutoEncoder():
         return self
 
     def fit(self, X, y=None, conditions=None):
+        """
+
+        :param X: ??? (Bag Class.toscr()), BaseData
+        :param y: dummy variable, throws error if not None
+        :param conditions: Gunnars Numpy representation (np.array), the matrixed side_info
+        # TODO: rename conditions
+        :return:
+        """
+        # TODO: Rename conditions for readibility
+        # TODO: check how X representation and numpy.array work together
+        # TODO: adapt combining X and new_conditions_name
         if y is not None:
             raise NotImplementedError("(Semi-)supervised usage not supported")
 
