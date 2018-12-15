@@ -822,7 +822,16 @@ class AAERecommender(Recommender):
 
 
     def train(self, training_set):
+        """
+        1. get basic representation
+        2. ? add potential side_info in ??? representation
+        3. initialize a (Adversarial) Autoencoder variant
+        4. fit based on Autoencoder
+        :param training_set: ???, Bag Class training set
+        :return: trained self
+        """
         X = training_set.tocsr()
+        # X seems to be a "special" case formatting for input. TODO: check representation in function call tocsr()
         if self.use_side_info:
 
 
@@ -865,7 +874,8 @@ class AAERecommender(Recommender):
         else:
             self.aae = AutoEncoder(**self.aae_params)
 
-        self.aae.fit(X, condition=attr_vect)
+        # gives (Adversarial) Autoencoder BaseData (--> X: <???> representation) and side_info (attr_vect: numpy)
+        self.aae.fit(X, conditions=attr_vect)
 
     def predict(self, test_set):
         X = test_set.tocsr()
