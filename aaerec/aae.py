@@ -221,7 +221,7 @@ class AutoEncoder():
         self.dec.zero_grad()
 
     # why is this double? to AdversarialAutoEncoder
-    def ae_step(self, batch, condition=None, conditions=[]):
+    def ae_step(self, batch, conditions):
 
         """
         Perform one autoencoder training step
@@ -232,11 +232,8 @@ class AutoEncoder():
 
         # why is this double to AdversarialAutoEncoder? Lukas: it's likely the two models will diverge
         # what is relationship to train in DecodingRecommender? Train only uses Condition. Those are implementet seperately
-
+        assert type(conditions) != type("") and hasattr(conditions,'__iter__'), "Conditions needs to be a list of different conditions"
         z_sample = self.enc(batch)
-
-        #if condition is not None:
-        #    z_sample = torch.cat((z_sample, condition), 1)
 
         # TODO: pull this out later, when alternatives are present
         def torch_concat_side_info(z_sample,condition):
@@ -785,7 +782,6 @@ class AAERecommender(Recommender):
         AdversarialAutoencoder """
         super().__init__()
         self.verbose = kwargs.get('verbose', True)
-        self.use_title = kwargs.pop('use_title', False)
         self.use_side_info = kwargs.pop('use_side_info', False)
         self.embedding = kwargs.pop('embedding', None)
         self.vect = None

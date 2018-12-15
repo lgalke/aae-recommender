@@ -10,7 +10,9 @@ Each condition_obj has an interface to encode a batch
 and (optional) to update its parameters wrt (global) ae loss.
 
 
-""" 
+"""
+
+# First step. use wordembedding on title with condition setting
 
 # TODO FIXME this is an implementation *draft*
 
@@ -20,11 +22,8 @@ class ConditionBase():
     # TODO: find a way to make class itself OR list of it easyly iterable --> backwards compatible
     # TODO: ~ returning attribute name upon call
     # TODO: substitute workaround of condtion.condition_name = "playlist name" / "description tokens"
-    condition_name = None
-    def condition_name(self):
-        return self.condition_name
-
-    def __init__(self,condition_name):
+    # no condition name --> easier to adopt if condition reused
+    def __init__(self):
         raise NotImplementedError("NotImplemented: trying to call abstract method")
 
     def encode(self, input):
