@@ -352,6 +352,12 @@ class AutoEncoder():
         return self
 
     def predict(self, X, condition=None):
+        """
+
+        :param X:
+        :param condition: now ???, later
+        :return:
+        """
         self.eval()  # Deactivate dropout
         pred = []
         for start in range(0, X.shape[0], self.batch_size):
