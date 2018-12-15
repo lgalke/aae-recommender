@@ -369,6 +369,7 @@ class AutoEncoder():
         :param condition: now ???, later
         :return:
         """
+        # TODO: first look into fit, as predict is based on that!!!
         self.eval()  # Deactivate dropout
         pred = []
         for start in range(0, X.shape[0], self.batch_size):
