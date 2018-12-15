@@ -815,7 +815,7 @@ class AAERecommender(Recommender):
         else:
             desc = "Autoencoder"
 
-        desc += " using titles: " + ("Yes!" if self.use_title else "No.")
+        desc += " using side info: " + (self.use_side_info if self.use_side_info else "No.")
         desc += '\nAAE Params: ' + str(self.aae_params)
         desc += '\nTfidf Params: ' + str(self.tfidf_params)
         return desc
