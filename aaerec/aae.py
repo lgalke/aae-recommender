@@ -33,6 +33,11 @@ W2V_IS_BINARY = True
 STATUS_FORMAT = "[ R: {:.4f} | D: {:.4f} | G: {:.4f} ]"
 
 
+def assert_condition_callabilities(conditions):
+    assert type(conditions) != type("") and hasattr(conditions,
+                                                    '__iter__'), "Conditions needs to be a list of different conditions"
+
+
 def log_losses(*losses):
     print('\r'+STATUS_FORMAT.format(*losses), end='', flush=True)
 
@@ -232,7 +237,7 @@ class AutoEncoder():
 
         # why is this double to AdversarialAutoEncoder? Lukas: it's likely the two models will diverge
         # what is relationship to train in DecodingRecommender? Train only uses Condition. Those are implementet seperately
-        assert type(conditions) != type("") and hasattr(conditions,'__iter__'), "Conditions needs to be a list of different conditions"
+        assert_condition_callabilities(conditions)
         z_sample = self.enc(batch)
 
         # TODO: pull this out later, when alternatives are present
@@ -258,8 +263,15 @@ class AutoEncoder():
         self.zero_grad()
         return recon_loss.data[0].item()
 
-    def partial_fit(self, X, y=None, condition=None):
-        """ Performs reconstrction, discimination, generator training steps """
+    def partial_fit(self, X, y=None, conditions=None):
+        """
+            Performs reconstrction, discimination, generator training steps
+        :param X:
+        :param y:
+        :param conditions:
+        :return:
+        """
+
         if y is not None:
             raise ValueError("(Semi-)supervised usage not supported")
         # Transform to Torch (Cuda) Variable, shift batch to GPU
@@ -268,26 +280,27 @@ class AutoEncoder():
             X = X.cuda()
 
         # condition doesn't seem to be a string anymore
+        # TODO: rename condition if other representation
         # TODO: find origin of condition to make docstring and get understanding
-        if condition is not None:
-            condition = condition.astype('float32')
-            if sp.issparse(condition):
-                condition = condition.toarray()
-            condition = Variable(torch.from_numpy(condition))
+        if conditions is not None:
+            conditions = conditions.astype('float32')
+            if sp.issparse(conditions):
+                conditions = conditions.toarray()
+            conditions = Variable(torch.from_numpy(conditions))
             if torch.cuda.is_available():
-                condition = condition.cuda()
+                conditions = conditions.cuda()
 
 
         # Make sure we are in training mode and zero leftover gradients
         self.train()
         self.zero_grad()
         # One step each, could balance
-        recon_loss = self.ae_step(X, condition=condition)
+        recon_loss = self.ae_step(X, conditions=conditions)
         if self.verbose:
             log_losses(recon_loss, 0, 0)
         return self
 
-    def fit(self, X, y=None, condition=None):
+    def fit(self, X, y=None, conditions=None):
         if y is not None:
             raise NotImplementedError("(Semi-)supervised usage not supported")
 
@@ -296,10 +309,10 @@ class AutoEncoder():
                            normalize_inputs=self.normalize_inputs,
                            dropout=self.dropout, activation=self.activation)
         # TODO: separate type(condition) == str for attribute_name and type(condition) == some matrix? for clearness
-        if condition is not None:
-            self.dec = Decoder(self.n_code+condition.shape[1], self.n_hidden,
+        if conditions is not None:
+            self.dec = Decoder(self.n_code+conditions.shape[1], self.n_hidden,
                                X.shape[1], dropout=self.dropout, activation=self.activation)
-            assert condition.shape[0] == X.shape[0]
+            assert conditions.shape[0] == X.shape[0]
         else:
             self.dec = Decoder(self.n_code, self.n_hidden, X.shape[1],
                                dropout=self.dropout, activation=self.activation)
@@ -318,8 +331,8 @@ class AutoEncoder():
                 print("Epoch", epoch + 1)
 
             # Shuffle on each new epoch
-            if condition is not None:
-                X_shuf, condition_shuf = sklearn.utils.shuffle(X, condition)
+            if conditions is not None:
+                X_shuf, condition_shuf = sklearn.utils.shuffle(X, conditions)
             else:
                 X_shuf = sklearn.utils.shuffle(X)
 
@@ -327,9 +340,9 @@ class AutoEncoder():
             for start in range(0, X.shape[0], self.batch_size):
                 X_batch = X_shuf[start:(start+self.batch_size)].toarray()
                 # condition may be None
-                if condition is not None:
+                if conditions is not None:
                     c_batch = condition_shuf[start:(start+self.batch_size)]
-                    self.partial_fit(X_batch, condition=c_batch)
+                    self.partial_fit(X_batch, conditions=c_batch)
                 else:
                     self.partial_fit(X_batch)
 
@@ -783,6 +796,7 @@ class AAERecommender(Recommender):
         super().__init__()
         self.verbose = kwargs.get('verbose', True)
         self.use_side_info = kwargs.pop('use_side_info', False)
+        assert_condition_callabilities(self.use_side_info)
         self.embedding = kwargs.pop('embedding', None)
         self.vect = None
         self.aae_params = kwargs
@@ -804,6 +818,7 @@ class AAERecommender(Recommender):
     def train(self, training_set):
         X = training_set.tocsr()
         if self.use_side_info:
+
 
 
             # TODO: later with condition: use attribute respective vectorizer
@@ -866,11 +881,6 @@ class AAERecommender(Recommender):
             assert attr_vect.shape[0] == X.shape[0], "Dims dont match"
 
             pred = self.aae.predict(X, condition=attr_vect)
-        elif self.use_title:
-            # Use titles as condition
-            titles = test_set.get_single_attribute("title")
-            titles = self.vect.transform(titles)
-            pred = self.aae.predict(X, condition=titles)
         else:
             pred = self.aae.predict(X)
 
