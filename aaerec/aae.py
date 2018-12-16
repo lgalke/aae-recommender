@@ -226,7 +226,7 @@ class AutoEncoder():
         self.dec.zero_grad()
 
     # why is this double? to AdversarialAutoEncoder
-    def ae_step(self, batch, conditions):
+    def ae_step(self, batch, condition_matrix):
 
         """
         Perform one autoencoder training step
@@ -237,7 +237,7 @@ class AutoEncoder():
 
         # why is this double to AdversarialAutoEncoder? Lukas: it's likely the two models will diverge
         # what is relationship to train in DecodingRecommender? Train only uses Condition. Those are implementet seperately
-        assert_condition_callabilities(conditions)
+        assert_condition_callabilities(condition_matrix)
         z_sample = self.enc(batch)
 
         # TODO: pull this out later, when alternatives are present
@@ -250,7 +250,7 @@ class AutoEncoder():
             """
             return torch.cat((z_sample, condition), 1)
 
-        for cond in conditions:
+        for cond in condition_matrix:
             z_sample = torch_concat_side_info(z_sample=z_sample,condition=cond)
 
         x_sample = self.dec(z_sample)
@@ -266,8 +266,8 @@ class AutoEncoder():
     def partial_fit(self, X, y=None, condition_matrix=None):
         """
             Performs reconstrction, discimination, generator training steps
-        :param X:
-        :param y:
+        :param X: np.array, the base data from Bag class
+        :param y: dummy variable, throws Error if used
         :param condition_matrix: np.array, feature space of side_info
         :return:
         """
@@ -279,9 +279,6 @@ class AutoEncoder():
         if torch.cuda.is_available():
             X = X.cuda()
 
-
-        # TODO: rename condition if other representation
-        # TODO: find origin of condition to make docstring and get understanding
         if condition_matrix is not None:
             condition_matrix = condition_matrix.astype('float32')
             if sp.issparse(condition_matrix):
@@ -295,7 +292,7 @@ class AutoEncoder():
         self.train()
         self.zero_grad()
         # One step each, could balance
-        recon_loss = self.ae_step(X, conditions=condition_matrix)
+        recon_loss = self.ae_step(X, condition_matrix=condition_matrix)
         if self.verbose:
             log_losses(recon_loss, 0, 0)
         return self
