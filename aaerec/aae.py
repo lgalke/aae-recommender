@@ -852,6 +852,12 @@ class AAERecommender(Recommender):
             else:
                 self.vect = TfidfVectorizer(**self.tfidf_params)
 
+            # TODO: write method for concat side info combination
+            # TODO: pull this out, so its generally available
+            # TODO: put it into use at other points in class
+            def concat_side_info(traing_set):
+                pass
+
             # TODO: from here on will be basically copyed in predict --> find general solution? probably with Condition class
             # change the attributes/conditions/side_infos here
             # TODO: ensure features are appended correctly
