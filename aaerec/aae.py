@@ -239,22 +239,12 @@ class AutoEncoder():
         assert_condition_callabilities(condition_matrix)
         z_sample = self.enc(batch)
 
-        # TODO: pull this out later, when alternatives are present
-        def torch_concat_side_info(z_sample,condition):
-            """ Combine two different feature spaces into one by unprocessed concatenation.
-
-            :param z_sample: ??? torch encoding, the old feature space
-            :param condition: hashable, key to side_info attributes
-            :return: ??? torch encoding, the new feature space
-            """
-            return torch.cat((z_sample, condition), 1)
-
         # condition_matrix is already a matrix and doesn't need to be concatenated again
         # TODO: think/ask: where is it better to do concat? Here or when first  setted up for training
         # IMO: when setting up for training, because it's the used downstream all the same
-    
-        for cond in condition_matrix:
-            z_sample = torch_concat_side_info(z_sample=z_sample,condition=cond)
+
+        # concat base data with side_info
+        z_sample = torch.cat((z_sample, condition_matrix), 1)
 
 
         x_sample = self.dec(z_sample)
