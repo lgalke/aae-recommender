@@ -227,12 +227,11 @@ class AutoEncoder():
 
     # why is this double? to AdversarialAutoEncoder
     def ae_step(self, batch, condition_matrix):
-
         """
         Perform one autoencoder training step
-            :param batch: # self.enc() based in models
-            :param condition: probably some matrix (.shape works)
-            :return: I belive: binary_cross_entropy for this step
+            :param batch: np.array, the base data from Bag class
+            :param condition: condition_matrix: np.array, feature space of side_info
+            :return: binary_cross_entropy for this step
             """
 
         # why is this double to AdversarialAutoEncoder? Lukas: it's likely the two models will diverge
@@ -250,8 +249,13 @@ class AutoEncoder():
             """
             return torch.cat((z_sample, condition), 1)
 
+        # condition_matrix is already a matrix and doesn't need to be concatenated again
+        # TODO: think/ask: where is it better to do concat? Here or when first  setted up for training
+        # IMO: when setting up for training, because it's the used downstream all the same
+    
         for cond in condition_matrix:
             z_sample = torch_concat_side_info(z_sample=z_sample,condition=cond)
+
 
         x_sample = self.dec(z_sample)
         recon_loss = F.binary_cross_entropy(x_sample + TINY,
