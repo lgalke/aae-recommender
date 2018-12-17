@@ -36,7 +36,29 @@ STATUS_FORMAT = "[ R: {:.4f} | D: {:.4f} | G: {:.4f} ]"
 def assert_condition_callabilities(conditions):
     assert type(conditions) != type("") and hasattr(conditions,
                                                     '__iter__'), "Conditions needs to be a list of different conditions"
+# TODO: pull this out, so its generally available
+# TODO: put it into use at other points in class
+# TODO: ensure features are appended correctly
+def concat_side_info(vectorizer,training_set,side_info_subset=None):
+    """
+    Constructing an np.array with having the concatenated features in shape[1]
+    :param training_set: Bag class dataset,
+    :side_info_subset:
+    :return:
+    """
 
+    if side_info_subset == None:
+        side_info_subset = self.use_side_info
+    attr_vect = []
+    # ugly substitute for do_until pattern
+    for i, attribute in enumerate(side_info_subset):
+        attr_data = training_set.get_single_attribute(attribute)
+        if i < 1:
+            attr_vect = vectorizer.fit_transform(attr_data)
+        else:
+            # rows are instances, cols are features --> adding cols makes up new features
+            attr_vect = np.concatenate((attr_vect, vectorizer.fit_transform(attr_data)), axis=1)
+    return attr_vect
 
 def log_losses(*losses):
     print('\r'+STATUS_FORMAT.format(*losses), end='', flush=True)
@@ -853,23 +875,10 @@ class AAERecommender(Recommender):
                 self.vect = TfidfVectorizer(**self.tfidf_params)
 
 
-            # TODO: pull this out, so its generally available
-            # TODO: put it into use at other points in class
-            # TODO: ensure features are appended correctly
-            def concat_side_info(training_set):
-                attr_vect = []
-                # ugly substitute for do_until pattern
-                for i, attribute in enumerate(self.use_side_info):
-                    attr_data = training_set.get_single_attribute(attribute)
-                    if i < 1:
-                        attr_vect = self.vect.fit_transform(attr_data)
-                    else:
-                        # rows are instances, cols are features --> adding cols makes up new features
-                        attr_vect = np.concatenate((attr_vect, self.vect.fit_transform(attr_data)), axis=1)
-                assert attr_vect.shape[0] == X.shape[0], "Dims dont match"
-                return attr_vect
-            
-            attr_vect = concat_side_info(training_set)
+
+
+            attr_vect = concat_side_info(self.vect,training_set)
+            assert attr_vect.shape[0] == X.shape[0], "Dims dont match"
 
 
 
@@ -899,18 +908,8 @@ class AAERecommender(Recommender):
 
         if self.use_side_info:
             # change the attributes/conditions/side_infos here
-            # TODO: concat different attributes
-            # TODO: ensure features are appended correctly
 
-            attr_vect = []
-            # ugly substitute for do_until pattern
-            for i, attribute in enumerate(self.use_side_info):
-                attr_data = test_set.get_single_attribute(attribute)
-                if i < 1:
-                    attr_vect = self.vect.fit_transform(attr_data)
-                else:
-                    attr_vect = np.concatenate((attr_vect, self.vect.fit_transform(attr_data)), axis=1)
-
+            attr_vect = concat_side_info(self.vect, test_set)
             assert attr_vect.shape[0] == X.shape[0], "Dims dont match"
 
             pred = self.aae.predict(X, condition=attr_vect)
