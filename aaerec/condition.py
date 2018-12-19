@@ -10,7 +10,9 @@ Each condition_obj has an interface to encode a batch
 and (optional) to update its parameters wrt (global) ae loss.
 
 
-""" 
+"""
+
+# First step. use wordembedding on title with condition setting
 
 # TODO FIXME this is an implementation *draft*
 
