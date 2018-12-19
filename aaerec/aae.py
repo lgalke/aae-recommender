@@ -42,16 +42,13 @@ def assert_condition_callabilities(conditions):
 # TODO: pull this out, so its generally available
 # TODO: put it into use at other points in class
 # TODO: ensure features are appended correctly
-def concat_side_info(vectorizer,training_set,side_info_subset=None):
+def concat_side_info(vectorizer,training_set,side_info_subset):
     """
     Constructing an np.array with having the concatenated features in shape[1]
     :param training_set: Bag class dataset,
-    :side_info_subset:
+    :side_info_subset: list of str, the attribute keys in Bag class
     :return:
     """
-
-    if side_info_subset == None:
-        side_info_subset = self.use_side_info
     attr_vect = []
     # ugly substitute for do_until pattern
     for i, attribute in enumerate(side_info_subset):
@@ -878,7 +875,7 @@ class AAERecommender(Recommender):
 
 
 
-            attr_vect = concat_side_info(self.vect,training_set)
+            attr_vect = concat_side_info(self.vect,training_set,side_info_subset=self.use_side_info)
             assert attr_vect.shape[0] == X.shape[0], "Dims dont match"
 
 
@@ -911,7 +908,7 @@ class AAERecommender(Recommender):
         if self.use_side_info:
             # change the attributes/conditions/side_infos here
 
-            attr_vect = concat_side_info(self.vect, test_set)
+            attr_vect = concat_side_info(self.vect, test_set,side_info_subset=self.use_side_info)
             assert attr_vect.shape[0] == X.shape[0], "Dims dont match"
 
             pred = self.aae.predict(X, condition_matrix=attr_vect)

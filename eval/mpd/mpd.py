@@ -28,10 +28,7 @@ from aaerec.baselines import Countbased
 from aaerec.svd import SVDRecommender
 from aaerec.aae import AAERecommender, DecodingRecommender
 
-# Should work on kdsrv03
-#DATA_PATH = "/data21/lgalke/datasets/MPD/data/"
-#DATA_PATH = "/workData/zbw/citation/local_data"
-DATA_PATH = "/data22/ggerstenkorn/citation_test_data/"
+
 DEBUG_LIMIT = None
 # Use only this many most frequent items
 N_ITEMS = None
@@ -43,9 +40,21 @@ TRACK_INFO = ['artist_name', 'track_name', 'album_name']
 #N_WORDS = 50000
 #TFIDF_PARAMS = { 'max_features': N_WORDS }
 
-W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
-W2V_IS_BINARY = True
-VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
+SERVER = False
+
+if SERVER:
+    W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
+    W2V_IS_BINARY = True
+    VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
+    DATA_PATH = "/data21/lgalke/datasets/MPD/data/"
+    # DATA_PATH = "/data22/ggerstenkorn/citation_test_data/"
+else:
+    VECTORS = None
+    DATA_PATH = "/workData/zbw/citation/local_data"
+
+
+
+
 
 # These need to be implemented in evaluation.py
 METRICS = ['mrr']
@@ -157,7 +166,7 @@ def unpack_playlists(playlists, aggregate=None):
 
 
 
-def unpack_playlists_for_models_concatenated(playlists,condition_names = "name", aggregate=None):
+def unpack_playlists_for_models_concatenated(playlists,condition_names = ["name"], aggregate=None):
     """
     Unpacks list of playlists in a way that makes them ready for the models .train step.
     It is not mandatory that playlists are sorted.
@@ -309,5 +318,6 @@ if __name__ == '__main__':
                         help="list of incorporated additional attributes")
     args = parser.parse_args()
     print(args)
+    # TODO: hardcoding which attribute fields are choosable
     side_information = TRACK_INFO
     main(outfile=args.outfile, min_count=args.min_count, condition= side_information)
