@@ -34,8 +34,11 @@ STATUS_FORMAT = "[ R: {:.4f} | D: {:.4f} | G: {:.4f} ]"
 
 
 def assert_condition_callabilities(conditions):
-    assert type(conditions) != type("") and hasattr(conditions,
-                                                    '__iter__'), "Conditions needs to be a list of different conditions"
+    if type(conditions) == type(True):
+        pass
+    else:
+        assert type(conditions) != type("") and hasattr(conditions,'__iter__'), "Conditions needs to be a list of different conditions. It is a {} now.".format(type(conditions))
+
 # TODO: pull this out, so its generally available
 # TODO: put it into use at other points in class
 # TODO: ensure features are appended correctly
@@ -315,11 +318,9 @@ class AutoEncoder():
 
     def fit(self, X, y=None, condition_matrix=None):
         """
-
-        :param X: ??? (Bag Class.toscr()), BaseData
-        :param y: dummy variable, throws error if not None
-        :param condition_matrix: Gunnars Numpy representation (np.array), the matrixed side_info
-        # TODO: rename condition_matrix
+        :param X: np.array, the base data from Bag class
+        :param y: dummy variable, throws Error if used
+        :param condition_matrix: np.array, feature space of side_info
         :return:
         """
         # TODO: check how X representation and numpy.array work together
@@ -378,11 +379,11 @@ class AutoEncoder():
                 print()
         return self
 
-    def predict(self, X, condition=None):
+    def predict(self, X, condition_matrix=None):
         """
 
-        :param X:
-        :param condition: now ???, later
+        :param X: np.array, the base data from Bag class
+        :param condition_matrix: np.array, feature space of side_info
         :return:
         """
         # TODO: first look into fit, as predict is based on that!!!
@@ -396,8 +397,8 @@ class AutoEncoder():
                 X_batch = X_batch.cuda()
             X_batch = Variable(X_batch)
 
-            if condition is not None:
-                c_batch = condition[start:(start+self.batch_size)]
+            if condition_matrix is not None:
+                c_batch = condition_matrix[start:(start + self.batch_size)]
                 if sp.issparse(c_batch):
                     c_batch = c_batch.toarray()
                 c_batch = torch.FloatTensor(c_batch)
@@ -407,7 +408,7 @@ class AutoEncoder():
 
             # reconstruct
             z = self.enc(X_batch)
-            if condition is not None:
+            if condition_matrix is not None:
                 z = torch.cat((z, c_batch), 1)
             X_reconstuction = self.dec(z)
             # shift
@@ -904,6 +905,7 @@ class AAERecommender(Recommender):
         self.aae.fit(X, condition_matrix=attr_vect)
 
     def predict(self, test_set):
+
         X = test_set.tocsr()
 
         if self.use_side_info:
@@ -912,7 +914,7 @@ class AAERecommender(Recommender):
             attr_vect = concat_side_info(self.vect, test_set)
             assert attr_vect.shape[0] == X.shape[0], "Dims dont match"
 
-            pred = self.aae.predict(X, condition=attr_vect)
+            pred = self.aae.predict(X, condition_matrix=attr_vect)
         else:
             pred = self.aae.predict(X)
 
