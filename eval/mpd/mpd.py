@@ -33,11 +33,13 @@ DEBUG_LIMIT = None
 # Use only this many most frequent items
 N_ITEMS = None
 # Use only items that appear this many times
-# MIN_COUNT = 50
+MIN_COUNT = 50
 # Use command line arg '-m' instead
 
 TRACK_INFO = ['artist_name', 'track_name', 'album_name']
-#N_WORDS = 50000
+# TODO: find the side info fields
+PLAYLIST_INFO = ['name']
+N_WORDS = 50000
 #TFIDF_PARAMS = { 'max_features': N_WORDS }
 
 SERVER = False
@@ -62,7 +64,7 @@ METRICS = ['mrr']
 
 MODELS = [
     # Only item sets
-    Countbased(),
+    #Countbased(),
     #SVDRecommender(1000, use_title=False),
     #AAERecommender(adversarial=True, use_title=False, n_epochs=55, embedding=VECTORS),
     AAERecommender(adversarial=False, use_side_info=False, n_epochs=55, embedding=VECTORS),
@@ -70,7 +72,7 @@ MODELS = [
     #SVDRecommender(1000, use_title=True),
     #AAERecommender(adversarial=True, use_side_info=True, n_epochs=55, embedding=VECTORS),
     AAERecommender(adversarial=False, use_side_info=True, n_epochs=55, embedding=VECTORS),
-    DecodingRecommender(n_epochs=55, embedding=VECTORS)
+    #DecodingRecommender(n_epochs=55, embedding=VECTORS)
     # Put more here...
 ]
 
@@ -86,7 +88,16 @@ def playlists_from_slices(slices_dir, n_jobs=1, debug=False, only=None, without=
     """
     Loads a bunch of slices into a list of playlists,
     optionally sorted by id
+
+    :param slices_dir:
+    :param n_jobs:
+    :param debug:
+    :param only:
+    :param without:
+    :param verbose:
+    :return:
     """
+
     it = glob.glob(os.path.join(slices_dir, '*.json'))
 
     # Stuff to deal with dev set penc
@@ -122,6 +133,12 @@ def playlists_from_slices(slices_dir, n_jobs=1, debug=False, only=None, without=
 
 
 def aggregate_track_info(playlist, attributes):
+    """
+
+    :param playlist: dict, one playlist instance with it's information
+    :param attributes: iterable, keys of 'tracks' in playlist
+    :return: str, bag of words all side info combined
+    """
     if 'tracks' not in playlist:
         return ''
     acc = []
@@ -179,8 +196,13 @@ def unpack_playlists_for_models_concatenated(playlists,condition_names = ["name"
     if aggregate is not None:
         for attr in aggregate:
             assert attr in TRACK_INFO
+    for condition in condition_names:
+        print(condition)
+        assert condition in PLAYLIST_INFO
 
-    bags_of_tracks, pids, side_infos = [], [], {}
+
+    bags_of_tracks, pids = [], []
+    side_infos = {condition:{} for condition in condition_names}
     for playlist in playlists:
         # Extract pids
         pids.append(playlist["pid"])
@@ -190,21 +212,41 @@ def unpack_playlists_for_models_concatenated(playlists,condition_names = ["name"
 
 
         try:
-            # TODO: also put other side infos here
             # TODO: find how it is used (in Bags class) to fit interface
 
-            for condition in condition_names:
-                side_infos[condition][playlist["pid"]] = playlist[condition] # whats coming out of playlist here?
-        except KeyError:
-            side_infos["title"][playlist["pid"]] = ""
+            # self.owner_attributes = side_info
+            # self.owner_attributes[attribute][owner]
+            # before: side_info[playlist["pid"]] = playlist["name"]
+            # ordering doesn't matter as it's always called with pid together
+            # TODO: think about more efficient handling via numpy/pandas in Bag class through slicing availability
 
-        # We could assemble even more side info here from the track names
-        # TODO: check intuitiveness: different attribute names are added to side_info, but returned as "titles"
-        # TODO: check if just title is used, or information can be called seperately
+
+            for condition in condition_names:
+                side_infos[condition][playlist["pid"]] = playlist[condition] # whats coming out of playlist here? a string
+
+        except KeyError:
+            pass
+
+        try:
+
+            # TODO: check intuitiveness: different attribute names are added to side_info, but returned as "titles"
+            # TODO: check if just title is used, or information can be called seperately
             # at the moment: just title used
-        if aggregate is not None:
-            aggregated_track_info = aggregate_track_info(playlist, aggregate)
-            side_infos["aggregate"] = {[playlist["pid"]]: aggregated_track_info }
+            if aggregate is not None:
+                # TODO: use the the track info separately as side info
+                # TODO: add it in doctex
+                # TODO: probably implement new aggregation method | is it necessary ?
+                # TODO: check if it complies upstream (calling "aggregate"/ what it's going to be)
+                # TODO: rename aggregate
+                for info in aggregate:
+                    aggregated = []
+                    for track in side_infos["tracks"]:
+                        if info in track:
+                            aggregated.append(track[info])
+                    side_infos[info][playlist["pid"]] = " ".join(aggregated)
+
+        except KeyError:
+            side_infos["no_side_info"] = {playlist["pid"]: ""}
 
     # bag_of_tracks and pids should have corresponding indices
     # In side info the pid is the key
@@ -318,6 +360,4 @@ if __name__ == '__main__':
                         help="list of incorporated additional attributes")
     args = parser.parse_args()
     print(args)
-    # TODO: hardcoding which attribute fields are choosable
-    side_information = TRACK_INFO
-    main(outfile=args.outfile, min_count=args.min_count, condition= side_information)
+    main(outfile=args.outfile, min_count=args.min_count, condition= PLAYLIST_INFO)

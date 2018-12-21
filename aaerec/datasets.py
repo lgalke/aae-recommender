@@ -204,17 +204,19 @@ class Bags(object):
 
 
     def get_single_attribute(self, attribute):
+        # TODO: find representation in owner_attributes for doctex
         """
         Retrieves the attribute 'attribute' of each bag owner and returns them as a list
         in the same order as self.bag_owners.
         :param attribute: hashable (str), key in owner_attributes (~ side_info)
-        :return: list, ordered like Bag data containing respective attribute
+        :return: vectorizable, ordered like Bag data containing respective attribute
         """
         if self.owner_attributes is None or self.bag_owners is None:
             raise ValueError("Owners not present")
 
-        # TODO: find how attributes are used --> starting at top level to see what is needed
-        #
+        # find how attributes are used --> starting at top level to see what is needed
+        # Answer: vectorizable
+        # use it like before, it worked there
         attribute_l = []
         for owner in self.bag_owners:
             attribute_l.append(self.owner_attributes[attribute][owner])
