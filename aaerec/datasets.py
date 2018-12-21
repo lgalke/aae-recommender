@@ -389,7 +389,7 @@ class BagsWithVocab(Bags):
         raise ValueError("A vocabulary has already been applied.")
 
     def __str__(self):
-        s = "{} elements in [{}, {}] with density {}"
+        s = "{} elements in [{}, {}] [data_points,vocabulary_size] with density {}"
         return s.format(self.numel(), *self.size(), self.density())
 
     def size(self, dim=None):
