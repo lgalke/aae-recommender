@@ -43,7 +43,8 @@ N_ITEMS = None
 
 W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
 W2V_IS_BINARY = True
-VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
+VECTORS = None
+# VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 
 # These need to be implemented in evaluation.py
 METRICS = ['mrr']

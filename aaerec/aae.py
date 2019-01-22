@@ -142,7 +142,7 @@ class Decoder(nn.Module):
 
 class Discriminator(nn.Module):
     """ Discriminator """
-    def __init__(self, n_code, n_hidden, dropout=(.2,.2), activation='ReLU'):
+    def __init__(self, n_code, n_hidden, dropout=(.2, .2), activation='ReLU'):
         super(Discriminator, self).__init__()
         self.lin1 = nn.Linear(n_code, n_hidden)
         self.lin2 = nn.Linear(n_hidden, n_hidden)

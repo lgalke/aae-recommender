@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from .evaluation import METRICS
 
 
 class Recommender(ABC):

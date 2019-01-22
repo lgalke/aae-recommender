@@ -8,6 +8,8 @@ import itertools as it
 import numpy as np
 import pandas as pd
 
+from tqdm import tqdm
+
 
 from sklearn.model_selection import train_test_split
 from collections import defaultdict
@@ -616,6 +618,26 @@ class BagsWithVocab(Bags):
         """ Returns the data with original identifiers instead of indices """
         # important not to filter here, better raise if something wrong
         return apply_vocab(self.data, self.index2token)
+
+    def to_dgl_graph(self):
+        """ Converts BagsWithVocab to dgl (dgl.ai) graph """
+        import dgl
+        G = dgl.DGLGraph()
+        print("Constructing bipartite graph between", len(self.data), "users.")
+        n_users = len(self.data)
+        n_items = len(self.vocab)
+        # TODO Add user data (paper title etc)
+        G.add_nodes(n_users)
+        G.add_nodes(n_items)
+        for i, dsts in tqdm(enumerate(self.data)):
+            for j in dsts:
+                # n_users offset because graph is bipartite!
+                G.add_edge(i, n_users + j)
+        
+        return G
+
+
+
 
 
 if __name__ == '__main__':

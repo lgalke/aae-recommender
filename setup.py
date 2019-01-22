@@ -10,6 +10,8 @@ requirements = [
       'joblib',
       'matplotlib',
       'seaborn',
+      'dgl',
+      'tqdm'
 ]
 setup(name='aaerec',
       version=0.1,
