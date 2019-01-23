@@ -395,18 +395,17 @@ class AutoEncoder():
         # TODO: first look into fit, as predict is based on that!!!
         self.eval()  # Deactivate dropout
         pred = []
+        # X shape (400,87337)
         for start in range(0, X.shape[0], self.batch_size):
             # batched predictions, yet inclusive
             X_batch = X[start:(start+self.batch_size)].toarray()
             X_batch = torch.FloatTensor(X_batch)
             if torch.cuda.is_available():
                 X_batch = X_batch.cuda()
-            X_batch = Variable(X_batch)
+            X_batch = Variable(X_batch) # X_batch shape (100,87337)
 
-            if condition_matrix is not None:
-                # condition_matrix dims: (400, 338)
-                # c_batch dims: (100,338)
-                c_batch = condition_matrix[start:(start + self.batch_size)] # what is the current batch_size? should be 100
+            if condition_matrix is not None: # condition_matrix dims: (400, 338)
+                c_batch = condition_matrix[start:(start + self.batch_size)] # c_batch dims: (100,338)
                 if sp.issparse(c_batch):
                     c_batch = c_batch.toarray()
                 c_batch = torch.FloatTensor(c_batch)
@@ -415,9 +414,9 @@ class AutoEncoder():
                 c_batch = Variable(c_batch)
 
 
-            z = self.enc(X_batch)
+            z = self.enc(X_batch) # z encoded: [100,50]
             if condition_matrix is not None:
-                z = torch.cat((z, c_batch), 1)
+                z = torch.cat((z, c_batch), 1) # z after: torch.size [100,~377]
             # reconstruct
             # Encoder is set in fit() method
             # TODO: find why it throws. seems to be dims mismatch
