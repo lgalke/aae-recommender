@@ -277,7 +277,7 @@ class AutoEncoder():
         self.enc_optim.step()
         self.dec_optim.step()
         self.zero_grad()
-        return recon_loss.data[0].item()
+        return recon_loss.item()
 
     def partial_fit(self, X, y=None, condition_matrix=None):
         """
@@ -328,6 +328,8 @@ class AutoEncoder():
 
         # Encoder just gets BaseData (~X), Decoder just Encoding and SideInfo
         # but the the dims mismatch
+        # TODO: Fix/Find Encoding step in predict
+        print("encoder dims", X.shape[1])
         self.enc = Encoder(X.shape[1], self.n_hidden, self.n_code,
                            final_activation='linear',
                            normalize_inputs=self.normalize_inputs,
@@ -337,9 +339,10 @@ class AutoEncoder():
             # TODO: find out why dims are arbitrary
             # [100 x 381], m2: [1616 x 100] vs [100 x 376], m2: [1628 x 100]
             assert condition_matrix.shape[0] == X.shape[0]
-            print(condition_matrix.shape, X.shape)
+            print("condition_matrix shape: ",condition_matrix.shape,"X.shape", X.shape)
             # (3600, 1567) (3600, 88323), (3600, 1566) (3600, 87305),  (3600, 1575) (3600, 86911)
             # data set is stable: total: 4000 records with 269755 ratings
+            # on master branch there are values in all [ R: 0.6524 | D: 1.3585 | G: 0.7273 ]
             # shape[1] is the length of feature space --> this prob gives how many dims for Decoder
             self.dec = Decoder(self.n_code + condition_matrix.shape[1], self.n_hidden,
                                X.shape[1], dropout=self.dropout, activation=self.activation)
@@ -401,7 +404,9 @@ class AutoEncoder():
             X_batch = Variable(X_batch)
 
             if condition_matrix is not None:
-                c_batch = condition_matrix[start:(start + self.batch_size)]
+                # condition_matrix dims: (400, 338)
+                # c_batch dims: (100,338)
+                c_batch = condition_matrix[start:(start + self.batch_size)] # what is the current batch_size? should be 100
                 if sp.issparse(c_batch):
                     c_batch = c_batch.toarray()
                 c_batch = torch.FloatTensor(c_batch)
@@ -409,15 +414,18 @@ class AutoEncoder():
                     c_batch = c_batch.cuda()
                 c_batch = Variable(c_batch)
 
+
+            z = self.enc(X_batch)
+            if condition_matrix is not None:
+                z = torch.cat((z, c_batch), 1)
             # reconstruct
             # Encoder is set in fit() method
             # TODO: find why it throws. seems to be dims mismatch
             # File "/home/gerstenkorn/anaconda3/envs/citation/lib/python3.6/site-packages/torch/nn/functional.py", line 1024, in linear
             # return torch.addmm(bias, input, weight.t())
-#            RuntimeError: size mismatch, m1: [100 x 376], m2: [1628 x 100] at /pytorch/aten/src/TH/generic/THTensorMath.cpp:2070
-            z = self.enc(X_batch)
-            if condition_matrix is not None:
-                z = torch.cat((z, c_batch), 1)
+            #            RuntimeError: size mismatch, m1: [100 x 376], m2: [1628 x 100] at /pytorch/aten/src/TH/generic/THTensorMath.cpp:2070
+            # other iteration:  RuntimeError: size mismatch, m1: [100 x 387], m2: [1627 x 100] at /pytorch/aten/src/TH/generic/THTensorMath.cpp:940
+
             X_reconstuction = self.dec(z)
             # shift
             X_reconstuction = X_reconstuction.data.cpu().numpy()
