@@ -29,10 +29,10 @@ class ConditionList(OrderedDict):
         super(ConditionList, self).__init__(items)
         assert all(isinstance(v, ConditionBase) for v in self.values())
 
-    def encode_apply(self, x, condition_inputs):
+    def encode_impose(self, x, condition_inputs):
         assert len(condition_inputs) == len(self)
         for condition, condition_input in zip(self.values(), condition_inputs):
-            x = condition.encode_apply(x, condition_input)
+            x = condition.encode_impose(x, condition_input)
         return x
 
     def step(self):
@@ -49,15 +49,8 @@ class ConditionList(OrderedDict):
         return sum(v.size_increment() for v in self.values())
 
 
-
 class ConditionBase(ABC):
     """ Abstract Base Class for a generic condition """
-    def __init__(self):
-        """ Initializes the condition """
-        raise NotImplementedError(
-            "NotImplemented: trying to call abstract class initializer"
-        )
-
     @property
     @abstractmethod
     def size_increment(self):
@@ -72,15 +65,15 @@ class ConditionBase(ABC):
         """ Encodes the input for the condition """
 
     @abstractmethod
-    def apply(self, input, encoded_condition):
+    def impose(self, input, encoded_condition):
         """ Applies the condition, for instance by concatenation.
         Could also use multiplicative or additive conditioning.
         """
 
-    def encode_apply(self, input, condition_input):
+    def encode_impose(self, input, condition_input):
         """ First encodes `condition_input`, then applies condition to `input`.
         """
-        return self.apply(input, self.encode(condition_input))
+        return self.impose(input, self.encode(condition_input))
 
     def step(self):
         """
@@ -95,8 +88,8 @@ class ConditionBase(ABC):
             # Check if interface is satisified
             mro = C.__mro__
             if any("encode" in B.__dict__ for B in mro) \
-                    and any("apply" in B.__dict__ for B in mro) \
-                    and any("size" in B.__dict__ for B in mro):
+                    and any("impose" in B.__dict__ for B in mro) \
+                    and any("size_increment" in B.__dict__ for B in mro):
                 return True
         return NotImplemented  # Proceed with usual mechanisms
 
@@ -116,19 +109,24 @@ class ConcatenationBasedConditioning(ConditionBase):
     # Subclasses still need to specify .size_increment()
     # as concatenation based
     dim = 1
-
-    def apply(self, input, encoded_condition):
+    def impose(self, input, encoded_condition):
         return torch.cat([input, encoded_condition], dim=self.dim)
 
 
 class ConditionalBiasing(ConditionBase):
-    def apply(self, input, encoded_condition):
+    def impose(self, input, encoded_condition):
         return input + encoded_condition
+
+    def size_increment(self):
+        return 0
 
 
 class ConditionalScaling(ConditionBase):
-    def apply(self, input, encoded_condition):
+    def impose(self, input, encoded_condition):
         return input * encoded_condition
+
+    def size_increment(self):
+        return 0
 
 
 # class PretrainedWordEmbeddingCondition(ConcatenationBasedConditioning):
@@ -142,16 +140,16 @@ class ConditionalScaling(ConditionBase):
 #     def step(self):
 #         pass
 
-class CategoricalCondition(nn.Module, ConcatenationBasedConditioning):
+class EmbeddingBagCondition(nn.Module, ConcatenationBasedConditioning):
 
     """ A condition with a *trainable* embedding bag.
     It is suited for conditioning on categorical variables.
-    >>> cc = CategoricalCondition(100,10)
+    >>> cc = EmbeddingBagCondition(100,10)
     >>> cc
-    CategoricalCondition(
+    EmbeddingBagCondition(
       (embedding_bag): EmbeddingBag(100, 10, mode=mean)
     )
-    >>> issubclass(CategoricalCondition, ConditionBase)
+    >>> issubclass(EmbeddingBagCondition, ConditionBase)
     True
     >>> isinstance(cc, ConditionBase)
     True
