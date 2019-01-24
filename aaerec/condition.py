@@ -35,6 +35,13 @@ class ConditionList(OrderedDict):
             x = condition.encode_impose(x, condition_input)
         return x
 
+    def zero_grad(self):
+        """ Forward the zero_grad call to all conditions in list
+        such they can reset their gradients """
+        for condition in self.values():
+            condition.zero_grad()
+        return self
+
     def step(self):
         """ Forward the step call to all conditions in list,
         such that these can update their individual parameters"""
@@ -51,7 +58,18 @@ class ConditionList(OrderedDict):
 
 class ConditionBase(ABC):
     """ Abstract Base Class for a generic condition """
-    @property
+
+    #####################################################################
+    # Condition supplies info how much it will increment the size of data
+    # Some conditions might want to prepare on whole dataset .
+    # eg to build a vocabulary and compute global IDF and stuff
+    def prepare(self, raw_inputs):
+        """ Prepares the condition wrt to the whole raw data for the condition
+        To be called *once* on the whole (condition)-data.
+        """
+        return self
+
+    # Latest after preparing, size_increment should yield reasonable results.
     @abstractmethod
     def size_increment(self):
         """ Returns the output dimension of the condition,
@@ -59,7 +77,10 @@ class ConditionBase(ABC):
         unconditioned.size(1) + condition.size_increment() = conditioned.size(1)
         Note that for additive or multiplicative conditions, dim should be zero.
         """
+    #####################################################################
 
+    ###########################################################################
+    # Condition can encode the raw input and knows how to impose itself to data
     @abstractmethod
     def encode(self, input):
         """ Encodes the input for the condition """
@@ -74,18 +95,34 @@ class ConditionBase(ABC):
         """ First encodes `condition_input`, then applies condition to `input`.
         """
         return self.impose(input, self.encode(condition_input))
+    ###########################################################################
+
+    ################################################
+    # Condition knows how to optimize own parameters
+    def zero_grad(self):
+        """
+        Clear out gradients.
+        Per default does nothing on step (optional for subclasses to implement.
+        To be called before each batch.
+        """
+        return self
 
     def step(self):
         """
-        Updates its own parameters. Per default does nothing on
-        step (optional for subclasses to implement.
+        Update condition's associated parameters.
+        Per default does nothing on step (optional for subclasses to implement.
+
+        To be called after each batch.
         """
         return self
+    ################################################
+
+
 
     @classmethod
     def __subclasshook__(cls, C):
         if cls is ConditionBase:
-            # Check if interface is satisified
+            # Check if abstract parts of interface are satisified
             mro = C.__mro__
             if any("encode" in B.__dict__ for B in mro) \
                     and any("impose" in B.__dict__ for B in mro) \
@@ -140,7 +177,8 @@ class ConditionalScaling(ConditionBase):
 #     def step(self):
 #         pass
 
-class EmbeddingBagCondition(nn.Module, ConcatenationBasedConditioning):
+
+class EmbeddingBagCondition(ConcatenationBasedConditioning):
 
     """ A condition with a *trainable* embedding bag.
     It is suited for conditioning on categorical variables.
@@ -164,15 +202,14 @@ class EmbeddingBagCondition(nn.Module, ConcatenationBasedConditioning):
                                              **kwargs)
 
         # register this module's parameters with the optimizer
-        self.optimizer = optim.Adam(self.parameters())
+        self.optimizer = optim.Adam(self.embedding_bag.parameters())
         self.output_dim = embedding_dim
 
-    def forward(self, input):
-        # in this case embedding, but can be anything
+    def encode(self, input):
         return self.embedding_bag(input)
 
-    def encode(self, input):
-        return self.forward(input)
+    def zero_grad(self):
+        self.optimizer.zero_grad()
 
     def step(self):
         # loss.backward() to be called before by client (such as in ae_step)

@@ -67,3 +67,29 @@ def test_condition_list():
         == code.size(1) + condition_list.size_increment()
 
     assert code.size(0) == conditioned_code.size(0)
+
+
+
+def test_optim_step_callback():
+    """ Test zero_grad / step optimization """
+    code = torch.rand(100, 10)
+    # 2 random values with vocabulary 0, 1 per sample
+    c_batch = (torch.rand(100, 2) < 0.5).long()
+    ebc = EmbeddingBagCondition(2, 10)
+
+    target = torch.zeros(20)
+
+    losses = []
+    for _ in range(2):
+        # dummy training loop
+        ebc.zero_grad()
+        criterion = torch.nn.MSELoss()
+        conditioned_code = ebc.encode_impose(code, c_batch)
+        loss = criterion(conditioned_code, target)
+        loss.backward()
+        losses.append(loss.item())
+        ebc.step()
+
+    assert len(losses) == 2
+    # One loss improvement should be possible
+    assert losses[1] < losses[0]
