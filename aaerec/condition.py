@@ -4,8 +4,10 @@ import torch.nn as nn
 from torch import optim
 
 from abc import ABC, abstractmethod
-from collections import OrderedDict
+from collections import OrderedDict, Counter
 import torch
+import scipy.sparse as sp
+
 
 from .ub import GensimEmbeddedVectorizer
 """
@@ -196,7 +198,7 @@ class ConcatenationBasedConditioning(ConditionBase):
 
     @abstractmethod
     def size_increment(self):
-        """ Subclasses need to overwrite this """
+        """ Subclasses need to specify size increment """
 
     def impose(self, inputs, encoded_condition):
         """ Concat condition at specified dimension (default 1) """
@@ -229,44 +231,41 @@ class ConditionalScaling(ConditionBase):
         return 0
 
 
-class PretrainedWordEmbeddingCondition(
-        GensimEmbeddedVectorizer, # fit & transform
-        ConcatenationBasedConditioning):
-    def __init__(self, vectors, **tfidf_params):
-        GensimEmbeddedVectorizer.__init__(self, vectors, **tfidf_params)
+class PretrainedWordEmbeddingCondition(ConcatenationBasedConditioning):
+    """ A concatenation-based condition using a pre-trained word embedding """
 
-    def encode(self, numpy_array):
-        return torch.from_numpy(numpy_array).float()
+    def __init__(self, vectors, dim=1, **tfidf_params):
+        self.vect = GensimEmbeddedVectorizer(vectors, **tfidf_params)
+        self.dim = dim
+
+    def fit(self, raw_inputs):
+        self.vect.fit(raw_inputs)
+        return self
+
+    def transform(self, raw_inputs):
+        return self.vect.transform(raw_inputs)
+
+    def fit_transform(self, raw_inputs):
+        return self.vect.fit_transform(raw_inputs)
+
+    def encode(self, inputs):
+        # GensimEmbeddedVectorizer yields numpy array
+        return torch.from_numpy(inputs).float()
 
     def size_increment(self):
         # Return embedding dimension
-        return self.embedding.shape[1]
+        return self.vect.embedding.shape[1]
 
 
 class EmbeddingBagCondition(ConcatenationBasedConditioning):
     """ A condition with a *trainable* embedding bag.
-    It is suited for conditioning on categorical variables.
-    >>> cc = EmbeddingBagCondition(100,10)
-    >>> cc
-    EmbeddingBagCondition(
-      (embedding_bag): EmbeddingBag(100, 10, mode=mean)
-    )
-    >>> issubclass(EmbeddingBagCondition, ConditionBase)
-    True
-    >>> isinstance(cc, ConditionBase)
-    True
     """
-
     def __init__(self, num_embeddings, embedding_dim, **kwargs):
-        """TODO: to be defined1. """
-        super(ConcatenationBasedConditioning, self).__init__()
         self.embedding_bag = nn.EmbeddingBag(num_embeddings,
                                              embedding_dim,
                                              **kwargs)
-
-        # register this module's parameters with the optimizer
-        self.optimizer = optim.Adam(self.embedding_bag.parameters())
-        self.output_dim = embedding_dim
+        self.optimizer = torch.optim.Adam(self.embedding_bag.parameters())
+        self.embedding_dim = embedding_dim
 
     def encode(self, inputs):
         return self.embedding_bag(inputs)
@@ -280,4 +279,141 @@ class EmbeddingBagCondition(ConcatenationBasedConditioning):
         self.optimizer.step()
 
     def size_increment(self):
-        return self.output_dim
+        return self.embedding_dim
+
+
+class CategoricalCondition(ConcatenationBasedConditioning):
+    """ A condition with a *trainable* embedding bag.
+    It is suited for conditioning on categorical variables.
+    """
+
+    def __init__(self, embedding_dim, vocab_size=None,
+                 **embedding_params):
+        """
+        Arguments
+        ---------
+        - embedding_dim: int - Size of the embedding
+        - vocab_size: int - Vocabulary size limit (if given)
+
+        """
+        # register this module's parameters with the optimizer
+        self.vocab_size = vocab_size
+        self.embedding_dim = embedding_dim
+        self.vocab = None
+        self.embedding_bag = None
+        self.optimizer = None
+        self.embedding_params = embedding_params
+
+    def fit(self, raw_inputs):
+        """ Learn a vocabulary """
+        items = Counter(raw_inputs).most_common(self.vocab_size)
+        # index 0 is reserved for unk idx
+        self.vocab = {value: idx + 1 for idx, (value, __) in enumerate(items)}
+        num_embeddings = len(self.vocab) + 1
+        self.embedding_bag = nn.EmbeddingBag(num_embeddings,
+                                             self.embedding_dim,
+                                             **self.embedding_params)
+        self.optimizer = optim.Adam(self.embedding_bag.parameters())
+        return self
+
+    def transform(self, raw_inputs):
+        return torch.LongTensor([self.vocab.get(x, 0) for x in raw_inputs])\
+            .view(-1, 1)
+
+    def encode(self, inputs):
+        return self.embedding_bag(inputs)
+
+    def zero_grad(self):
+        self.optimizer.zero_grad()
+
+    def step(self):
+        # loss.backward() to be called before by client (such as in ae_step)
+        # The condition object can update its own parameters wrt global loss
+        self.optimizer.step()
+
+    def size_increment(self):
+        return self.embedding_dim
+
+
+class Condition(ConditionBase):
+    """ A generic condition class.
+    Arguments
+    ---------
+    - encoder: callable, nn.Module
+    - preprocessor: object satisfying fit, transform, fit_transform
+    - optimizer: optimizer satisfying step, zero_grad, makes sense to operate
+      on encoder's parameters
+    - size_increment: int - When in concat mode, how much does this condition
+      attach
+    - dim: int - When in concat mode, to which dim should this condition
+      concatenate
+
+
+    """
+    def __init__(self, preprocessor=None, encoder=None, optimizer=None,
+                 mode="concat", size_increment=0, dim=1):
+        if encoder is not None:
+            assert callable(encoder)
+        assert mode in ["concat", "bias", "scale"]
+        if mode == "concat":
+            assert size_increment > 0, "Specify size increment in concat mode"
+        else:
+            assert size_increment == 0,\
+                "Size increment should be zero in bias or scale modes"
+        if preprocessor is not None:
+            assert hasattr(preprocessor, 'fit'),\
+                "Preprocessor has no fit method"
+            assert hasattr(preprocessor, 'transform'),\
+                "Preprocessor has no transform method"
+            assert hasattr(preprocessor, 'fit_transform'),\
+                "Preprocessor has no fit_transform method"
+        if optimizer is not None:
+            assert hasattr(optimizer, 'zero_grad')
+            assert hasattr(optimizer, 'step')
+        self.preprocessor = preprocessor
+        self.encoder = encoder
+        self.optimizer = optimizer
+        self.mode_ = mode
+        self.dim = dim
+
+    def fit(self, raw_inputs):
+        if self.preprocessor is not None:
+            self.preprocessor.fit(raw_inputs)
+        return self
+
+    def transform(self, raw_inputs):
+        if self.preprocessor is not None:
+            x = self.preprocessor.transform(raw_inputs)
+        return x
+
+    def fit_transform(self, raw_inputs):
+        if self.preprocessor is not None:
+            x = self.preprocessor.fit_transform(raw_inputs)
+        return x
+
+    def encode(self, inputs):
+        if self.encoder is not None:
+            return self.encoder(inputs)
+        return inputs
+
+    def impose(self, inputs, encoded_condition):
+        if self.mode_ == "concat":
+            out = torch.cat([inputs, encoded_condition], dim=self.dim)
+        elif self.mode_ == "bias":
+            out = inputs + encoded_condition
+        elif self.mode_ == "scale":
+            out = inputs * encoded_condition
+        else:
+            raise ValueError("Unknown mode: " + self.mode_)
+        return out
+
+    def size_increment(self):
+        return self.size_increment
+
+    def zero_grad(self):
+        if self.optimizer is not None:
+            self.optimizer.zero_grad()
+
+    def step(self):
+        if self.optimizer is not None:
+            self.optimizer.step()
