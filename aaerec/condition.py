@@ -237,7 +237,8 @@ class PretrainedWordEmbeddingCondition(
         return self.embedding.shape[1]
 
 
-class EmbeddingBagCondition(ConditionBase, ConcatenationBasedConditioningMixin):
+class EmbeddingBagCondition(ConcatenationBasedConditioningMixin,
+                            ConditionBase):
     """ A condition with a *trainable* embedding bag.
     It is suited for conditioning on categorical variables.
     >>> cc = EmbeddingBagCondition(100,10)

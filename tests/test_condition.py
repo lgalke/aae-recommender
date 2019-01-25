@@ -1,19 +1,16 @@
 import torch
 from aaerec.condition import EmbeddingBagCondition,\
     ConditionBase,\
-    ConcatenationBasedConditioning, \
-    ConditionalBiasing, \
-    ConditionalScaling, \
-    ConditionList
+    ConcatenationBasedConditioningMixin, \
+    ConditionalBiasingMixin, \
+    ConditionalScalingMixin, \
+    ConditionList, \
+    PretrainedWordEmbeddingCondition
 
 
 def test_condition_abc():
-
-    assert issubclass(ConcatenationBasedConditioning, ConditionBase)
-    assert issubclass(ConditionalBiasing, ConditionBase)
-    assert issubclass(ConditionalScaling, ConditionBase)
-
     assert issubclass(EmbeddingBagCondition, ConditionBase)
+    assert issubclass(PretrainedWordEmbeddingCondition, ConditionBase)
 
 
 def test_condition_simple():
@@ -24,7 +21,7 @@ def test_condition_simple():
     ebc = EmbeddingBagCondition(2, 10)
 
     assert isinstance(ebc, ConditionBase)
-    assert isinstance(ebc, ConcatenationBasedConditioning)
+    assert isinstance(ebc, ConcatenationBasedConditioningMixin)
 
     condition_encoded = ebc.encode(c_batch)
 
