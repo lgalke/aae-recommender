@@ -1,14 +1,20 @@
+""" Tests various functionalities wrt conditions """
 import torch
 from aaerec.condition import EmbeddingBagCondition,\
+    PretrainedWordEmbeddingCondition,\
     ConditionBase,\
-    ConcatenationBasedConditioningMixin, \
-    ConditionalBiasingMixin, \
-    ConditionalScalingMixin, \
-    ConditionList, \
-    PretrainedWordEmbeddingCondition
+    ConcatenationBasedConditioning,\
+    ConditionalBiasing,\
+    ConditionalScaling,\
+    ConditionList
 
 
 def test_condition_abc():
+
+    assert issubclass(ConcatenationBasedConditioning, ConditionBase)
+    assert issubclass(ConditionalBiasing, ConditionBase)
+    assert issubclass(ConditionalScaling, ConditionBase)
+
     assert issubclass(EmbeddingBagCondition, ConditionBase)
     assert issubclass(PretrainedWordEmbeddingCondition, ConditionBase)
 
@@ -21,7 +27,7 @@ def test_condition_simple():
     ebc = EmbeddingBagCondition(2, 10)
 
     assert isinstance(ebc, ConditionBase)
-    assert isinstance(ebc, ConcatenationBasedConditioningMixin)
+    assert isinstance(ebc, ConcatenationBasedConditioning)
 
     condition_encoded = ebc.encode(c_batch)
 
@@ -66,7 +72,6 @@ def test_condition_list():
     assert code.size(0) == conditioned_code.size(0)
 
 
-
 def test_optim_step_callback():
     """ Test zero_grad / step optimization """
     code = torch.rand(100, 10)
@@ -90,3 +95,31 @@ def test_optim_step_callback():
     assert len(losses) == 2
     # One loss improvement should be possible
     assert losses[1] < losses[0]
+
+
+def test_word_emb_condition():
+    import gensim
+    sentences = [
+        "the quick brown fox jumps over the lazy dog",
+        "the cat sits on the mat",
+        "if it fits, I sits"
+    ]
+    emb_dim = 10
+    model = gensim.models.word2vec.Word2Vec(
+        [s.split() for s in sentences],
+        min_count=1, window=2, size=emb_dim
+    )
+    condition = PretrainedWordEmbeddingCondition(model.wv)
+    sentences_trf = condition.fit_transform(sentences)
+
+    code = torch.rand(len(sentences), 5)
+    conditioned_code = condition.encode_impose(code, sentences_trf)
+
+    assert conditioned_code.size(1) == code.size(1) + condition.size_increment()
+
+
+
+
+
+
+

@@ -45,6 +45,8 @@ class ConditionList(OrderedDict):
         return [c.transform(inp) for c, inp in zip(self.values(), raw_inputs)]
 
     def fit_transform(self, raw_inputs):
+        """ Forwards to fit_transform of all conditions,
+        returns list of transformed condition inputs"""
         assert len(raw_inputs) == len(self)
         return [cond.fit_transform(inp) for cond, inp
                 in zip(self.values(), raw_inputs)]
@@ -105,7 +107,8 @@ class ConditionBase(ABC):
         """ Fit to `raw_inputs`, then transform `raw_inputs`. """
         return self.fit(raw_inputs).transform(raw_inputs)
 
-    # Latest after preparing, size_increment should yield reasonable results.
+    # Latest after preparing via fit,
+    # size_increment should yield reasonable results.
     @abstractmethod
     def size_increment(self):
         """ Returns the output dimension of the condition,
@@ -118,9 +121,9 @@ class ConditionBase(ABC):
 
     ###########################################################################
     # Condition can encode the raw input and knows how to impose itself to data
-    @abstractmethod
     def encode(self, inputs):
         """ Encodes the input for the condition """
+        return inputs
 
     @abstractmethod
     def impose(self, inputs, encoded_condition):
@@ -129,9 +132,9 @@ class ConditionBase(ABC):
         """
 
     def encode_impose(self, inputs, condition_input):
-        """ First encodes `condition_input`, then applies condition to `input`.
+        """ First encodes `condition_input`, then applies condition to `inputs`.
         """
-        return self.impose(input, self.encode(condition_input))
+        return self.impose(inputs, self.encode(condition_input))
     ###########################################################################
 
     ################################################
@@ -182,37 +185,44 @@ See also: https://distill.pub/2018/feature-wise-transformations/
 Condition implementations should subclass one of the following three baseclasses.
 """
 
-class ConcatenationBasedConditioningMixin():
+
+class ConcatenationBasedConditioning(ConditionBase):
+    """
+    A `ConditionBase` subclass to implement concatenation based conditioning.
+    """
     # Subclasses still need to specify .size_increment()
     # as concatenation based
     dim = 1
 
+    @abstractmethod
+    def size_increment(self):
+        """ Subclasses need to overwrite this """
+
     def impose(self, inputs, encoded_condition):
         """ Concat condition at specified dimension (default 1) """
-        return torch.cat([input, encoded_condition], dim=self.dim)
+        return torch.cat([inputs, encoded_condition], dim=self.dim)
 
 
-class ConditionalBiasingMixin():
+class ConditionalBiasing(ConditionBase):
     """
-    A Mixin for ConditionBase's subclasses to implement conditional biasing
+    A `ConditionBase` subclass to implement conditional biasing
     """
     def impose(self, inputs, encoded_condition):
         """ Applies condition by addition """
         return inputs + encoded_condition
 
-    @property
     def size_increment(self):
         """ Biasing does not increase vector size """
         return 0
 
 
-class ConditionalScalingMixin():
+class ConditionalScaling(ConditionBase):
     """
-    A Mixin for ConditionBase's subclasses to implement conditional scaling
+    A `ConditionBase` subclass to implement conditional scaling
     """
-    def impose(self, input, encoded_condition):
+    def impose(self, inputs, encoded_condition):
         """ Applies condition by multiplication """
-        return input * encoded_condition
+        return inputs * encoded_condition
 
     def size_increment(self):
         """ Scaling does not increase vector size """
@@ -221,24 +231,19 @@ class ConditionalScalingMixin():
 
 class PretrainedWordEmbeddingCondition(
         GensimEmbeddedVectorizer, # fit & transform
-        ConditionBase,
-        ConcatenationBasedConditioningMixin):
+        ConcatenationBasedConditioning):
     def __init__(self, vectors, **tfidf_params):
-        GensimEmbeddedVectorizer.__init__(vectors, **tfidf_params)
+        GensimEmbeddedVectorizer.__init__(self, vectors, **tfidf_params)
 
-    def encode(self, wv_centroids):
-        """ Transformation is conducted globally,
-        so we only pass through here.
-        """
-        return wv_centroids
+    def encode(self, numpy_array):
+        return torch.from_numpy(numpy_array).float()
 
     def size_increment(self):
         # Return embedding dimension
         return self.embedding.shape[1]
 
 
-class EmbeddingBagCondition(ConcatenationBasedConditioningMixin,
-                            ConditionBase):
+class EmbeddingBagCondition(ConcatenationBasedConditioning):
     """ A condition with a *trainable* embedding bag.
     It is suited for conditioning on categorical variables.
     >>> cc = EmbeddingBagCondition(100,10)
@@ -254,6 +259,7 @@ class EmbeddingBagCondition(ConcatenationBasedConditioningMixin,
 
     def __init__(self, num_embeddings, embedding_dim, **kwargs):
         """TODO: to be defined1. """
+        super(ConcatenationBasedConditioning, self).__init__()
         self.embedding_bag = nn.EmbeddingBag(num_embeddings,
                                              embedding_dim,
                                              **kwargs)
@@ -262,8 +268,8 @@ class EmbeddingBagCondition(ConcatenationBasedConditioningMixin,
         self.optimizer = optim.Adam(self.embedding_bag.parameters())
         self.output_dim = embedding_dim
 
-    def encode(self, input):
-        return self.embedding_bag(input)
+    def encode(self, inputs):
+        return self.embedding_bag(inputs)
 
     def zero_grad(self):
         self.optimizer.zero_grad()
