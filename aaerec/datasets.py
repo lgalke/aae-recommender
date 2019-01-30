@@ -223,6 +223,9 @@ class Bags(object):
 
         return attribute_l
 
+    def get_attributes(self, attribute_list):
+        return [self.get_single_attribute(a) for a in attribute_list]
+
 
     @classmethod
     def load_tabcomma_format(self, path, unique=False):
@@ -350,6 +353,7 @@ class Bags(object):
         # no
         # current_data = self.data.copy()
         # current_owners = self.bag_owners.copy()
+        raise DeprecationWarning("This method should not be used")
 
         for __i in range(1, factor):
             self.data.extend([[t for t in b] for b in self.data])
