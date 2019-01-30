@@ -5,6 +5,8 @@ from aaerec.aae import AAERecommender, DecodingRecommender
 from aaerec.baselines import RandomBaseline, Countbased, MostPopular
 from aaerec.svd import SVDRecommender
 from gensim.models.keyedvectors import KeyedVectors
+
+from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, CategoricalCondition
 W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
 W2V_IS_BINARY = True
 
@@ -26,6 +28,7 @@ DATASET = Bags.load_tabcomma_format(ARGS.dataset, unique=True)
 
 EVAL = Evaluation(DATASET, ARGS.year, logfile=ARGS.outfile)
 EVAL.setup(min_count=ARGS.min_count, min_elements=2)
+
 print("Loading pre-trained embedding", W2V_PATH)
 VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 
@@ -46,10 +49,19 @@ ae_params = {
 }
 
 RECOMMENDERS = [
-    AAERecommender(use_title=False, adversarial=False, lr=0.0001,
-                   **ae_params),
-    AAERecommender(use_title=False, prior='gauss', gen_lr=0.0001,
-                   reg_lr=0.0001, **ae_params),
+    AAERecommender(adversarial=False, lr=0.0001, **ae_params),
+    AAERecommender(prior='gauss', gen_lr=0.0001, reg_lr=0.0001, **ae_params),
+]
+
+
+CONDITIONS = ConditionList([
+    ('title', PretrainedWordEmbeddingCondition(VECTORS))
+])
+
+
+CONDITIONED_MODELS = [
+    AAERecommender(adversarial=False, conditions=CONDITIONS),
+    AAERecommender(adversarial=True, conditions=CONDITIONS)
 ]
 
 
@@ -67,7 +79,7 @@ TITLE_ENHANCED = [
 
 with open(ARGS.outfile, 'a') as fh:
     print("~ Partial List", "~" * 42, file=fh)
-EVAL(BASELINES + RECOMMENDERS)
+EVAL(BASELINES + RECOMMENDERS + CONDITIONED_MODELS)
 with open(ARGS.outfile, 'a') as fh:
     print("~ Partial List + Titles", "~" * 42, file=fh)
 EVAL(TITLE_ENHANCED)

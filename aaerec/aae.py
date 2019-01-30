@@ -891,8 +891,7 @@ class AAERecommender(Recommender):
     verbose: Print losses during training
     normalize_inputs: Whether l1-normalization is performed on the input
     """
-    def __init__(self, adversarial=True, conditions=None)
-                 **kwargs):
+    def __init__(self, adversarial=True, conditions=None, **kwargs):
         ### DONE Adapt to generic condition ###
         """ tfidf_params get piped to either TfidfVectorizer or
         EmbeddedVectorizer.  Remaining kwargs get passed to
