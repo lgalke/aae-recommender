@@ -985,7 +985,7 @@ class AAERecommender(Recommender):
             self.model = AdversarialAutoEncoder(conditions=self.conditions, **self.model_params)
         else:
             # Pass conditions through along with hyperparams!
-            self.model = AutoEncoder(conditions=conditions, **self.model_params)
+            self.model = AutoEncoder(conditions=self.conditions, **self.model_params)
 
         # gives (Adversarial) Autoencoder BaseData (--> X: <???> representation) and side_info (attr_vect: numpy)
         self.model.fit(X, condition_data=condition_data)
