@@ -42,7 +42,7 @@ BASELINES = [
 ae_params = {
     'n_code': 50,
     'n_epochs': 100,
-    'embedding': VECTORS,
+    # 'embedding': VECTORS, # This belongs to condition now
     'batch_size': 100,
     'n_hidden': 100,
     'normalize_inputs': True,
