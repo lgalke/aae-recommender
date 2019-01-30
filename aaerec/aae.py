@@ -23,6 +23,8 @@ from .evaluation import Evaluation
 from .ub import GensimEmbeddedVectorizer
 from gensim.models.keyedvectors import KeyedVectors
 
+from .condition import ConditionList, _check_conditions
+
 
 torch.manual_seed(42)
 TINY = 1e-12
@@ -33,7 +35,10 @@ W2V_IS_BINARY = True
 STATUS_FORMAT = "[ R: {:.4f} | D: {:.4f} | G: {:.4f} ]"
 
 
+
+
 def assert_condition_callabilities(conditions):
+    raise DeprecationWarning("Use _check_conditions(conditions, condition_data) instead")
     if type(conditions) == type(True):
         pass
     else:
@@ -49,6 +54,7 @@ def concat_side_info(vectorizer,training_set,side_info_subset):
     :side_info_subset: list of str, the attribute keys in Bag class
     :return:
     """
+    raise DeprecationWarning("Use ConditionList.encode_impose(...) instead")
     attr_vect = []
     # ugly substitute for do_until pattern
     for i, attribute in enumerate(side_info_subset):
@@ -208,6 +214,7 @@ TORCH_OPTIMIZERS = {
 }
 
 class AutoEncoder():
+    ### DONE Adapt to generic condition ###
     def __init__(self,
                  n_hidden=100,
                  n_code=50,
@@ -218,8 +225,10 @@ class AutoEncoder():
                  normalize_inputs=True,
                  activation='ReLU',
                  dropout=(.2,.2),
+                 conditions=None,
                  verbose=True):
 
+        ### TODO Adapt to generic condition ###
         self.enc, self.dec = None, None
         self.n_hidden = n_hidden
         self.n_code = n_code
@@ -232,33 +241,35 @@ class AutoEncoder():
         self.lr = lr
         self.activation = activation
 
+        self.conditions = conditions
+
     def eval(self):
         """ Put all NN modules into eval mode """
+        ### DONE Adapt to generic condition ###
         self.enc.eval()
         self.dec.eval()
+        self.conditions.eval()
 
     def train(self):
         """ Put all NN modules into train mode """
+        ### DONE Adapt to generic condition ###
         self.enc.train()
         self.dec.train()
+        self.conditions.train()
 
-    def zero_grad(self):
-        """ Zeros gradients of all NN modules """
-        self.enc.zero_grad()
-        self.dec.zero_grad()
 
-    # why is this double? to AdversarialAutoEncoder
-    def ae_step(self, batch, condition_matrix):
+    def ae_step(self, batch, condition_data=None):
         """
         Perform one autoencoder training step
             :param batch: np.array, the base data from Bag class
             :param condition: condition_matrix: np.array, feature space of side_info
             :return: binary_cross_entropy for this step
             """
+        ### DONE Adapt to generic condition ###
 
         # why is this double to AdversarialAutoEncoder? Lukas: it's likely the two models will diverge
         # what is relationship to train in DecodingRecommender? Train only uses Condition. Those are implementet seperately
-        assert_condition_callabilities(condition_matrix)
+        # assert_condition_callabilities(condition_matrix)
         z_sample = self.enc(batch)
 
         # condition_matrix is already a matrix and doesn't need to be concatenated again
@@ -266,20 +277,26 @@ class AutoEncoder():
         # IMO: when setting up for training, because it's the used downstream all the same
 
         # concat base data with side_info
-        z_sample = torch.cat((z_sample, condition_matrix), 1)
+        # z_sample = torch.cat((z_sample, condition_matrix), 1)
 
+        use_condition = _check_conditions(self.condition, condition_data)
+        if use_condition:
+            z_sample = self.conditions.encode_impose(z_sample, condition_data)
 
         x_sample = self.dec(z_sample)
         recon_loss = F.binary_cross_entropy(x_sample + TINY,
                                             batch.view(batch.size(0),
                                                        batch.size(1)) + TINY)
+        self.enc_optim.zero_grad()
+        self.dec_optim.zero_grad()
+        self.conditions.zero_grad()
         recon_loss.backward()
         self.enc_optim.step()
         self.dec_optim.step()
-        self.zero_grad()
+        self.conditions.step()
         return recon_loss.item()
 
-    def partial_fit(self, X, y=None, condition_matrix=None):
+    def partial_fit(self, X, y=None, condition_data=None):
         """
             Performs reconstrction, discimination, generator training steps
         :param X: np.array, the base data from Bag class
@@ -287,6 +304,8 @@ class AutoEncoder():
         :param condition_matrix: np.array, feature space of side_info
         :return:
         """
+        ### DONE Adapt to generic condition ###
+        _check_conditions(self.conditions, condition_data)
 
         if y is not None:
             raise ValueError("(Semi-)supervised usage not supported")
@@ -295,35 +314,41 @@ class AutoEncoder():
         if torch.cuda.is_available():
             X = X.cuda()
 
-        if condition_matrix is not None:
-            condition_matrix = condition_matrix.astype('float32')
-            if sp.issparse(condition_matrix):
-                condition_matrix = condition_matrix.toarray()
-            condition_matrix = Variable(torch.from_numpy(condition_matrix))
-            if torch.cuda.is_available():
-                condition_matrix = condition_matrix.cuda()
-
+        # if condition_matrix is not None:
+        #     condition_matrix = condition_matrix.astype('float32')
+        #     if sp.issparse(condition_matrix):
+        #         condition_matrix = condition_matrix.toarray()
+        #     condition_matrix = Variable(torch.from_numpy(condition_matrix))
+        #     if torch.cuda.is_available():
+        #         condition_matrix = condition_matrix.cuda()
 
         # Make sure we are in training mode and zero leftover gradients
         self.train()
-        self.zero_grad()
         # One step each, could balance
-        recon_loss = self.ae_step(X, condition_matrix=condition_matrix)
+        recon_loss = self.ae_step(X, condition_data=condition_data)
         if self.verbose:
             log_losses(recon_loss, 0, 0)
         return self
 
-    def fit(self, X, y=None, condition_matrix=None):
+    def fit(self, X, y=None, condition_data=None):
         """
         :param X: np.array, the base data from Bag class
         :param y: dummy variable, throws Error if used
         :param condition_matrix: np.array, feature space of side_info
         :return:
         """
+        ### DONE Adapt to generic condition ###
         # TODO: check how X representation and numpy.array work together
         # TODO: adapt combining X and new_conditions_name
         if y is not None:
             raise NotImplementedError("(Semi-)supervised usage not supported")
+
+        use_condition = _check_conditions(self.conditions, condition_data)
+
+        if use_condition:
+            code_size = self.n_code + self.conditions.size_increment()
+        else:
+            code_size = self.n_code
 
 
         # Encoder just gets BaseData (~X), Decoder just Encoding and SideInfo
@@ -334,21 +359,18 @@ class AutoEncoder():
                            final_activation='linear',
                            normalize_inputs=self.normalize_inputs,
                            dropout=self.dropout, activation=self.activation)
-        if condition_matrix is not None:
-            # seems to be not enough TODO: check what is done in decoder so that dims fit
-            # TODO: find out why dims are arbitrary
-            # [100 x 381], m2: [1616 x 100] vs [100 x 376], m2: [1628 x 100]
-            assert condition_matrix.shape[0] == X.shape[0]
-            print("condition_matrix shape: ",condition_matrix.shape,"X.shape", X.shape)
-            # (3600, 1567) (3600, 88323), (3600, 1566) (3600, 87305),  (3600, 1575) (3600, 86911)
-            # data set is stable: total: 4000 records with 269755 ratings
-            # on master branch there are values in all [ R: 0.6524 | D: 1.3585 | G: 0.7273 ]
-            # shape[1] is the length of feature space --> this prob gives how many dims for Decoder
-            self.dec = Decoder(self.n_code + condition_matrix.shape[1], self.n_hidden,
-                               X.shape[1], dropout=self.dropout, activation=self.activation)
-        else:
-            self.dec = Decoder(self.n_code, self.n_hidden, X.shape[1],
-                               dropout=self.dropout, activation=self.activation)
+        # if condition_matrix is not None:
+        #     # seems to be not enough TODO: check what is done in decoder so that dims fit
+        #     # TODO: find out why dims are arbitrary
+        #     # [100 x 381], m2: [1616 x 100] vs [100 x 376], m2: [1628 x 100]
+        #     assert condition_matrix.shape[0] == X.shape[0]
+        #     print("condition_matrix shape: ",condition_matrix.shape,"X.shape", X.shape)
+        #     # (3600, 1567) (3600, 88323), (3600, 1566) (3600, 87305),  (3600, 1575) (3600, 86911)
+        #     # data set is stable: total: 4000 records with 269755 ratings
+        #     # on master branch there are values in all [ R: 0.6524 | D: 1.3585 | G: 0.7273 ]
+        #     # shape[1] is the length of feature space --> this prob gives how many dims for Decoder
+        self.dec = Decoder(code_size, self.n_hidden,
+                           X.shape[1], dropout=self.dropout, activation=self.activation)
 
         if torch.cuda.is_available():
             self.enc = self.enc.cuda()
@@ -363,20 +385,20 @@ class AutoEncoder():
             if self.verbose:
                 print("Epoch", epoch + 1)
 
-            # Shuffle on each new epoch
-            if condition_matrix is not None:
-                # shuffle(*arrays) shulles several arrays so indices are still matching
-                X_shuf, condition_shuf = sklearn.utils.shuffle(X, condition_matrix)
+            if use_condition:
+                # shuffle(*arrays) takes several arrays and shuffles them so indices are still matching
+                X_shuf, *condition_data_shuf = sklearn.utils.shuffle(X, *condition_data)
             else:
                 X_shuf = sklearn.utils.shuffle(X)
 
-
             for start in range(0, X.shape[0], self.batch_size):
-                X_batch = X_shuf[start:(start+self.batch_size)].toarray()
+                end = start + self.batch_size
+                X_batch = X_shuf[start:end].toarray()
                 # condition may be None
-                if condition_matrix is not None:
-                    c_batch = condition_shuf[start:(start+self.batch_size)]
-                    self.partial_fit(X_batch, condition_matrix=c_batch)
+                if use_condition:
+                    # c_batch = condition_shuf[start:(start+self.batch_size)]
+                    c_batch = [c[start:end] for c in condition_data_shuf]
+                    self.partial_fit(X_batch, condition_data=c_batch)
                 else:
                     self.partial_fit(X_batch)
 
@@ -385,39 +407,34 @@ class AutoEncoder():
                 print()
         return self
 
-    def predict(self, X, condition_matrix=None):
+    def predict(self, X, condition_data=None):
         """
 
         :param X: np.array, the base data from Bag class
         :param condition_matrix: np.array, feature space of side_info
         :return:
         """
+        ### DONE Adapt to generic condition ###
         # TODO: first look into fit, as predict is based on that!!!
+        use_condition = _check_conditions(self.conditions, condition_data)
         self.eval()  # Deactivate dropout
+        self.conditions.eval()
         pred = []
         for start in range(0, X.shape[0], self.batch_size):
             # batched predictions, yet inclusive
-            X_batch = X[start:(start+self.batch_size)].toarray()
+            end = start + self.batch_size
+            X_batch = X[start:end].toarray()
             X_batch = torch.FloatTensor(X_batch)
             if torch.cuda.is_available():
                 X_batch = X_batch.cuda()
             X_batch = Variable(X_batch)
 
-            if condition_matrix is not None:
-                # condition_matrix dims: (400, 338)
-                # c_batch dims: (100,338)
-                c_batch = condition_matrix[start:(start + self.batch_size)] # what is the current batch_size? should be 100
-                if sp.issparse(c_batch):
-                    c_batch = c_batch.toarray()
-                c_batch = torch.FloatTensor(c_batch)
-                if torch.cuda.is_available():
-                    c_batch = c_batch.cuda()
-                c_batch = Variable(c_batch)
-
+            if use_condition:
+                c_batch = [c[start:end] for c in condition_data_shuf]
 
             z = self.enc(X_batch)
-            if condition_matrix is not None:
-                z = torch.cat((z, c_batch), 1)
+            if use_condition:
+                z = self.conditions.encode_impose(z, condition_data=c_batch)
             # reconstruct
             # Encoder is set in fit() method
             # TODO: find why it throws. seems to be dims mismatch
@@ -435,10 +452,12 @@ class AutoEncoder():
 
 class DecodingRecommender(Recommender):
     """ Only the decoder part of the AAE, basically 2-MLP """
+    ### TODO Adapt to generic condition ###
     def __init__(self, n_epochs=100, batch_size=100, optimizer='adam',
                  n_hidden=100, embedding=None,
                  lr=0.001, verbose=True, tfidf_params={},
                  **mlp_params):
+        ### TODO Adapt to generic condition ###
         self.n_epochs = n_epochs
         self.batch_size = batch_size
         self.lr = lr
@@ -452,6 +471,7 @@ class DecodingRecommender(Recommender):
         self.mlp, self.mlp_optim, self.vect = None, None, None
 
     def __str__(self):
+        ### TODO Adapt to generic condition ###
         desc = "MLP-2 Decoder with " + str(self.n_hidden) + " hidden units"
         desc += " training for " + str(self.n_epochs)
         desc += " optimized by " + self.optimizer
@@ -462,6 +482,7 @@ class DecodingRecommender(Recommender):
         return desc
 
     def partial_fit(self, X, y):
+        ### TODO Adapt to generic condition ###
         self.mlp.train()
         self.mlp.zero_grad()
         if sp.issparse(X):
@@ -481,6 +502,7 @@ class DecodingRecommender(Recommender):
         return self
 
     def fit(self, X, y):
+        ### TODO Adapt to generic condition ###
         self.mlp = Decoder(X.shape[1], self.n_hidden, y.shape[1], **self.mlp_params)
         if torch.cuda.is_available():
             self.mlp = self.mlp.cuda()
@@ -503,6 +525,7 @@ class DecodingRecommender(Recommender):
         return self
 
     def train(self, training_set):
+        ### TODO Adapt to generic condition ###
         # Fit function from condition to X
         X = training_set.tocsr()
         if self.embedding:
@@ -524,6 +547,7 @@ class DecodingRecommender(Recommender):
 
 
     def predict(self, test_set):
+        ### TODO Adapt to generic condition ###
         # condition = test_set.get_single_attribute("title")
         # condition = self.vect.transform(condition).toarray()
         # condition = torch.FloatTensor(condition)
@@ -557,6 +581,7 @@ class DecodingRecommender(Recommender):
 
 class AdversarialAutoEncoder(AutoEncoderMixin):
     """ Adversarial Autoencoder """
+    ### DONE Adapt to generic condition ###
     def __init__(self,
                  n_hidden=100,
                  n_code=50,
@@ -570,6 +595,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
                  normalize_inputs=True,
                  activation='ReLU',
                  dropout=(.2, .2),
+                 conditions=None,
                  verbose=True):
         # Build models
         self.prior = prior.lower()
@@ -597,6 +623,8 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         self.dropout = dropout
         self.activation = activation
 
+        self.conditions = conditions
+
     def __str__(self):
         desc = "Adversarial Autoencoder"
         n_h, n_c = self.n_hidden, self.n_code
@@ -611,15 +639,23 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
 
     def eval(self):
         """ Put all NN modules into eval mode """
+        ### DONE Adapt to generic condition ###
         self.enc.eval()
         self.dec.eval()
         self.disc.eval()
+        if self.conditions:
+            # Forward call to condition modules
+            self.conditions.eval()
 
     def train(self):
         """ Put all NN modules into train mode """
+        ### DONE Adapt to generic condition ###
         self.enc.train()
         self.dec.train()
         self.disc.train()
+        if self.conditions:
+            # Forward call to condition modules
+            self.conditions.train()
 
     def zero_grad(self):
         """ Zeros gradients of all NN modules """
@@ -628,9 +664,10 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         self.disc.zero_grad()
 
     # why is this double? to AdversarialAutoEncoder
-    def ae_step(self, batch, condition=None, conditions=None):
+    def ae_step(self, batch, condition_data=None):
+        ### DONE Adapt to generic condition ###
         """
-        # why is this double? to AdversarialAutoEncoder
+        # why is this double? to AdversarialAutoEncoder => THe AE Step is very different from plain AEs
         # what is relationship to train?
         # Condition is used explicitly here, and hard coded but non-explicitly here
         Perform one autoencoder training step
@@ -638,26 +675,27 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         :param condition: ??? ~ training_set.get_single_attribute("title") <~ side_info = unpack_playlists(playlists)
         :return:
         """
-        print("batch",batch,"condition",condition)
+        print("batch",batch,"condition", conditions_batch)
         z_sample = self.enc(batch)
-        if condition is not None:
-            z_sample = torch.cat((z_sample, condition), 1)
-
-        # diesen teil rausziehen, weil der concat ist --> ggf neue
-        if conditions is not None:
-            # there might be several "conditions"
-            for cond in conditions:
-                z_sample = torch.cat((z_sample, cond), 1)
-
+        if condition_data:
+            self.conditions.encode_impose(z_sample, conditions_batch)
 
         x_sample = self.dec(z_sample)
         recon_loss = F.binary_cross_entropy(x_sample + TINY,
                                             batch.view(batch.size(0),
                                                        batch.size(1)) + TINY)
+        # Clear all related gradients
+        self.enc.zero_grad()
+        self.dec.zero_grad()
+        self.conditions.zero_grad()
+    
+        # Compute gradients
         recon_loss.backward()
+
+        # Update parameters
         self.enc_optim.step()
         self.dec_optim.step()
-        self.zero_grad()
+        self.conditions.step()
         return recon_loss.data[0].item()
 
     def disc_step(self, batch):
@@ -675,9 +713,9 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         disc_real_out, disc_fake_out = self.disc(z_real), self.disc(z_fake)
         disc_loss = -torch.mean(torch.log(disc_real_out + TINY)
                                 + torch.log(1 - disc_fake_out + TINY))
+        self.disc_optim.zero_grad()
         disc_loss.backward()
         self.disc_optim.step()
-        self.zero_grad()
         return disc_loss.data[0].item()
 
     def gen_step(self, batch):
@@ -685,62 +723,64 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         z_fake_dist = self.enc(batch)
         disc_fake_out = self.disc(z_fake_dist)
         gen_loss = -torch.mean(torch.log(disc_fake_out + TINY))
+        self.gen_optim.zero_grad()
         gen_loss.backward()
         self.gen_optim.step()
-        self.zero_grad()
         return gen_loss.data[0].item()
 
-    def partial_fit(self, X, y=None, condition=None):
+    def partial_fit(self, X, y=None, condition_data=None):
+        ### DONE Adapt to generic condition ###
         """ Performs reconstrction, discimination, generator training steps """
         if y is not None:
             raise NotImplementedError("(Semi-)supervised usage not supported")
         # Transform to Torch (Cuda) Variable, shift batch to GPU
         X = Variable(torch.FloatTensor(X))
         if torch.cuda.is_available():
+            # Put batch on CUDA device!
             X = X.cuda()
        
-        if condition is not None:
-            condition = condition.astype('float32')
-            if sp.issparse(condition):
-                condition = condition.toarray()
-            condition = Variable(torch.from_numpy(condition))
-            if torch.cuda.is_available():
-                condition = condition.cuda()
-
+        # if condition is not None:
+        #     condition = condition.astype('float32')
+        #     if sp.issparse(condition):
+        #         condition = condition.toarray()
+        #     condition = Variable(torch.from_numpy(condition))
+        #     if torch.cuda.is_available():
+        #         condition = condition.cuda()
 
         # Make sure we are in training mode and zero leftover gradients
         self.train()
-        self.zero_grad()
         # One step each, could balance
-        recon_loss = self.ae_step(X, condition=condition)
+        recon_loss = self.ae_step(X, condition_data=condition_data)
         disc_loss = self.disc_step(X)
         gen_loss = self.gen_step(X)
         if self.verbose:
             log_losses(recon_loss, disc_loss, gen_loss)
         return self
 
-    def fit(self, X, y=None, condition=None):
+    def fit(self, X, y=None, condition_data=None):
+        ### DONE Adapt to generic condition ###
         if y is not None:
             raise NotImplementedError("(Semi-)supervised usage not supported")
+
+        use_condition = _check_conditions(self.conditions, condition_data)
+
+        if use_condition:
+            code_size = self.n_code + self.conditions.size_increment()
+        else:
+            code_size = self.n_code
 
         self.enc = Encoder(X.shape[1], self.n_hidden, self.n_code,
                            final_activation=self.encoder_activation,
                            normalize_inputs=self.normalize_inputs,
                            activation=self.activation,
                            dropout=self.dropout)
-        if condition is not None:
-            # shape[1] is the length of feature space --> this prob gives how many dims for Decoder
-            #
-            self.dec = Decoder(self.n_code+condition.shape[1], self.n_hidden,
-                               X.shape[1], activation=self.activation, dropout=self.dropout)
-            assert condition.shape[0] == X.shape[0]
-        else:
-            self.dec = Decoder(self.n_code, self.n_hidden, X.shape[1],
-                               activation=self.activation, dropout=self.dropout)
+        self.dec = Decoder(code_size, self.n_hidden, X.shape[1],
+                           activation=self.activation, dropout=self.dropout)
 
         self.disc = Discriminator(self.n_code, self.n_hidden,
                                   dropout=self.dropout,
                                   activation=self.activation)
+
         if torch.cuda.is_available():
             self.enc = self.enc.cuda()
             self.dec = self.dec.cuda()
@@ -759,19 +799,23 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
                 print("Epoch", epoch + 1)
 
             # Shuffle on each new epoch
-            if condition is not None:
+            if use_condition:
                 # shuffle(*arrays) takes several arrays and shuffles them so indices are still matching
-                X_shuf, condition_shuf = sklearn.utils.shuffle(X, condition)
+                X_shuf, *condition_data_shuf = sklearn.utils.shuffle(X, *condition_data)
             else:
                 X_shuf = sklearn.utils.shuffle(X)
 
             for start in range(0, X_shuf.shape[0], self.batch_size):
-                X_batch = X_shuf[start:(start+self.batch_size)].toarray()
-                # condition may be None
-                if condition is not None:
-                    c_batch = condition_shuf[start:(start+self.batch_size)]
-                    self.partial_fit(X_batch, condition=c_batch)
+                end = start + self.batch_size
 
+                # Make the batch dense!
+                X_batch = X_shuf[start:end].toarray()
+
+                # condition may be None
+                if use_condition:
+                    # c_batch = condition_shuf[start:(start+self.batch_size)]
+                    c_batch = [c[start:end] for c in condition_data_shuf]
+                    self.partial_fit(X_batch, condition_data=c_batch)
                 else:
                     self.partial_fit(X_batch)
 
@@ -780,18 +824,21 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
                 print()
         return self
 
-    def transform(self, X):
-        X = Variable(torch.FloatTensor(X))
-        if torch.cuda.is_available():
-            X = X.cuda()
-        return self.enc(X).data.cpu().numpy()
+    # def transform(self, X):
+    #     X = Variable(torch.FloatTensor(X))
+    #     if torch.cuda.is_available():
+    #         X = X.cuda()
+    #     return self.enc(X).data.cpu().numpy()
 
-    def inverse_transform(self, X):
-        # doesnt work with numpy
-        return self.dec(X)
+    # def inverse_transform(self, X):
+    #     # doesnt work with numpy
+    #     return self.dec(X)
 
-    def predict(self, X, condition=None):
+    def predict(self, X, condition_data=None):
+        ### DONE Adapt to generic condition ###
         self.eval()  # Deactivate dropout
+        # In case some of the conditions has dropout
+        self.conditions.eval()
         pred = []
         for start in range(0, X.shape[0], self.batch_size):
             # batched predictions, yet inclusive
@@ -802,19 +849,20 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
             if torch.cuda.is_available():
                 X_batch = X_batch.cuda()
 
-            if condition is not None:
-                c_batch = condition[start:(start+self.batch_size)]
-                c_batch = c_batch.astype('float32')
-                if sp.issparse(c_batch):
-                    c_batch = c_batch.toarray()
-                c_batch = Variable(torch.from_numpy(c_batch))
-                if torch.cuda.is_available():
-                    c_batch = c_batch.cuda()
+            # if condition_data is not None:
+            #     c_batch = condition[start:(start+self.batch_size)]
+            #     c_batch = c_batch.astype('float32')
+            #     if sp.issparse(c_batch):
+            #         c_batch = c_batch.toarray()
+            #     c_batch = Variable(torch.from_numpy(c_batch))
+            #     if torch.cuda.is_available():
+            #         c_batch = c_batch.cuda()
 
             # reconstruct
             z = self.enc(X_batch)
-            if condition is not None:
-                z = torch.cat((z, c_batch), 1)
+            if condition_data is not None:
+                # z = torch.cat((z, c_batch), 1)
+                z = self.conditions.encode_impose(y, condition_data)
             X_reconstuction = self.dec(z)
             # shift
             X_reconstuction = X_reconstuction.data.cpu().numpy()
@@ -825,6 +873,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
 
 
 class AAERecommender(Recommender):
+    ### DONE Adapt to generic condition ###
     """
     Adversarially Regularized Recommender
     =====================================
@@ -842,35 +891,48 @@ class AAERecommender(Recommender):
     verbose: Print losses during training
     normalize_inputs: Whether l1-normalization is performed on the input
     """
-    def __init__(self, adversarial=True, tfidf_params=dict(),
+    def __init__(self, adversarial=True, conditions=None)
                  **kwargs):
+        ### DONE Adapt to generic condition ###
         """ tfidf_params get piped to either TfidfVectorizer or
         EmbeddedVectorizer.  Remaining kwargs get passed to
         AdversarialAutoencoder """
         super().__init__()
         self.verbose = kwargs.get('verbose', True)
-        self.use_side_info = kwargs.pop('use_side_info', False)
-        assert_condition_callabilities(self.use_side_info)
-        self.embedding = kwargs.pop('embedding', None)
-        self.vect = None
-        self.aae_params = kwargs
-        self.tfidf_params = tfidf_params
+
+        # self.use_side_info = kwargs.pop('use_side_info', False)
+
+        self.conditions = conditions
+
+        # assert_condition_callabilities(self.use_side_info)
+        # Embedding is now part of a condition
+        # self.embedding = kwargs.pop('embedding', None)
+        # Vectorizer also...
+        # self.vect = None
+        self.model_params = kwargs
+        # tfidf params now need to be in the respective *condition* of condition_list
+        # self.tfidf_params = tfidf_params
         self.adversarial = adversarial
 
     def __str__(self):
+        ### DONE Adapt to generic condition ###
         if self.adversarial:
             desc = "Adversarial Autoencoder"
         else:
             desc = "Autoencoder"
 
-        desc += " using side info: " + (" ".join(self.use_side_info) if self.use_side_info else "No.")
-        desc += '\nAAE Params: ' + str(self.aae_params)
+        if self.conditions:
+            desc += " conditioned on " ','.join(self.conditions.keys())
+        desc += '\Model Params: ' + str(self.model_params)
         # TODO: is it correct for self.tfidf_params to be an EMPTY dict
-        desc += '\nTfidf Params: ' + str(self.tfidf_params)
+        # DONE: Yes it is only the *default*!
+        # desc += '\nTfidf Params: ' + str(self.tfidf_params)
+        # Anyways, this kind of stuff goes into the condition itself
         return desc
 
 
     def train(self, training_set):
+        ### DONE Adapt to generic condition ###
         """
         1. get basic representation
         2. ? add potential side_info in ??? representation
@@ -880,23 +942,29 @@ class AAERecommender(Recommender):
         :return: trained self
         """
         X = training_set.tocsr()
+        if self.conditions:
+            condition_data_raw = training_set.get_attributes(self.conditions.keys())
+            condition_data = self.conditions.fit_transform(condition_data_raw)
+        else:
+            condition_data = None
+
         # X seems to be a "special" case formatting for input. TODO: check representation in function call tocsr()
-        if self.use_side_info:
+        # if self.use_side_info:
 
 
 
-            # TODO: later with condition: use attribute respective vectorizer
-            if self.embedding:
-                self.vect = GensimEmbeddedVectorizer(self.embedding,
-                                                     **self.tfidf_params)
-            else:
-                self.vect = TfidfVectorizer(**self.tfidf_params)
+        #     # TODO: later with condition: use attribute respective vectorizer
+        #     if self.embedding:
+        #         self.vect = GensimEmbeddedVectorizer(self.embedding,
+        #                                              **self.tfidf_params)
+        #     else:
+        #         self.vect = TfidfVectorizer(**self.tfidf_params)
 
 
 
 
-            attr_vect = concat_side_info(self.vect,training_set,side_info_subset=self.use_side_info)
-            assert attr_vect.shape[0] == X.shape[0], "Dims dont match"
+        #     attr_vect = concat_side_info(self.vect,training_set,side_info_subset=self.use_side_info)
+        #     assert attr_vect.shape[0] == X.shape[0], "Dims dont match"
 
 
 
@@ -910,31 +978,38 @@ class AAERecommender(Recommender):
             # nn.module wird viel beerbt. ~get_attributes bekommt man alle names aus modul
             #
 
-        else:
-            attr_vect = None
+        # else:
+        #     attr_vect = None
 
         if self.adversarial:
-            self.aae = AdversarialAutoEncoder(**self.aae_params)
+            # Pass conditions through along with hyperparams
+            self.model = AdversarialAutoEncoder(conditions=self.conditions, **self.model_params)
         else:
-            self.aae = AutoEncoder(**self.aae_params)
+            # Pass conditions through along with hyperparams!
+            self.model = AutoEncoder(conditions=conditions, **self.model_params)
 
         # gives (Adversarial) Autoencoder BaseData (--> X: <???> representation) and side_info (attr_vect: numpy)
-        self.aae.fit(X, condition_matrix=attr_vect)
+        self.model.fit(X, condition_data=condition_data)
 
     def predict(self, test_set):
-
+        ### DONE Adapt to generic condition ###
         X = test_set.tocsr()
-
-        if self.use_side_info:
-            # change the attributes/conditions/side_infos here
-
-            attr_vect = concat_side_info(self.vect, test_set,side_info_subset=self.use_side_info)
-            assert attr_vect.shape[0] == X.shape[0], "Dims dont match"
-
-            pred = self.aae.predict(X, condition_matrix=attr_vect)
+        if self.conditions:
+            condition_data_raw = training_set.get_attributes(self.condition_list.keys())
+            # Important to not call fit here, but just transform
+            condition_data = self.condition_list.transform(condition_data_raw)
         else:
-            pred = self.aae.predict(X)
+            condition_data = None
 
+        # if self.use_side_info:
+        #     # change the attributes/conditions/side_infos here
+
+        #     attr_vect = concat_side_info(self.vect, test_set,side_info_subset=self.use_side_info)
+        #     assert attr_vect.shape[0] == X.shape[0], "Dims dont match"
+
+            # pred = self.aae.predict(X, condition_matrix=attr_vect)
+        # else:
+        pred = self.model.predict(X, condition_data=condition_data)
 
         return pred
 

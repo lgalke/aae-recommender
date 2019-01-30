@@ -21,6 +21,33 @@ and (optional) to update its parameters wrt (global) ae loss.
 
 """
 
+def _check_conditions(conditions, condition_data):
+    """ Checks condition list and condition data for validity.
+    Arguments
+    =========
+    conditions: a condition list instance
+    condition_data: condition data that should correspond to conditions
+
+    Returns
+    =======
+    use_condition:
+        - True if conditions are present and condition_data matches,
+        - False if neither conditions nor condition_data is supplied.
+
+    Raises
+    ======
+    AssertionError, when `conditions` does not match with `condition_data`
+
+    """
+    if not conditions and not condition_data:
+        # Neither supplied, do not use conditions
+        return False
+
+    assert isinstance(conditions, ConditionList), "`conditions` no instance of ConditionList"
+    assert condition_data and self.conditions, "Mismatch between condition spec and supplied condition data."
+    assert len(condition_data) == len(self.conditions), "Unexpected number of supplied condition data"
+
+    return True
 
 class ConditionList(OrderedDict):
     """
@@ -81,6 +108,18 @@ class ConditionList(OrderedDict):
         for convenience use in determining decoder properties
         """
         return sum(v.size_increment() for v in self.values())
+
+    def train(self):
+        # Put all modules into train mode, if they has such a method
+        for condition in self.values():
+            if hasattr(condition, 'train'):
+                condition.train()
+
+    def eval(self):
+        # Put all modules into train mode, if they have such a method
+        for condition in self.values():
+            if hasattr(condition, 'eval'):
+                condition.eval()
 
 
 class ConditionBase(ABC):
@@ -160,6 +199,26 @@ class ConditionBase(ABC):
         return self
     ################################################
 
+    ################################################
+    # Condition knows how to be in train / eval mode
+    def train(self):
+        """
+        Put into training mode.
+        Per default does nothing.
+        To be called before training.
+        """
+        return self
+
+    def eval(self):
+        """
+        Put into evaluation mode
+        Per default does nothing.
+        To be called before evaluation.
+        """
+        return self
+    ################################################
+
+
     @classmethod
     def __subclasshook__(cls, C):
         if cls is ConditionBase:
@@ -173,7 +232,9 @@ class ConditionBase(ABC):
                     any("transform" in B.__dict__ for B in mro),
                     any("fit_transform" in B.__dict__ for B in mro),
                     any("zero_grad" in B.__dict__ for B in mro),
-                    any("step" in B.__dict__ for B in mro)]):
+                    any("step" in B.__dict__ for B in mro),
+                    any("train" in B.__dict__ for B in mro),
+                    any("eval" in B.__dict__ for B in mro)]):
                 return True
         return NotImplemented  # Proceed with usual mechanisms
 
@@ -234,9 +295,10 @@ class ConditionalScaling(ConditionBase):
 class PretrainedWordEmbeddingCondition(ConcatenationBasedConditioning):
     """ A concatenation-based condition using a pre-trained word embedding """
 
-    def __init__(self, vectors, dim=1, **tfidf_params):
+    def __init__(self, vectors, dim=1, use_cuda=torch.cuda.is_available(), **tfidf_params):
         self.vect = GensimEmbeddedVectorizer(vectors, **tfidf_params)
         self.dim = dim
+        self.use_cuda = use_cuda
 
     def fit(self, raw_inputs):
         self.vect.fit(raw_inputs)
@@ -250,7 +312,10 @@ class PretrainedWordEmbeddingCondition(ConcatenationBasedConditioning):
 
     def encode(self, inputs):
         # GensimEmbeddedVectorizer yields numpy array
-        return torch.from_numpy(inputs).float()
+        out = torch.from_numpy(inputs).float()
+        if self.use_cuda:
+            out = out.cuda()
+        return out
 
     def size_increment(self):
         # Return embedding dimension
@@ -288,7 +353,7 @@ class CategoricalCondition(ConcatenationBasedConditioning):
     """
 
     def __init__(self, embedding_dim, vocab_size=None,
-                 **embedding_params):
+                 use_cuda=torch.cuda.is_available(), **embedding_params):
         """
         Arguments
         ---------
@@ -303,6 +368,7 @@ class CategoricalCondition(ConcatenationBasedConditioning):
         self.embedding_bag = None
         self.optimizer = None
         self.embedding_params = embedding_params
+        self.use_cuda = use_cuda
 
     def fit(self, raw_inputs):
         """ Learn a vocabulary """
@@ -313,6 +379,8 @@ class CategoricalCondition(ConcatenationBasedConditioning):
         self.embedding_bag = nn.EmbeddingBag(num_embeddings,
                                              self.embedding_dim,
                                              **self.embedding_params)
+        if self.use_cuda:
+            self.embedding_bag = self.embedding_bag.cuda()
         self.optimizer = optim.Adam(self.embedding_bag.parameters())
         return self
 
@@ -321,6 +389,8 @@ class CategoricalCondition(ConcatenationBasedConditioning):
             .view(-1, 1)
 
     def encode(self, inputs):
+        if self.use_cuda:
+            inputs = inputs.cuda()
         return self.embedding_bag(inputs)
 
     def zero_grad(self):
@@ -334,6 +404,9 @@ class CategoricalCondition(ConcatenationBasedConditioning):
     def size_increment(self):
         return self.embedding_dim
 
+
+
+# idk whether the following is helpful in the end.
 
 class Condition(ConditionBase):
     """ A generic condition class.
@@ -417,3 +490,11 @@ class Condition(ConditionBase):
     def step(self):
         if self.optimizer is not None:
             self.optimizer.step()
+
+    def train(self):
+        if self.encoder is not None:
+            self.encoder.train()
+
+    def eval(self):
+        if self.encoder is not None:
+            self.encoder.eval()
