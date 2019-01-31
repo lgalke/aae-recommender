@@ -14,6 +14,8 @@ import sklearn
 from sklearn.feature_extraction.text import TfidfVectorizer
 from .ub import GensimEmbeddedVectorizer
 
+import scipy.sparse as sp
+
 # TODO: ADAPT THIS TO BAGS OF EMBEDDED SYMBOLS
 
 parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
@@ -92,8 +94,7 @@ class VAE(nn.Module):
         self.verbose = verbose
         # TODO see if needed
         # self.dropout = dropout
-        # TODO how it is uded?
-        #self.batch_size = batch_size
+        self.batch_size = batch_size
         self.lr = lr
         # TODO parametrize activation
         # self.activation = activation
@@ -103,7 +104,8 @@ class VAE(nn.Module):
         self.fc22 = nn.Linear(n_hidden, n_code)
         self.fc3 = nn.Linear(n_code, n_hidden)
         self.fc4 = nn.Linear(n_hidden, inp)
-        self.optimizer = optim.Adam(model.parameters(), lr=lr)
+        #TODO originally model.parameters(), with model=VAE(bags.size(1)). OK?
+        self.optimizer = optim.Adam(self.parameters(), lr=lr)
 
         # TODO parametrize as self.activation
         self.relu = nn.ReLU()
@@ -146,7 +148,7 @@ class VAE(nn.Module):
 
         return BCE + KLD
 
-    # TODO may still need some adaptation
+    # TODO may still need some adaptation. E.g. how to use condition?
     def partial_fit(self, X, y=None, condition=None):
         """ Performs reconstruction, discrimination, generator training steps """
         if y is not None:
@@ -173,7 +175,8 @@ class VAE(nn.Module):
             if args.cuda:
                 data = data.cuda()
             self.optimizer.zero_grad()
-            recon_batch, mu, logvar = model(data)
+            #TODO originally recon_batch, mu, logvar = model(data), with model = VAE(bags.size(1)). OK?
+            recon_batch, mu, logvar = self(data)
             loss = self.loss_function(recon_batch, data, mu, logvar)
             loss.backward()
             train_loss += loss.data[0]
@@ -188,6 +191,7 @@ class VAE(nn.Module):
             train_loss / len(train_loader.dataset)))
         return self
 
+    # TODO may still need some adaptation. E.g. how to use condition?
     def fit(self, X, y=None, condition=None):
         if y is not None:
             raise NotImplementedError("(Semi-)supervised usage not supported")
@@ -218,13 +222,26 @@ class VAE(nn.Module):
                 print()
         return self
 
+    def predict(self):
+        self.eval()
+        test_loss = 0
+        for data, _ in test_loader:
+            if args.cuda:
+                data = data.cuda()
+            data = Variable(data, volatile=True)
+            recon_batch, mu, logvar = self(data)
+            test_loss += self.loss_function(recon_batch, data, mu, logvar).data[0]
 
-model = VAE(bags.size(1))
-if args.cuda:
-    model.cuda()
+        test_loss /= len(test_loader.dataset)
+        print('====> Test set loss: {:.4f}'.format(test_loss))
 
 
-# adapt this to our train
+
+# if args.cuda:
+#     model.cuda()
+
+
+# adapted this to our train, now in VAE.partial_fit()
 # def train(epoch):
 #     model.train()
 #     train_loss = 0
@@ -247,25 +264,23 @@ if args.cuda:
 #     print('====> Epoch: {} Average loss: {:.4f}'.format(
 #           epoch, train_loss / len(train_loader.dataset)))
 
-# see if needed, may be not
-# TODO this could be adapted and become VAE.predict()
-def test(epoch):
-    model.eval()
-    test_loss = 0
-    for data, _ in test_loader:
-        if args.cuda:
-            data = data.cuda()
-        data = Variable(data, volatile=True)
-        recon_batch, mu, logvar = model(data)
-        test_loss += loss_function(recon_batch, data, mu, logvar).data[0]
+# Now in VAE.predict()
+# def test(epoch):
+#     model.eval()
+#     test_loss = 0
+#     for data, _ in test_loader:
+#         if args.cuda:
+#             data = data.cuda()
+#         data = Variable(data, volatile=True)
+#         recon_batch, mu, logvar = model(data)
+#         test_loss += loss_function(recon_batch, data, mu, logvar).data[0]
+#
+#     test_loss /= len(test_loader.dataset)
+#     print('====> Test set loss: {:.4f}'.format(test_loss))
 
-    test_loss /= len(test_loader.dataset)
-    print('====> Test set loss: {:.4f}'.format(test_loss))
-
-# TODO this to be deleted (should be integrated in VAE)
-for epoch in range(1, args.epochs + 1):
-    train(epoch)
-    test(epoch)
+# for epoch in range(1, args.epochs + 1):
+#     train(epoch)
+#     test(epoch)
 
 
 class VAERecommender(Recommender):
@@ -326,7 +341,7 @@ class VAERecommender(Recommender):
         # TODO Does a fit function make sense?
         self.vae.fit(X, condition=titles)
 
-    # TODO reimplement if needed
+    # TODO reimplement if needed. E.g. How to use condition?
     def predict(self, test_set):
         X = test_set.tocsr()
         if self.use_title:
