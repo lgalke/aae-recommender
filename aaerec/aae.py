@@ -425,7 +425,8 @@ class AutoEncoder():
             #            RuntimeError: size mismatch, m1: [100 x 376], m2: [1628 x 100] at /pytorch/aten/src/TH/generic/THTensorMath.cpp:2070
             # other iteration:  RuntimeError: size mismatch, m1: [100 x 387], m2: [1627 x 100] at /pytorch/aten/src/TH/generic/THTensorMath.cpp:940
 
-            X_reconstuction = self.dec(z)
+            # on master: self.dec works perfectly
+            X_reconstuction = self.dec(z) # on master results in torch.Size([100, 87887])
             # shift
             X_reconstuction = X_reconstuction.data.cpu().numpy()
             pred.append(X_reconstuction)
