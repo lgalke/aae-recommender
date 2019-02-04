@@ -7,38 +7,24 @@ import torch.optim as optim
 
 from .base import Recommender
 from .datasets import Bags
+from .evaluation import Evaluation
 from torch.autograd import Variable
 import transforms
 
 import sklearn
 from sklearn.feature_extraction.text import TfidfVectorizer
 from .ub import GensimEmbeddedVectorizer
+from gensim.models.keyedvectors import KeyedVectors
 
 import scipy.sparse as sp
 
-# TODO: ADAPT THIS TO BAGS OF EMBEDDED SYMBOLS
+cuda = torch.cuda.is_available()
+torch.manual_seed(42)
 
-parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
-parser.add_argument('--batch-size', type=int, default=128, metavar='N',
-                    help='input batch size for training (default: 64)')
-parser.add_argument('--epochs', type=int, default=10, metavar='N',
-                    help='number of epochs to train (default: 2)')
-parser.add_argument('--no-cuda', action='store_true', default=False,
-                    help='enables CUDA training')
-parser.add_argument('--seed', type=int, default=1, metavar='S',
-                    help='random seed (default: 1)')
-parser.add_argument('--log-interval', type=int, default=10, metavar='N',
-                    help='how many batches to wait before logging training status')
-args = parser.parse_args()
-args.cuda = not args.no_cuda and torch.cuda.is_available()
+W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
+W2V_IS_BINARY = True
 
-
-torch.manual_seed(args.seed)
-if args.cuda:
-    torch.cuda.manual_seed(args.seed)
-
-
-kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
+# kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
 # train_loader = torch.utils.data.DataLoader(
 #     datasets.MNIST('../data', train=True, download=True,
 #                    transform=transforms.ToTensor()),
@@ -48,20 +34,20 @@ kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
 #     batch_size=args.batch_size, shuffle=True, **kwargs)
 
 
-bags = Bags.load_tabcomma_format("Data/PMC/citations_pmc.tsv",
-                                 min_count=50,
-                                 min_elements=2)
+# bags = Bags.load_tabcomma_format("Data/PMC/citations_pmc.tsv",
+#                                  min_count=50,
+#                                  min_elements=2)
 
 # old version
-X, Xtest, Ytest = bags.missing_citation_dataset(corrupt_train=False,
-                                                single_label=True)
-
-Xtest = Xtest.tolil()
-Xtest[Ytest.nonzero()] = 1.0
-Xtest = Xtest.tocsr()
-train_loader = torch.utils.data.DataLoader(X, transforms=[transforms.ToTensor])
-test_loader = torch.utils.data.DataLoader(Xtest,
-                                          transforms=[transforms.ToTensor])
+# X, Xtest, Ytest = bags.missing_citation_dataset(corrupt_train=False,
+#                                                 single_label=True)
+#
+# Xtest = Xtest.tolil()
+# Xtest[Ytest.nonzero()] = 1.0
+# Xtest = Xtest.tocsr()
+# train_loader = torch.utils.data.DataLoader(X, transforms=[transforms.ToTensor])
+# test_loader = torch.utils.data.DataLoader(Xtest,
+#                                           transforms=[transforms.ToTensor])
 
 
 class VAE(nn.Module):
@@ -78,14 +64,15 @@ class VAE(nn.Module):
                  # activation='ReLU',
                  # TODO dropout makes sense?
                  # dropout=(.2,.2),
-                 verbose=True):
+                 verbose=True,
+                 log_interval=1):
 
         super(VAE, self).__init__()
 
         self.n_hidden = n_hidden
         self.n_code = n_code
         self.n_epochs = n_epochs
-        # TODO parametrize the optimazer
+        # TODO parametrize the optimizer
         # self.optimizer = optimizer.lower()
         # TODO in classical AE was helping so it may worth to try it
         # In AE done in forward but VAE compute mean and std in forward to then sample the distrib
@@ -111,13 +98,15 @@ class VAE(nn.Module):
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
 
+        self.log_interval = log_interval
+
     def encode(self, x):
         h1 = self.relu(self.fc1(x))
         return self.fc21(h1), self.fc22(h1)
 
     def reparametrize(self, mu, logvar):
         std = logvar.mul(0.5).exp_()
-        if args.cuda:
+        if cuda:
             eps = torch.cuda.FloatTensor(std.size()).normal_()
         else:
             eps = torch.FloatTensor(std.size()).normal_()
@@ -170,9 +159,11 @@ class VAE(nn.Module):
         self.train()
         train_loss = 0
         # TODO adapt this part to Evaluation.setup()
+        # TODO do I need train_loader or obsolete using Evaluation? If needed can be pushed outside (e.g. in class)?
+        train_loader = torch.utils.data.DataLoader(X, transforms=[transforms.ToTensor])
         for batch_idx, (data, _) in enumerate(train_loader):
             data = Variable(data)
-            if args.cuda:
+            if cuda:
                 data = data.cuda()
             self.optimizer.zero_grad()
             #TODO originally recon_batch, mu, logvar = model(data), with model = VAE(bags.size(1)). OK?
@@ -181,7 +172,7 @@ class VAE(nn.Module):
             loss.backward()
             train_loss += loss.data[0]
             self.optimizer.step()
-            if batch_idx % args.log_interval == 0:
+            if batch_idx % self.log_interval == 0:
                 print('[{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                     batch_idx * len(data), len(train_loader.dataset),
                            100. * batch_idx / len(train_loader),
@@ -222,11 +213,15 @@ class VAE(nn.Module):
                 print()
         return self
 
-    def predict(self):
+    # TODO handle condition (if it makes sense for VAE)
+    def predict(self, X, condition=None):
         self.eval()
         test_loss = 0
+        # TODO adapt to Evaluation: is it OK to use X (was Xtest)?
+        test_loader = torch.utils.data.DataLoader(X,
+                                                  transforms=[transforms.ToTensor])
         for data, _ in test_loader:
-            if args.cuda:
+            if cuda:
                 data = data.cuda()
             data = Variable(data, volatile=True)
             recon_batch, mu, logvar = self(data)
@@ -234,7 +229,6 @@ class VAE(nn.Module):
 
         test_loss /= len(test_loader.dataset)
         print('====> Test set loss: {:.4f}'.format(test_loss))
-
 
 
 # if args.cuda:
@@ -281,7 +275,6 @@ class VAE(nn.Module):
 # for epoch in range(1, args.epochs + 1):
 #     train(epoch)
 #     test(epoch)
-
 
 class VAERecommender(Recommender):
     """
@@ -353,3 +346,55 @@ class VAERecommender(Recommender):
             pred = self.vae.predict(X)
 
         return pred
+
+
+def main():
+    """ Evaluates the VAE Recommender """
+    CONFIG = {
+        'pub': ('../Data/PMC/citations_pmc.tsv', 2011, 50),
+        'eco': ('../Data/Economics/econbiz62k.tsv', 2012, 1)
+    }
+
+    PARSER = argparse.ArgumentParser()
+    PARSER.add_argument('data', type=str, choices=['pub','eco'])
+    args = PARSER.parse_args()
+    DATA = CONFIG[args.data]
+    logfile = 'results/' + args.data + '-decoder.log'
+    bags = Bags.load_tabcomma_format(DATA[0])
+    c_year = DATA[1]
+
+
+    evaluate = Evaluation(bags,
+                          year=c_year,
+                          logfile=logfile).setup(min_count=DATA[2],
+                                                 min_elements=2)
+    # print("Loading pre-trained embedding", W2V_PATH)
+    vectors = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
+
+    params = {
+        'n_epochs': 100,
+        'batch_size': 100,
+        'optimizer': 'adam',
+        'normalize_inputs': True,
+        'prior': 'gauss',
+    }
+    # 100 hidden units, 200 epochs, bernoulli prior, normalized inputs -> 0.174
+    activations = ['ReLU','SELU']
+    lrs = [(0.001, 0.0005), (0.001, 0.001)]
+    hcs = [(100, 50), (300, 100)]
+
+    # dropouts = [(.2,.2), (.1,.1), (.1, .2), (.25, .25), (.3,.3)] # .2,.2 is best
+    # priors = ['categorical'] # gauss is best
+    # normal = [True, False]
+    # bernoulli was good, letz see if categorical is better... No
+    import itertools
+    models = [VAERecommender(**params, n_hidden=hc[0], n_code=hc[1],
+                             use_title=ut, embedding=vectors,
+                             gen_lr=lr[0], reg_lr=lr[1], activation=a)
+              for ut, lr, hc, a in itertools.product((True, False), lrs, hcs, activations)]
+    # models = [DecodingRecommender(embedding=vectors)]
+    evaluate(models)
+
+
+if __name__ == '__main__':
+    main()
