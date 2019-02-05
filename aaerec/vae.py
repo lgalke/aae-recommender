@@ -158,7 +158,6 @@ class VAE(nn.Module):
         # Make sure we are in training mode and zero leftover gradients
         self.train()
         train_loss = 0
-        # TODO adapt this part to Evaluation.setup()
         # TODO do I need train_loader or obsolete using Evaluation? If needed can be pushed outside (e.g. in class)?
         train_loader = torch.utils.data.DataLoader(X, transforms=[transforms.ToTensor])
         for batch_idx, (data, _) in enumerate(train_loader):
@@ -166,7 +165,7 @@ class VAE(nn.Module):
             if cuda:
                 data = data.cuda()
             self.optimizer.zero_grad()
-            #TODO originally recon_batch, mu, logvar = model(data), with model = VAE(bags.size(1)). OK?
+            # TODO originally recon_batch, mu, logvar = model(data), with model = VAE(bags.size(1)). OK?
             recon_batch, mu, logvar = self(data)
             loss = self.loss_function(recon_batch, data, mu, logvar)
             loss.backward()
@@ -192,7 +191,7 @@ class VAE(nn.Module):
             if self.verbose:
                 print("Epoch", epoch + 1)
 
-            #TODO shuffle needed?
+            # TODO shuffle needed?
             # Shuffle on each new epoch
             if condition is not None:
                 X_shuf, condition_shuf = sklearn.utils.shuffle(X, condition)
@@ -217,7 +216,7 @@ class VAE(nn.Module):
     def predict(self, X, condition=None):
         self.eval()
         test_loss = 0
-        # TODO adapt to Evaluation: is it OK to use X (was Xtest)?
+        # TODO do I need train_loader or obsolete using Evaluation? If needed can be pushed outside (e.g. in class)?
         test_loader = torch.utils.data.DataLoader(X,
                                                   transforms=[transforms.ToTensor])
         for data, _ in test_loader:
@@ -331,7 +330,6 @@ class VAERecommender(Recommender):
             titles = None
 
         VAE(**self.vae_params)
-        # TODO Does a fit function make sense?
         self.vae.fit(X, condition=titles)
 
     # TODO reimplement if needed. E.g. How to use condition?
@@ -351,8 +349,8 @@ class VAERecommender(Recommender):
 def main():
     """ Evaluates the VAE Recommender """
     CONFIG = {
-        'pub': ('../Data/PMC/citations_pmc.tsv', 2011, 50),
-        'eco': ('../Data/Economics/econbiz62k.tsv', 2012, 1)
+        'pub': ('/data21/lgalke/datasets/citations_pmc.tsv', 2011, 50),
+        'eco': ('/data21/lgalke/datasets/econbiz62k.tsv', 2012, 1)
     }
 
     PARSER = argparse.ArgumentParser()
@@ -362,7 +360,6 @@ def main():
     logfile = 'results/' + args.data + '-decoder.log'
     bags = Bags.load_tabcomma_format(DATA[0])
     c_year = DATA[1]
-
 
     evaluate = Evaluation(bags,
                           year=c_year,
@@ -391,8 +388,8 @@ def main():
     models = [VAERecommender(**params, n_hidden=hc[0], n_code=hc[1],
                              use_title=ut, embedding=vectors,
                              gen_lr=lr[0], reg_lr=lr[1], activation=a)
-              for ut, lr, hc, a in itertools.product((True, False), lrs, hcs, activations)]
-    # models = [DecodingRecommender(embedding=vectors)]
+              # for ut, lr, hc, a in itertools.product((True, False), lrs, hcs, activations)]
+              for ut, lr, hc, a in itertools.product((False), lrs, hcs, activations)]
     evaluate(models)
 
 
