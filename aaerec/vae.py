@@ -5,15 +5,15 @@ import torch.utils.data
 import torch.nn as nn
 import torch.optim as optim
 
-from .base import Recommender
-from .datasets import Bags
-from .evaluation import Evaluation
+from aaerec.base import Recommender
+from aaerec.datasets import Bags
+from aaerec.evaluation import Evaluation
 from torch.autograd import Variable
 import transforms
 
 import sklearn
 from sklearn.feature_extraction.text import TfidfVectorizer
-from .ub import GensimEmbeddedVectorizer
+from aaerec.ub import GensimEmbeddedVectorizer
 from gensim.models.keyedvectors import KeyedVectors
 
 import scipy.sparse as sp
@@ -56,6 +56,7 @@ class VAE(nn.Module):
                  inp,
                  n_hidden=100,
                  n_code=50,
+                 # TODO In AAE we used both gen_lr and reg_lr. Does regularization still make sense?
                  lr=0.001,
                  batch_size=100,
                  n_epochs=500,
@@ -118,6 +119,9 @@ class VAE(nn.Module):
         return self.sigmoid(self.fc4(h3))
 
     def forward(self, x):
+        # FIXME What is this magic number 784? Does it generates the error below?
+        # RuntimeError: invalid argument 2: size '[-1 x 784]' is invalid
+        # for input with 3185 elements at /pytorch/aten/src/TH/THStorage.c:37
         mu, logvar = self.encode(x.view(-1, 784))
         z = self.reparametrize(mu, logvar)
         return self.decode(z), mu, logvar
@@ -159,8 +163,11 @@ class VAE(nn.Module):
         self.train()
         train_loss = 0
         # TODO do I need train_loader or obsolete using Evaluation? If needed can be pushed outside (e.g. in class)?
-        train_loader = torch.utils.data.DataLoader(X, transforms=[transforms.ToTensor])
-        for batch_idx, (data, _) in enumerate(train_loader):
+        # FIXME DataLoader transforms?
+        # train_loader = torch.utils.data.DataLoader(X, transform=[transforms.ToTensor])
+        # for batch_idx, (data, _) in enumerate(train_loader):
+        train_loader = torch.utils.data.DataLoader(X)
+        for batch_idx, (data) in enumerate(train_loader):
             data = Variable(data)
             if cuda:
                 data = data.cuda()
@@ -217,8 +224,10 @@ class VAE(nn.Module):
         self.eval()
         test_loss = 0
         # TODO do I need train_loader or obsolete using Evaluation? If needed can be pushed outside (e.g. in class)?
-        test_loader = torch.utils.data.DataLoader(X,
-                                                  transforms=[transforms.ToTensor])
+        # FIXME DataLoader transforms?
+        # test_loader = torch.utils.data.DataLoader(X ,
+        #                                           transforms=[transforms.ToTensor])
+        test_loader = torch.utils.data.DataLoader(X)
         for data, _ in test_loader:
             if cuda:
                 data = data.cuda()
@@ -293,7 +302,7 @@ class VAERecommender(Recommender):
     verbose: Print losses during training
     normalize_inputs: Whether l1-normalization is performed on the input
     """
-    def __init__(self, adversarial=True, tfidf_params=dict(),
+    def __init__(self, tfidf_params=dict(),
                  **kwargs):
         """ tfidf_params get piped to either TfidfVectorizer or
         EmbeddedVectorizer.  Remaining kwargs get passed to
@@ -305,6 +314,7 @@ class VAERecommender(Recommender):
         self.vect = None
         self.vae_params = kwargs
         self.tfidf_params = tfidf_params
+        self.vae = None
 
     def __str__(self):
         desc = "Variational Autoencoder"
@@ -329,7 +339,9 @@ class VAERecommender(Recommender):
         else:
             titles = None
 
-        VAE(**self.vae_params)
+        # TODO Using X.shape[1] as inp correct? Originally VAE(bags.size(1))
+        # IN AAE we do Encoder(X.shape[1],...) 
+        self.vae = VAE(X.shape[1], **self.vae_params)
         self.vae.fit(X, condition=titles)
 
     # TODO reimplement if needed. E.g. How to use condition?
@@ -357,7 +369,7 @@ def main():
     PARSER.add_argument('data', type=str, choices=['pub','eco'])
     args = PARSER.parse_args()
     DATA = CONFIG[args.data]
-    logfile = 'results/' + args.data + '-decoder.log'
+    logfile = '/data22/ivagliano/test-vae/' + args.data + '-decoder.log'
     bags = Bags.load_tabcomma_format(DATA[0])
     c_year = DATA[1]
 
@@ -371,25 +383,26 @@ def main():
     params = {
         'n_epochs': 100,
         'batch_size': 100,
-        'optimizer': 'adam',
-        'normalize_inputs': True,
-        'prior': 'gauss',
+        # 'optimizer': 'adam',
+        # 'normalize_inputs': True,
+        # 'prior': 'gauss',
     }
     # 100 hidden units, 200 epochs, bernoulli prior, normalized inputs -> 0.174
-    activations = ['ReLU','SELU']
-    lrs = [(0.001, 0.0005), (0.001, 0.001)]
-    hcs = [(100, 50), (300, 100)]
+    # activations = ['ReLU','SELU']
+    # lrs = [(0.001, 0.0005), (0.001, 0.001)]
+    #hcs = [(100, 50), (300, 100)]
+
 
     # dropouts = [(.2,.2), (.1,.1), (.1, .2), (.25, .25), (.3,.3)] # .2,.2 is best
     # priors = ['categorical'] # gauss is best
     # normal = [True, False]
     # bernoulli was good, letz see if categorical is better... No
-    import itertools
-    models = [VAERecommender(**params, n_hidden=hc[0], n_code=hc[1],
-                             use_title=ut, embedding=vectors,
-                             gen_lr=lr[0], reg_lr=lr[1], activation=a)
-              # for ut, lr, hc, a in itertools.product((True, False), lrs, hcs, activations)]
-              for ut, lr, hc, a in itertools.product((False), lrs, hcs, activations)]
+    # import itertools
+    # models = [VAERecommender(**params, n_hidden=hc[0], n_code=hc[1],
+    #                          use_title=ut, embedding=vectors,
+    #                          gen_lr=lr[0], reg_lr=lr[1], activation=a)
+    #           for ut, lr, hc, a in itertools.product((True, False), lrs, hcs, activations)]
+    models = [VAERecommender(**params,use_title=False, embedding=vectors)]
     evaluate(models)
 
 
