@@ -16,6 +16,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from aaerec.ub import GensimEmbeddedVectorizer
 from gensim.models.keyedvectors import KeyedVectors
 
+import numpy as np
 import scipy.sparse as sp
 
 torch.manual_seed(42)
@@ -193,9 +194,10 @@ class VAE(nn.Module):
     # TODO handle condition (if it makes sense for VAE)
     def predict(self, X, condition=None):
         self.eval()
+        pred = []
         test_loss = 0
         test_loader = torch.utils.data.DataLoader(X)
-        for data, _ in test_loader:
+        for i, (data) in enumerate(test_loader):
             if torch.cuda.is_available():
                 data = data.cuda()
             data = Variable(data, volatile=True)
@@ -204,6 +206,8 @@ class VAE(nn.Module):
 
         test_loss /= len(test_loader.dataset)
         print('====> Test set loss: {:.4f}'.format(test_loss))
+
+        return np.vstack(pred)
 
 
 class VAERecommender(Recommender):
