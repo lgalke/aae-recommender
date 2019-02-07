@@ -420,33 +420,34 @@ class AutoEncoder():
         if self.conditions:
             self.conditions.eval()
         pred = []
-        for start in range(0, X.shape[0], self.batch_size):
-            # batched predictions, yet inclusive
-            end = start + self.batch_size
-            X_batch = X[start:end].toarray()
-            X_batch = torch.FloatTensor(X_batch)
-            if torch.cuda.is_available():
-                X_batch = X_batch.cuda()
-            X_batch = Variable(X_batch)
+        with torch.no_grad():
+            for start in range(0, X.shape[0], self.batch_size):
+                # batched predictions, yet inclusive
+                end = start + self.batch_size
+                X_batch = X[start:end].toarray()
+                X_batch = torch.FloatTensor(X_batch)
+                if torch.cuda.is_available():
+                    X_batch = X_batch.cuda()
+                X_batch = Variable(X_batch)
 
-            if use_condition:
-                c_batch = [c[start:end] for c in condition_data]
+                if use_condition:
+                    c_batch = [c[start:end] for c in condition_data]
 
-            z = self.enc(X_batch)
-            if use_condition:
-                z = self.conditions.encode_impose(z, c_batch)
-            # reconstruct
-            # Encoder is set in fit() method
-            # TODO: find why it throws. seems to be dims mismatch
-            # File "/home/gerstenkorn/anaconda3/envs/citation/lib/python3.6/site-packages/torch/nn/functional.py", line 1024, in linear
-            # return torch.addmm(bias, input, weight.t())
-            #            RuntimeError: size mismatch, m1: [100 x 376], m2: [1628 x 100] at /pytorch/aten/src/TH/generic/THTensorMath.cpp:2070
-            # other iteration:  RuntimeError: size mismatch, m1: [100 x 387], m2: [1627 x 100] at /pytorch/aten/src/TH/generic/THTensorMath.cpp:940
+                z = self.enc(X_batch)
+                if use_condition:
+                    z = self.conditions.encode_impose(z, c_batch)
+                # reconstruct
+                # Encoder is set in fit() method
+                # TODO: find why it throws. seems to be dims mismatch
+                # File "/home/gerstenkorn/anaconda3/envs/citation/lib/python3.6/site-packages/torch/nn/functional.py", line 1024, in linear
+                # return torch.addmm(bias, input, weight.t())
+                #            RuntimeError: size mismatch, m1: [100 x 376], m2: [1628 x 100] at /pytorch/aten/src/TH/generic/THTensorMath.cpp:2070
+                # other iteration:  RuntimeError: size mismatch, m1: [100 x 387], m2: [1627 x 100] at /pytorch/aten/src/TH/generic/THTensorMath.cpp:940
 
-            X_reconstuction = self.dec(z)
-            # shift
-            X_reconstuction = X_reconstuction.data.cpu().numpy()
-            pred.append(X_reconstuction)
+                X_reconstuction = self.dec(z)
+                # shift
+                X_reconstuction = X_reconstuction.data.cpu().numpy()
+                pred.append(X_reconstuction)
         return np.vstack(pred)
 
 
@@ -821,10 +822,12 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         ### DONE Adapt to generic condition ###
         self.eval()  # Deactivate dropout
         # In case some of the conditions has dropout
+        use_condition = _check_conditions(self.conditions, condition_data)
         if self.conditions:
             self.conditions.eval()
         pred = []
         for start in range(0, X.shape[0], self.batch_size):
+            end = start + self.batch_size
             # batched predictions, yet inclusive
             X_batch = X[start:(start+self.batch_size)]
             if sp.issparse(X_batch):
@@ -833,20 +836,13 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
             if torch.cuda.is_available():
                 X_batch = X_batch.cuda()
 
-            # if condition_data is not None:
-            #     c_batch = condition[start:(start+self.batch_size)]
-            #     c_batch = c_batch.astype('float32')
-            #     if sp.issparse(c_batch):
-            #         c_batch = c_batch.toarray()
-            #     c_batch = Variable(torch.from_numpy(c_batch))
-            #     if torch.cuda.is_available():
-            #         c_batch = c_batch.cuda()
-
+            if use_condition:
+                c_batch = [c[start:end] for c in condition_data]
             # reconstruct
             z = self.enc(X_batch)
-            if condition_data is not None:
+            if use_condition:
                 # z = torch.cat((z, c_batch), 1)
-                z = self.conditions.encode_impose(y, condition_data)
+                z = self.conditions.encode_impose(z, c_batch)
             X_reconstuction = self.dec(z)
             # shift
             X_reconstuction = X_reconstuction.data.cpu().numpy()
