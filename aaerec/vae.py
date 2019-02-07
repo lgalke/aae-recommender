@@ -18,36 +18,15 @@ from gensim.models.keyedvectors import KeyedVectors
 
 import scipy.sparse as sp
 
-# cuda = torch.cuda.is_available()
 torch.manual_seed(42)
 
 W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
 W2V_IS_BINARY = True
 
-# kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
-# train_loader = torch.utils.data.DataLoader(
-#     datasets.MNIST('../data', train=True, download=True,
-#                    transform=transforms.ToTensor()),
-#     batch_size=args.batch_size, shuffle=True, **kwargs)
-# test_loader = torch.utils.data.DataLoader(
-#     datasets.MNIST('../data', train=False, transform=transforms.ToTensor()),
-#     batch_size=args.batch_size, shuffle=True, **kwargs)
-
-
-# bags = Bags.load_tabcomma_format("Data/PMC/citations_pmc.tsv",
-#                                  min_count=50,
-#                                  min_elements=2)
-
-# old version
-# X, Xtest, Ytest = bags.missing_citation_dataset(corrupt_train=False,
-#                                                 single_label=True)
-#
-# Xtest = Xtest.tolil()
-# Xtest[Ytest.nonzero()] = 1.0
-# Xtest = Xtest.tocsr()
-# train_loader = torch.utils.data.DataLoader(X, transforms=[transforms.ToTensor])
-# test_loader = torch.utils.data.DataLoader(Xtest,
-#                                           transforms=[transforms.ToTensor])
+TORCH_OPTIMIZERS = {
+    'sgd': optim.SGD,
+    'adam': optim.Adam
+}
 
 
 class VAE(nn.Module):
@@ -60,7 +39,7 @@ class VAE(nn.Module):
                  lr=0.001,
                  batch_size=100,
                  n_epochs=500,
-                 # optimizer='adam',
+                 optimizer='adam',
                  normalize_inputs=True,
                  # activation='ReLU',
                  # TODO dropout makes sense?
@@ -74,8 +53,6 @@ class VAE(nn.Module):
         self.n_hidden = n_hidden
         self.n_code = n_code
         self.n_epochs = n_epochs
-        # TODO parametrize the optimizer
-        # self.optimizer = optimizer.lower()
         # TODO in classical AE was helping so it may worth to try it
         # In AE done in forward but VAE compute mean and std in forward to then sample the distrib
         # Here for sure not in the output but not clear where it could be used
@@ -93,8 +70,8 @@ class VAE(nn.Module):
         self.fc22 = nn.Linear(n_hidden, n_code)
         self.fc3 = nn.Linear(n_code, n_hidden)
         self.fc4 = nn.Linear(n_hidden, inp)
-        # TODO originally model.parameters(), with model=VAE(bags.size(1)). OK?
-        self.optimizer = optim.Adam(self.parameters(), lr=lr)
+        optimizer_gen = TORCH_OPTIMIZERS[optimizer.lower()]
+        self.optimizer = optimizer_gen(self.parameters(), lr=lr)
 
         # TODO parametrize as self.activation
         self.relu = nn.ReLU()
@@ -120,9 +97,6 @@ class VAE(nn.Module):
         return self.sigmoid(self.fc4(h3))
 
     def forward(self, x):
-        # FIXME What is this magic number 784? Does it generates the error below?
-        # RuntimeError: invalid argument 2: size '[-1 x 784]' is invalid
-        # for input with 3185 elements at /pytorch/aten/src/TH/THStorage.c:37
         mu, logvar = self.encode(x.view(-1, self.inp))
         z = self.reparametrize(mu, logvar)
         return self.decode(z), mu, logvar
@@ -163,10 +137,6 @@ class VAE(nn.Module):
         # Make sure we are in training mode and zero leftover gradients
         self.train()
         train_loss = 0
-        # TODO do I need train_loader or obsolete using Evaluation? If needed can be pushed outside (e.g. in class)?
-        # FIXME DataLoader transforms?
-        # train_loader = torch.utils.data.DataLoader(X, transform=[transforms.ToTensor])
-        # for batch_idx, (data, _) in enumerate(train_loader):
         train_loader = torch.utils.data.DataLoader(X)
         for batch_idx, (data) in enumerate(train_loader):
             data = Variable(data)
@@ -179,14 +149,14 @@ class VAE(nn.Module):
             loss.backward()
             train_loss += loss.data[0]
             self.optimizer.step()
-            if batch_idx % self.log_interval == 0:
+            if self.verbose and batch_idx % self.log_interval == 0:
                 print('[{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                     batch_idx * len(data), len(train_loader.dataset),
                            100. * batch_idx / len(train_loader),
                            loss.data[0] / len(data)))
-
-        print('====> Average loss: {:.4f}'.format(
-            train_loss / len(train_loader.dataset)))
+        if self.verbose:
+            print('====> Average loss: {:.4f}'.format(
+                train_loss / len(train_loader.dataset)))
         return self
 
     # TODO may still need some adaptation. E.g. how to use condition?
@@ -224,10 +194,6 @@ class VAE(nn.Module):
     def predict(self, X, condition=None):
         self.eval()
         test_loss = 0
-        # TODO do I need train_loader or obsolete using Evaluation? If needed can be pushed outside (e.g. in class)?
-        # FIXME DataLoader transforms?
-        # test_loader = torch.utils.data.DataLoader(X ,
-        #                                           transforms=[transforms.ToTensor])
         test_loader = torch.utils.data.DataLoader(X)
         for data, _ in test_loader:
             if torch.cuda.is_available():
@@ -239,51 +205,6 @@ class VAE(nn.Module):
         test_loss /= len(test_loader.dataset)
         print('====> Test set loss: {:.4f}'.format(test_loss))
 
-
-# if args.cuda:
-#     model.cuda()
-
-
-# adapted this to our train, now in VAE.partial_fit()
-# def train(epoch):
-#     model.train()
-#     train_loss = 0
-#     for batch_idx, (data, _) in enumerate(train_loader):
-#         data = Variable(data)
-#         if args.cuda:
-#             data = data.cuda()
-#         optimizer.zero_grad()
-#         recon_batch, mu, logvar = model(data)
-#         loss = loss_function(recon_batch, data, mu, logvar)
-#         loss.backward()
-#         train_loss += loss.data[0]
-#         optimizer.step()
-#         if batch_idx % args.log_interval == 0:
-#             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-#                 epoch, batch_idx * len(data), len(train_loader.dataset),
-#                 100. * batch_idx / len(train_loader),
-#                 loss.data[0] / len(data)))
-#
-#     print('====> Epoch: {} Average loss: {:.4f}'.format(
-#           epoch, train_loss / len(train_loader.dataset)))
-
-# Now in VAE.predict()
-# def test(epoch):
-#     model.eval()
-#     test_loss = 0
-#     for data, _ in test_loader:
-#         if args.cuda:
-#             data = data.cuda()
-#         data = Variable(data, volatile=True)
-#         recon_batch, mu, logvar = model(data)
-#         test_loss += loss_function(recon_batch, data, mu, logvar).data[0]
-#
-#     test_loss /= len(test_loader.dataset)
-#     print('====> Test set loss: {:.4f}'.format(test_loss))
-
-# for epoch in range(1, args.epochs + 1):
-#     train(epoch)
-#     test(epoch)
 
 class VAERecommender(Recommender):
     """
@@ -386,7 +307,7 @@ def main():
     params = {
         'n_epochs': 100,
         'batch_size': 100,
-        # 'optimizer': 'adam',
+        'optimizer': 'adam',
         # 'normalize_inputs': True,
         # 'prior': 'gauss',
     }
