@@ -676,8 +676,6 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         if use_condition:
             z_sample = self.conditions.encode_impose(z_sample, condition_data)
 
-        print("Aggregated size inc", self.conditions.size_increment())
-        print("z size before feeding", z_sample.size())
         x_sample = self.dec(z_sample)
         recon_loss = F.binary_cross_entropy(x_sample + TINY,
                                             batch.view(batch.size(0),
