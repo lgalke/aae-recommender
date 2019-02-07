@@ -424,6 +424,7 @@ class AutoEncoder():
             # return torch.addmm(bias, input, weight.t())
             #            RuntimeError: size mismatch, m1: [100 x 376], m2: [1628 x 100] at /pytorch/aten/src/TH/generic/THTensorMath.cpp:2070
             # other iteration:  RuntimeError: size mismatch, m1: [100 x 387], m2: [1627 x 100] at /pytorch/aten/src/TH/generic/THTensorMath.cpp:940
+            # TODO: check which dims need to match: Hypothesis from stack overflow: m1: [a * b] m2: [b * c]
 
             # on master: self.dec works perfectly
             X_reconstuction = self.dec(z) # on master results in torch.Size([100, 87887])
