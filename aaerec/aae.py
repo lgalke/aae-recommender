@@ -241,21 +241,24 @@ class AutoEncoder():
         self.lr = lr
         self.activation = activation
 
-        self.conditions = conditions
+        if self.conditions:
+            self.conditions = conditions
 
     def eval(self):
         """ Put all NN modules into eval mode """
         ### DONE Adapt to generic condition ###
         self.enc.eval()
         self.dec.eval()
-        self.conditions.eval()
+        if self.conditions:
+            self.conditions.eval()
 
     def train(self):
         """ Put all NN modules into train mode """
         ### DONE Adapt to generic condition ###
         self.enc.train()
         self.dec.train()
-        self.conditions.train()
+        if self.conditions:
+            self.conditions.train()
 
 
     def ae_step(self, batch, condition_data=None):
@@ -279,7 +282,7 @@ class AutoEncoder():
         # concat base data with side_info
         # z_sample = torch.cat((z_sample, condition_matrix), 1)
 
-        use_condition = _check_conditions(self.condition, condition_data)
+        use_condition = _check_conditions(self.conditions, condition_data)
         if use_condition:
             z_sample = self.conditions.encode_impose(z_sample, condition_data)
 
