@@ -169,7 +169,7 @@ class Decoder(nn.Module):
         act = self.act2(act)
         # final layer
         act = self.lin3(act)
-        act = F.sigmoid(act)
+        act = torch.sigmoid(act)
         return act
 
 
@@ -205,7 +205,7 @@ class Discriminator(nn.Module):
         # act = F.relu(act)
         # act = F.dropout(self.lin2(act), p=self.dropout[1], training=self.training)
         # act = F.relu(act)
-        return F.sigmoid(self.lin3(act))
+        return torch.sigmoid(self.lin3(act))
 
 
 TORCH_OPTIMIZERS = {
