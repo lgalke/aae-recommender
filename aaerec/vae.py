@@ -70,6 +70,7 @@ class VAE(nn.Module):
 
         super(VAE, self).__init__()
 
+        self.inp = inp
         self.n_hidden = n_hidden
         self.n_code = n_code
         self.n_epochs = n_epochs
@@ -92,7 +93,7 @@ class VAE(nn.Module):
         self.fc22 = nn.Linear(n_hidden, n_code)
         self.fc3 = nn.Linear(n_code, n_hidden)
         self.fc4 = nn.Linear(n_hidden, inp)
-        #TODO originally model.parameters(), with model=VAE(bags.size(1)). OK?
+        # TODO originally model.parameters(), with model=VAE(bags.size(1)). OK?
         self.optimizer = optim.Adam(self.parameters(), lr=lr)
 
         # TODO parametrize as self.activation
@@ -122,7 +123,7 @@ class VAE(nn.Module):
         # FIXME What is this magic number 784? Does it generates the error below?
         # RuntimeError: invalid argument 2: size '[-1 x 784]' is invalid
         # for input with 3185 elements at /pytorch/aten/src/TH/THStorage.c:37
-        mu, logvar = self.encode(x.view(-1, 784))
+        mu, logvar = self.encode(x.view(-1, self.inp))
         z = self.reparametrize(mu, logvar)
         return self.decode(z), mu, logvar
 
