@@ -826,27 +826,28 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         if self.conditions:
             self.conditions.eval()
         pred = []
-        for start in range(0, X.shape[0], self.batch_size):
-            end = start + self.batch_size
-            # batched predictions, yet inclusive
-            X_batch = X[start:(start+self.batch_size)]
-            if sp.issparse(X_batch):
-                X_batch = X_batch.toarray()
-            X_batch = torch.FloatTensor(X_batch)
-            if torch.cuda.is_available():
-                X_batch = X_batch.cuda()
+        with torch.no_grad():
+            for start in range(0, X.shape[0], self.batch_size):
+                end = start + self.batch_size
+                # batched predictions, yet inclusive
+                X_batch = X[start:(start+self.batch_size)]
+                if sp.issparse(X_batch):
+                    X_batch = X_batch.toarray()
+                X_batch = torch.FloatTensor(X_batch)
+                if torch.cuda.is_available():
+                    X_batch = X_batch.cuda()
 
-            if use_condition:
-                c_batch = [c[start:end] for c in condition_data]
-            # reconstruct
-            z = self.enc(X_batch)
-            if use_condition:
-                # z = torch.cat((z, c_batch), 1)
-                z = self.conditions.encode_impose(z, c_batch)
-            X_reconstuction = self.dec(z)
-            # shift
-            X_reconstuction = X_reconstuction.data.cpu().numpy()
-            pred.append(X_reconstuction)
+                if use_condition:
+                    c_batch = [c[start:end] for c in condition_data]
+                # reconstruct
+                z = self.enc(X_batch)
+                if use_condition:
+                    # z = torch.cat((z, c_batch), 1)
+                    z = self.conditions.encode_impose(z, c_batch)
+                X_reconstuction = self.dec(z)
+                # shift
+                X_reconstuction = X_reconstuction.data.cpu().numpy()
+                pred.append(X_reconstuction)
         return np.vstack(pred)
 
 
