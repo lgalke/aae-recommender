@@ -241,8 +241,7 @@ class AutoEncoder():
         self.lr = lr
         self.activation = activation
 
-        if self.conditions:
-            self.conditions = conditions
+        self.conditions = conditions
 
     def eval(self):
         """ Put all NN modules into eval mode """
@@ -292,11 +291,13 @@ class AutoEncoder():
                                                        batch.size(1)) + TINY)
         self.enc_optim.zero_grad()
         self.dec_optim.zero_grad()
-        self.conditions.zero_grad()
+        if self.conditions:
+            self.conditions.zero_grad()
         recon_loss.backward()
         self.enc_optim.step()
         self.dec_optim.step()
-        self.conditions.step()
+        if self.conditions:
+            self.conditions.step()
         return recon_loss.item()
 
     def partial_fit(self, X, y=None, condition_data=None):
@@ -421,7 +422,8 @@ class AutoEncoder():
         # TODO: first look into fit, as predict is based on that!!!
         use_condition = _check_conditions(self.conditions, condition_data)
         self.eval()  # Deactivate dropout
-        self.conditions.eval()
+        if self.conditions:
+            self.conditions.eval()
         pred = []
         for start in range(0, X.shape[0], self.batch_size):
             # batched predictions, yet inclusive
@@ -678,10 +680,10 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         :param condition: ??? ~ training_set.get_single_attribute("title") <~ side_info = unpack_playlists(playlists)
         :return:
         """
-        print("batch",batch,"condition", conditions_batch)
         z_sample = self.enc(batch)
-        if condition_data:
-            self.conditions.encode_impose(z_sample, conditions_batch)
+        use_condition = _check_conditions(self.conditions, condition_data)
+        if use_condition:
+            self.conditions.encode_impose(z_sample, condition_data)
 
         x_sample = self.dec(z_sample)
         recon_loss = F.binary_cross_entropy(x_sample + TINY,
@@ -690,7 +692,8 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         # Clear all related gradients
         self.enc.zero_grad()
         self.dec.zero_grad()
-        self.conditions.zero_grad()
+        if use_condition:
+            self.conditions.zero_grad()
     
         # Compute gradients
         recon_loss.backward()
@@ -698,8 +701,9 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         # Update parameters
         self.enc_optim.step()
         self.dec_optim.step()
-        self.conditions.step()
-        return recon_loss.data[0].item()
+        if use_condition:
+            self.conditions.step()
+        return recon_loss.data.item()
 
     def disc_step(self, batch):
         """ Perform one discriminator step on batch """
@@ -719,7 +723,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         self.disc_optim.zero_grad()
         disc_loss.backward()
         self.disc_optim.step()
-        return disc_loss.data[0].item()
+        return disc_loss.data.item()
 
     def gen_step(self, batch):
         self.enc.train()
@@ -729,7 +733,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         self.gen_optim.zero_grad()
         gen_loss.backward()
         self.gen_optim.step()
-        return gen_loss.data[0].item()
+        return gen_loss.data.item()
 
     def partial_fit(self, X, y=None, condition_data=None):
         ### DONE Adapt to generic condition ###
@@ -841,7 +845,8 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         ### DONE Adapt to generic condition ###
         self.eval()  # Deactivate dropout
         # In case some of the conditions has dropout
-        self.conditions.eval()
+        if self.conditions:
+            self.conditions.eval()
         pred = []
         for start in range(0, X.shape[0], self.batch_size):
             # batched predictions, yet inclusive
