@@ -41,7 +41,7 @@ BASELINES = [
 
 ae_params = {
     'n_code': 50,
-    'n_epochs': 100,
+    'n_epochs': 10,
     # 'embedding': VECTORS, # This belongs to condition now
     'batch_size': 100,
     'n_hidden': 100,
@@ -60,10 +60,10 @@ CONDITIONS = ConditionList([
 
 
 CONDITIONED_MODELS = [
-    AAERecommender(adversarial=False, conditions=CONDITIONS),
-    AAERecommender(adversarial=True, conditions=CONDITIONS),
+    AAERecommender(adversarial=False, conditions=CONDITIONS, **ae_params),
+    AAERecommender(adversarial=True, conditions=CONDITIONS, **ae_params),
     DecodingRecommender(CONDITIONS,
-                        n_epochs=100, batch_size=100, optimizer='adam',
+                        n_epochs=10, batch_size=100, optimizer='adam',
                         n_hidden=100, embedding=VECTORS,
                         lr=0.001, verbose=True),
 ]
