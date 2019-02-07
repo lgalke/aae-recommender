@@ -54,6 +54,7 @@ def concat_side_info(vectorizer,training_set,side_info_subset):
     for i, attribute in enumerate(side_info_subset):
         attr_data = training_set.get_single_attribute(attribute)
         if i < 1:
+            # TODO: fit vs. transform depending on train vs. predict
             attr_vect = vectorizer.fit_transform(attr_data)
         else:
             # rows are instances, cols are features --> adding cols makes up new features
@@ -320,8 +321,10 @@ class AutoEncoder():
         :param condition_matrix: np.array, feature space of side_info
         :return:
         """
-        # TODO: check how X representation and numpy.array work together
-        # TODO: adapt combining X and new_conditions_name
+        # TODO: 07.02: learn new vectorizer for each side_info filed separately
+        # TODO: 07.02: store trained vatorizer for each side_info separately
+
+
         if y is not None:
             raise NotImplementedError("(Semi-)supervised usage not supported")
 
@@ -336,7 +339,7 @@ class AutoEncoder():
                            dropout=self.dropout, activation=self.activation)
         if condition_matrix is not None:
             # seems to be not enough TODO: check what is done in decoder so that dims fit
-            # TODO: find out why dims are arbitrary
+            # find out why dims are arbitrary: different vocabualry learned
             # [100 x 381], m2: [1616 x 100] vs [100 x 376], m2: [1628 x 100]
             assert condition_matrix.shape[0] == X.shape[0]
             print("condition_matrix shape: ",condition_matrix.shape,"X.shape", X.shape)
@@ -392,7 +395,8 @@ class AutoEncoder():
         :param condition_matrix: np.array, feature space of side_info
         :return:
         """
-        # TODO: first look into fit, as predict is based on that!!!
+        # TODO: 07.02 load (not train/fit!) trained vectorizer depending on which side info is used
+        # TODO: 07.02 use "pred/fit-state dependent concat_side_info
         self.eval()  # Deactivate dropout
         pred = []
         # X shape (400,87337)
