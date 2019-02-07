@@ -18,7 +18,7 @@ from gensim.models.keyedvectors import KeyedVectors
 
 import scipy.sparse as sp
 
-cuda = torch.cuda.is_available()
+# cuda = torch.cuda.is_available()
 torch.manual_seed(42)
 
 W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
@@ -108,7 +108,7 @@ class VAE(nn.Module):
 
     def reparametrize(self, mu, logvar):
         std = logvar.mul(0.5).exp_()
-        if cuda:
+        if torch.cuda.is_available():
             eps = torch.cuda.FloatTensor(std.size()).normal_()
         else:
             eps = torch.FloatTensor(std.size()).normal_()
@@ -170,7 +170,7 @@ class VAE(nn.Module):
         train_loader = torch.utils.data.DataLoader(X)
         for batch_idx, (data) in enumerate(train_loader):
             data = Variable(data)
-            if cuda:
+            if torch.cuda.is_available():
                 data = data.cuda()
             self.optimizer.zero_grad()
             # TODO originally recon_batch, mu, logvar = model(data), with model = VAE(bags.size(1)). OK?
@@ -230,7 +230,7 @@ class VAE(nn.Module):
         #                                           transforms=[transforms.ToTensor])
         test_loader = torch.utils.data.DataLoader(X)
         for data, _ in test_loader:
-            if cuda:
+            if torch.cuda.is_available():
                 data = data.cuda()
             data = Variable(data, volatile=True)
             recon_batch, mu, logvar = self(data)
@@ -343,6 +343,8 @@ class VAERecommender(Recommender):
         # TODO Using X.shape[1] as inp correct? Originally VAE(bags.size(1))
         # IN AAE we do Encoder(X.shape[1],...) 
         self.vae = VAE(X.shape[1], **self.vae_params)
+        if torch.cuda.is_available():
+            self.vae.cuda()
         self.vae.fit(X, condition=titles)
 
     # TODO reimplement if needed. E.g. How to use condition?
