@@ -196,7 +196,7 @@ class VAE(nn.Module):
         self.eval()
         pred = []
         test_loss = 0
-        test_loader = torch.utils.data.DataLoader(X)
+        test_loader = torch.utils.data.DataLoader(X.toarray(), batch_size=self.batch_size, shuffle=True)
         for i, (data) in enumerate(test_loader):
             if torch.cuda.is_available():
                 data = data.cuda()
