@@ -203,6 +203,7 @@ class VAE(nn.Module):
             data = Variable(data, volatile=True)
             recon_batch, mu, logvar = self(data)
             test_loss += self.loss_function(recon_batch, data, mu, logvar).data[0]
+            pred.append(recon_batch.data.cpu().numpy())
 
         test_loss /= len(test_loader.dataset)
         print('====> Test set loss: {:.4f}'.format(test_loss))
