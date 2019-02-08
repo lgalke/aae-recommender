@@ -36,13 +36,14 @@ class VAE(nn.Module):
                  inp,
                  n_hidden=100,
                  n_code=50,
-                 # TODO In AAE we used both gen_lr and reg_lr. Does regularization still make sense?
                  lr=0.001,
                  batch_size=100,
                  n_epochs=500,
                  optimizer='adam',
-                 normalize_inputs=True,
-                 # activation='ReLU',
+                 # TODO add normalization if needed
+                 #normalize_inputs=True,
+                 activation='ReLU',
+                 final_activation='Sigmoid',
                  # TODO dropout makes sense?
                  # dropout=(.2,.2),
                  verbose=True,
@@ -63,8 +64,7 @@ class VAE(nn.Module):
         # self.dropout = dropout
         self.batch_size = batch_size
         self.lr = lr
-        # TODO parametrize activation
-        # self.activation = activation
+        self.activation = activation
 
         self.fc1 = nn.Linear(inp, n_hidden)
         self.fc21 = nn.Linear(n_hidden, n_code)
@@ -74,14 +74,16 @@ class VAE(nn.Module):
         optimizer_gen = TORCH_OPTIMIZERS[optimizer.lower()]
         self.optimizer = optimizer_gen(self.parameters(), lr=lr)
 
-        # TODO parametrize as self.activation
-        self.relu = nn.ReLU()
-        self.sigmoid = nn.Sigmoid()
+        #self.relu = nn.ReLU()
+        self.act = getattr(nn, activation)()
+        #self.sigmoid = nn.Sigmoid()
+        self.final_act = getattr(nn, final_activation)()
 
         self.log_interval = log_interval
 
     def encode(self, x):
-        h1 = self.relu(self.fc1(x))
+        #h1 = self.relu(self.fc1(x))
+        h1 = self.act(self.fc1(x))
         return self.fc21(h1), self.fc22(h1)
 
     def reparametrize(self, mu, logvar):
@@ -94,8 +96,10 @@ class VAE(nn.Module):
         return eps.mul(std).add_(mu)
 
     def decode(self, z):
-        h3 = self.relu(self.fc3(z))
-        return self.sigmoid(self.fc4(h3))
+        #h3 = self.relu(self.fc3(z))
+        h3 = self.act(self.fc3(z))
+        #return self.sigmoid(self.fc4(h3))
+        return self.final_act(self.fc4(h3))
 
     def forward(self, x):
         mu, logvar = self.encode(x.view(-1, self.inp))
@@ -314,7 +318,6 @@ def main():
         'batch_size': 100,
         'optimizer': 'adam',
         # 'normalize_inputs': True,
-        # 'prior': 'gauss',
     }
     # 100 hidden units, 200 epochs, bernoulli prior, normalized inputs -> 0.174
     # activations = ['ReLU','SELU']
@@ -331,7 +334,7 @@ def main():
     #                          use_title=ut, embedding=vectors,
     #                          gen_lr=lr[0], reg_lr=lr[1], activation=a)
     #           for ut, lr, hc, a in itertools.product((True, False), lrs, hcs, activations)]
-    models = [VAERecommender(**params,use_title=False, embedding=vectors)]
+    models = [VAERecommender(**params, use_title=False, embedding=vectors)]
     evaluate(models)
 
 
