@@ -64,8 +64,7 @@ CONDITIONED_MODELS = [
     AAERecommender(adversarial=True, conditions=CONDITIONS, **ae_params),
     DecodingRecommender(CONDITIONS,
                         n_epochs=10, batch_size=100, optimizer='adam',
-                        n_hidden=100, embedding=VECTORS,
-                        lr=0.001, verbose=True),
+                        n_hidden=100, lr=0.001, verbose=True),
 ]
 
 
