@@ -193,18 +193,37 @@ class VAE(nn.Module):
     def predict(self, X, condition=None):
         self.eval()
         pred = []
-        test_loss = 0
-        test_loader = torch.utils.data.DataLoader(X.toarray(), batch_size=self.batch_size, shuffle=True)
-        for i, (data) in enumerate(test_loader):
+        for start in range(0, X.shape[0], self.batch_size):
+            # batched predictions, yet inclusive
+            X_batch = X[start:(start+self.batch_size)]
+            if sp.issparse(X_batch):
+                X_batch = X_batch.toarray()
+            X_batch = Variable(torch.FloatTensor(X_batch))
             if torch.cuda.is_available():
-                data = data.cuda()
-            data = Variable(data, volatile=True)
-            recon_batch, mu, logvar = self(data)
-            test_loss += self.loss_function(recon_batch, data, mu, logvar).data[0]
-            pred.append(recon_batch.data.cpu().numpy())
+                X_batch = X_batch.cuda()
 
-        test_loss /= len(test_loader.dataset)
-        print('====> Test set loss: {:.4f}'.format(test_loss))
+            if condition is not None:
+                c_batch = condition[start:(start+self.batch_size)]
+                c_batch = c_batch.astype('float32')
+                if sp.issparse(c_batch):
+                    c_batch = c_batch.toarray()
+                c_batch = Variable(torch.from_numpy(c_batch))
+                if torch.cuda.is_available():
+                    c_batch = c_batch.cuda()
+
+            test_loss = 0
+            # test_loader = torch.utils.data.DataLoader(X.toarray(), batch_size=self.batch_size, shuffle=True)
+            test_loader = torch.utils.data.DataLoader(X)
+            for i, (data) in enumerate(test_loader):
+                if torch.cuda.is_available():
+                    data = data.cuda()
+                data = Variable(data, volatile=True)
+                recon_batch, mu, logvar = self(data)
+                test_loss += self.loss_function(recon_batch, data, mu, logvar).data[0]
+                pred.append(recon_batch.data.cpu().numpy())
+
+            test_loss /= len(test_loader.dataset)
+            print('====> Test set loss: {:.4f}'.format(test_loss))
 
         return np.vstack(pred)
 
