@@ -4,12 +4,12 @@ import torch
 import torch.utils.data
 import torch.nn as nn
 import torch.optim as optim
+import torch.nn.functional as F
 
 from aaerec.base import Recommender
 from aaerec.datasets import Bags
 from aaerec.evaluation import Evaluation
 from torch.autograd import Variable
-import transforms
 
 import sklearn
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -40,27 +40,25 @@ class VAE(nn.Module):
                  batch_size=100,
                  n_epochs=500,
                  optimizer='adam',
-                 # TODO add normalization if needed
-                 #normalize_inputs=True,
+                 normalize_inputs=True,
                  activation='ReLU',
                  final_activation='Sigmoid',
-                 # TODO dropout makes sense?
+                 # TODO try later
                  # dropout=(.2,.2),
                  verbose=True,
                  log_interval=1):
 
         super(VAE, self).__init__()
 
+        self.normalize_inputs = normalize_inputs
+        if self.normalize_inputs:
+            inp = F.normalize(inp, 1)
         self.inp = inp
         self.n_hidden = n_hidden
         self.n_code = n_code
         self.n_epochs = n_epochs
-        # TODO in classical AE was helping so it may worth to try it
-        # In AE done in forward but VAE compute mean and std in forward to then sample the distrib
-        # Here for sure not in the output but not clear where it could be used
-        #self.normalize_inputs = normalize_inputs
         self.verbose = verbose
-        # TODO see if needed
+        # TODO try later
         # self.dropout = dropout
         self.batch_size = batch_size
         self.lr = lr
@@ -74,15 +72,12 @@ class VAE(nn.Module):
         optimizer_gen = TORCH_OPTIMIZERS[optimizer.lower()]
         self.optimizer = optimizer_gen(self.parameters(), lr=lr)
 
-        #self.relu = nn.ReLU()
         self.act = getattr(nn, activation)()
-        #self.sigmoid = nn.Sigmoid()
         self.final_act = getattr(nn, final_activation)()
 
         self.log_interval = log_interval
 
     def encode(self, x):
-        #h1 = self.relu(self.fc1(x))
         h1 = self.act(self.fc1(x))
         return self.fc21(h1), self.fc22(h1)
 
@@ -96,12 +91,11 @@ class VAE(nn.Module):
         return eps.mul(std).add_(mu)
 
     def decode(self, z):
-        #h3 = self.relu(self.fc3(z))
         h3 = self.act(self.fc3(z))
-        #return self.sigmoid(self.fc4(h3))
         return self.final_act(self.fc4(h3))
 
     def forward(self, x):
+        # TODO could I use x instead of self.inp?
         mu, logvar = self.encode(x.view(-1, self.inp))
         z = self.reparametrize(mu, logvar)
         return self.decode(z), mu, logvar
@@ -270,8 +264,6 @@ class VAERecommender(Recommender):
         else:
             titles = None
 
-        # TODO Using X.shape[1] as inp correct? Originally VAE(bags.size(1))
-        # IN AAE we do Encoder(X.shape[1],...) 
         self.vae = VAE(X.shape[1], **self.vae_params)
         if torch.cuda.is_available():
             self.vae.cuda()
@@ -314,7 +306,8 @@ def main():
     vectors = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 
     params = {
-        'n_epochs': 100,
+        # 'n_epochs': 100,
+        'n_epochs': 10,
         'batch_size': 100,
         'optimizer': 'adam',
         # 'normalize_inputs': True,
@@ -322,8 +315,7 @@ def main():
     # 100 hidden units, 200 epochs, bernoulli prior, normalized inputs -> 0.174
     # activations = ['ReLU','SELU']
     # lrs = [(0.001, 0.0005), (0.001, 0.001)]
-    #hcs = [(100, 50), (300, 100)]
-
+    # hcs = [(100, 50), (300, 100)]
 
     # dropouts = [(.2,.2), (.1,.1), (.1, .2), (.25, .25), (.3,.3)] # .2,.2 is best
     # priors = ['categorical'] # gauss is best
