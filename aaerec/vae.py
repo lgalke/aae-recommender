@@ -138,9 +138,6 @@ class VAE(nn.Module):
         train_loss = 0
         train_loader = torch.utils.data.DataLoader(X)
         for batch_idx, (data) in enumerate(train_loader):
-            # data = Variable(data)
-            # if torch.cuda.is_available():
-            #     data = data.cuda()
             self.optimizer.zero_grad()
             # TODO originally recon_batch, mu, logvar = model(data), with model = VAE(bags.size(1)). OK?
             recon_batch, mu, logvar = self(data)
@@ -215,9 +212,6 @@ class VAE(nn.Module):
             # test_loader = torch.utils.data.DataLoader(X.toarray(), batch_size=self.batch_size, shuffle=True)
             test_loader = torch.utils.data.DataLoader(X_batch)
             for i, (data) in enumerate(test_loader):
-                # if torch.cuda.is_available():
-                #     data = data.cuda()
-                # data = Variable(data, volatile=True)
                 recon_batch, mu, logvar = self(data)
                 test_loss += self.loss_function(recon_batch, data, mu, logvar).data[0]
                 pred.append(recon_batch.data.cpu().numpy())
@@ -325,8 +319,7 @@ def main():
     vectors = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 
     params = {
-        # 'n_epochs': 100,
-        'n_epochs': 10,
+        'n_epochs': 100,
         'batch_size': 100,
         'optimizer': 'adam',
         # 'normalize_inputs': True,
