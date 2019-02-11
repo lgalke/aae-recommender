@@ -138,9 +138,9 @@ class VAE(nn.Module):
         train_loss = 0
         train_loader = torch.utils.data.DataLoader(X)
         for batch_idx, (data) in enumerate(train_loader):
-            data = Variable(data)
-            if torch.cuda.is_available():
-                data = data.cuda()
+            # data = Variable(data)
+            # if torch.cuda.is_available():
+            #     data = data.cuda()
             self.optimizer.zero_grad()
             # TODO originally recon_batch, mu, logvar = model(data), with model = VAE(bags.size(1)). OK?
             recon_batch, mu, logvar = self(data)
@@ -198,7 +198,7 @@ class VAE(nn.Module):
             X_batch = X[start:(start+self.batch_size)]
             if sp.issparse(X_batch):
                 X_batch = X_batch.toarray()
-            X_batch = Variable(torch.FloatTensor(X_batch))
+            X_batch = Variable(torch.FloatTensor(X_batch), volatile=True)
             if torch.cuda.is_available():
                 X_batch = X_batch.cuda()
 
@@ -213,11 +213,11 @@ class VAE(nn.Module):
 
             test_loss = 0
             # test_loader = torch.utils.data.DataLoader(X.toarray(), batch_size=self.batch_size, shuffle=True)
-            test_loader = torch.utils.data.DataLoader(X)
+            test_loader = torch.utils.data.DataLoader(X_batch)
             for i, (data) in enumerate(test_loader):
-                if torch.cuda.is_available():
-                    data = data.cuda()
-                data = Variable(data, volatile=True)
+                # if torch.cuda.is_available():
+                #     data = data.cuda()
+                # data = Variable(data, volatile=True)
                 recon_batch, mu, logvar = self(data)
                 test_loss += self.loss_function(recon_batch, data, mu, logvar).data[0]
                 pred.append(recon_batch.data.cpu().numpy())
