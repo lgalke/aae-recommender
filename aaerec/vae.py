@@ -279,6 +279,8 @@ class VAERecommender(Recommender):
 
         if self.use_title:
             self.vae = VAE(X.shape[1] + titles.shape[1], **self.vae_params)
+            X = Variable(torch.FloatTensor(X))
+            titles = Variable(torch.from_numpy(titles))
             X = torch.cat((X, titles), 1)
         else:
             self.vae = VAE(X.shape[1], **self.vae_params)
@@ -293,6 +295,8 @@ class VAERecommender(Recommender):
             # Use titles as condition
             titles = test_set.get_attribute("title")
             titles = self.vect.transform(titles)
+            X = Variable(torch.FloatTensor(X))
+            titles = Variable(torch.FloatTensor(titles))
             X = torch.cat((X, titles), 1)
             pred = self.vae.predict(X, condition=titles)
         else:
@@ -324,7 +328,7 @@ def main():
     vectors = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 
     params = {
-        'n_epochs': 100,
+        'n_epochs': 10,
         'batch_size': 100,
         'optimizer': 'adam',
         # 'normalize_inputs': True,
@@ -343,7 +347,7 @@ def main():
     #                          use_title=ut, embedding=vectors,
     #                          gen_lr=lr[0], reg_lr=lr[1], activation=a)
     #           for ut, lr, hc, a in itertools.product((True, False), lrs, hcs, activations)]
-    models = [VAERecommender(**params, use_title=False, embedding=vectors)]
+    models = [VAERecommender(**params, use_title=True, embedding=vectors)]
     evaluate(models)
 
 
