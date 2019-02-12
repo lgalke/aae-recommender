@@ -498,7 +498,7 @@ class DecodingRecommender(Recommender):
             inputs, y = inputs.cuda(), y.cuda()
         y_pred = self.mlp(inputs)
         loss = F.binary_cross_entropy(y_pred + TINY, y + TINY)
-        self.optimizer.zero_grad()
+        self.mlp_optim.zero_grad()
         self.conditions.zero_grad()
         loss.backward()
         self.mlp_optim.step()
@@ -515,8 +515,8 @@ class DecodingRecommender(Recommender):
                            **self.mlp_params)
         if torch.cuda.is_available():
             self.mlp = self.mlp.cuda()
-        optimizer_gen = TORCH_OPTIMIZERS[self.optimizer]
-        self.mlp_optim = optimizer_gen(self.mlp.parameters(), lr=self.lr)
+        optimizer_cls = TORCH_OPTIMIZERS[self.optimizer]
+        self.mlp_optim = optimizer_cls(self.mlp.parameters(), lr=self.lr)
         for __epoch in range(self.n_epochs):
             Y_shuf, *condition_data_shuf = sklearn.utils.shuffle(Y, *condition_data)
             for start in range(0, Y.shape[0], self.batch_size):
