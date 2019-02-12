@@ -19,6 +19,8 @@ PARSER.add_argument('year', type=int,
 PARSER.add_argument('-m', '--min-count', type=int,
                     help='Pruning parameter', default=50)
 PARSER.add_argument('-o', '--outfile', type=str, default=None)
+PARSER.add_argument('-e', '--epochs', type=int, default=50)
+PARSER.add_argument('--lr', type=float, default=0.0001)
 
 ARGS = PARSER.parse_args()
 
@@ -41,16 +43,15 @@ BASELINES = [
 
 ae_params = {
     'n_code': 50,
-    'n_epochs': 10,
-    # 'embedding': VECTORS, # This belongs to condition now
+    'n_epochs': ARGS.epochs,
     'batch_size': 100,
     'n_hidden': 100,
     'normalize_inputs': True,
 }
 
 RECOMMENDERS = [
-    AAERecommender(adversarial=False, lr=0.0001, **ae_params),
-    AAERecommender(prior='gauss', gen_lr=0.0001, reg_lr=0.0001, **ae_params),
+    AAERecommender(adversarial=False, lr=ARGS.lr, **ae_params),
+    AAERecommender(gen_lr=ARGS.lr, reg_lr=ARGS.lr, **ae_params),
 ]
 
 
@@ -60,11 +61,18 @@ CONDITIONS = ConditionList([
 
 
 CONDITIONED_MODELS = [
-    AAERecommender(adversarial=False, conditions=CONDITIONS, **ae_params),
-    AAERecommender(adversarial=True, conditions=CONDITIONS, **ae_params),
+    AAERecommender(adversarial=False,
+                   conditions=CONDITIONS,
+                   lr=ARGS.lr,
+                   **ae_params),
+    AAERecommender(adversarial=True,
+                   conditions=CONDITIONS,
+                   gen_lr=ARGS.lr,
+                   reg_lr=ARGS.lr,
+                   **ae_params),
     DecodingRecommender(CONDITIONS,
-                        n_epochs=10, batch_size=100, optimizer='adam',
-                        n_hidden=100, lr=0.001, verbose=True),
+                        n_epochs=ARGS.epochs, batch_size=100, optimizer='adam',
+                        n_hidden=100, lr=ARGS.lr, verbose=True),
 ]
 
 
@@ -81,7 +89,7 @@ TITLE_ENHANCED = [
 ]
 
 with open(ARGS.outfile, 'a') as fh:
-    print("~ Partial List", "~" * 42, file=fh)
+    print("~ Conditioned Models", "~" * 42, file=fh)
 EVAL(CONDITIONED_MODELS)
 with open(ARGS.outfile, 'a') as fh:
     print("~ Partial List + Titles", "~" * 42, file=fh)
