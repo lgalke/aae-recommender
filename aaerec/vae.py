@@ -282,6 +282,7 @@ class VAERecommender(Recommender):
             if sp.issparse(X):
                 X = X.toarray()
             X = Variable(torch.FloatTensor(X))
+            titles = titles.astype('float32')
             if sp.issparse(titles):
                 titles = titles.toarray()
             titles = Variable(torch.from_numpy(titles))
@@ -302,6 +303,7 @@ class VAERecommender(Recommender):
             if sp.issparse(X):
                 X = X.toarray()
             X = Variable(torch.FloatTensor(X))
+            titles = titles.astype('float32')
             if sp.issparse(titles):
                 titles = titles.toarray()
             titles = Variable(torch.from_numpy(titles))
