@@ -277,7 +277,11 @@ class VAERecommender(Recommender):
         else:
             titles = None
 
-        self.vae = VAE(X.shape[1], **self.vae_params)
+        if self.use_title:
+            self.vae = VAE(X.shape[1] + titles.shape[1], **self.vae_params)
+            X = torch.cat((X, titles), 1)
+        else:
+            self.vae = VAE(X.shape[1], **self.vae_params)
         if torch.cuda.is_available():
             self.vae.cuda()
         self.vae.fit(X, condition=titles)
@@ -289,6 +293,7 @@ class VAERecommender(Recommender):
             # Use titles as condition
             titles = test_set.get_attribute("title")
             titles = self.vect.transform(titles)
+            X = torch.cat((X, titles), 1)
             pred = self.vae.predict(X, condition=titles)
         else:
             pred = self.vae.predict(X)
