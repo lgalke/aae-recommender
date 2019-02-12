@@ -132,6 +132,7 @@ class VAE(nn.Module):
             condition = Variable(torch.from_numpy(condition))
             if torch.cuda.is_available():
                 condition = condition.cuda()
+            X = torch.cat((X, condition), 1)
 
         # Make sure we are in training mode and zero leftover gradients
         self.train()
@@ -207,6 +208,7 @@ class VAE(nn.Module):
                 c_batch = Variable(torch.from_numpy(c_batch))
                 if torch.cuda.is_available():
                     c_batch = c_batch.cuda()
+                X = torch.cat((X_batch, c_batch), 1)
 
             test_loss = 0
             # test_loader = torch.utils.data.DataLoader(X.toarray(), batch_size=self.batch_size, shuffle=True)
@@ -279,14 +281,14 @@ class VAERecommender(Recommender):
 
         if self.use_title:
             self.vae = VAE(X.shape[1] + titles.shape[1], **self.vae_params)
-            if sp.issparse(X):
-                X = X.toarray()
-            X = Variable(torch.FloatTensor(X))
-            titles = titles.astype('float32')
-            if sp.issparse(titles):
-                titles = titles.toarray()
-            titles = Variable(torch.from_numpy(titles))
-            X = torch.cat((X, titles), 1)
+            # if sp.issparse(X):
+            #     X = X.toarray()
+            # X = Variable(torch.FloatTensor(X))
+            # titles = titles.astype('float32')
+            # if sp.issparse(titles):
+            #     titles = titles.toarray()
+            # titles = Variable(torch.from_numpy(titles))
+            # X = torch.cat((X, titles), 1)
         else:
             self.vae = VAE(X.shape[1], **self.vae_params)
         if torch.cuda.is_available():
@@ -300,14 +302,14 @@ class VAERecommender(Recommender):
             # Use titles as condition
             titles = test_set.get_attribute("title")
             titles = self.vect.transform(titles)
-            if sp.issparse(X):
-                X = X.toarray()
-            X = Variable(torch.FloatTensor(X))
-            titles = titles.astype('float32')
-            if sp.issparse(titles):
-                titles = titles.toarray()
-            titles = Variable(torch.from_numpy(titles))
-            X = torch.cat((X, titles), 1)
+            # if sp.issparse(X):
+            #     X = X.toarray()
+            # X = Variable(torch.FloatTensor(X))
+            # titles = titles.astype('float32')
+            # if sp.issparse(titles):
+            #     titles = titles.toarray()
+            # titles = Variable(torch.from_numpy(titles))
+            # X = torch.cat((X, titles), 1)
             pred = self.vae.predict(X, condition=titles)
         else:
             pred = self.vae.predict(X)
