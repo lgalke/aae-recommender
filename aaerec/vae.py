@@ -133,7 +133,7 @@ class VAE(nn.Module):
             condition = Variable(torch.from_numpy(condition))
             if torch.cuda.is_available():
                 condition = condition.cuda()
-            X = torch.cat((X, condition), 1)
+            #X = torch.cat((X, condition), 1)
 
         # Make sure we are in training mode and zero leftover gradients
         self.train()
@@ -142,7 +142,8 @@ class VAE(nn.Module):
         for batch_idx, (data) in enumerate(train_loader):
             self.optimizer.zero_grad()
             # TODO originally recon_batch, mu, logvar = model(data), with model = VAE(bags.size(1)). OK?
-            recon_batch, mu, logvar = self(data)
+            #recon_batch, mu, logvar = self(data)
+            recon_batch, mu, logvar = self(torch.cat((data, condition), 1))
             loss = self.loss_function(recon_batch, data, mu, logvar)
             loss.backward()
             train_loss += loss.data[0]
