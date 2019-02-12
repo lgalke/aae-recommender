@@ -208,7 +208,7 @@ class VAE(nn.Module):
                 c_batch = Variable(torch.from_numpy(c_batch))
                 if torch.cuda.is_available():
                     c_batch = c_batch.cuda()
-                X = torch.cat((X_batch, c_batch), 1)
+                X_batch = torch.cat((X_batch, c_batch), 1)
 
             test_loss = 0
             # test_loader = torch.utils.data.DataLoader(X.toarray(), batch_size=self.batch_size, shuffle=True)
