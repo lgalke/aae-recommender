@@ -34,6 +34,7 @@ class VAE(nn.Module):
 
     def __init__(self,
                  inp,
+                 out,
                  n_hidden=100,
                  n_code=50,
                  lr=0.001,
@@ -66,7 +67,7 @@ class VAE(nn.Module):
         self.fc21 = nn.Linear(n_hidden, n_code)
         self.fc22 = nn.Linear(n_hidden, n_code)
         self.fc3 = nn.Linear(n_code, n_hidden)
-        self.fc4 = nn.Linear(n_hidden, inp)
+        self.fc4 = nn.Linear(n_hidden, out)
         optimizer_gen = TORCH_OPTIMIZERS[optimizer.lower()]
         self.optimizer = optimizer_gen(self.parameters(), lr=lr)
 
@@ -280,7 +281,7 @@ class VAERecommender(Recommender):
             titles = None
 
         if self.use_title:
-            self.vae = VAE(X.shape[1] + titles.shape[1], **self.vae_params)
+            self.vae = VAE(X.shape[1] + titles.shape[1], X.shape[1], **self.vae_params)
             # if sp.issparse(X):
             #     X = X.toarray()
             # X = Variable(torch.FloatTensor(X))
@@ -290,7 +291,7 @@ class VAERecommender(Recommender):
             # titles = Variable(torch.from_numpy(titles))
             # X = torch.cat((X, titles), 1)
         else:
-            self.vae = VAE(X.shape[1], **self.vae_params)
+            self.vae = VAE(X.shape[1], X.shape[1], **self.vae_params)
         if torch.cuda.is_available():
             self.vae.cuda()
         self.vae.fit(X, condition=titles)
