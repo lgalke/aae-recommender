@@ -133,7 +133,9 @@ class VAE(nn.Module):
             condition = Variable(torch.from_numpy(condition))
             if torch.cuda.is_available():
                 condition = condition.cuda()
-            #X = torch.cat((X, condition), 1)
+            # X = torch.cat((X, condition), 1)
+            condition_it = iter(torch.utils.data.DataLoader(condition))
+
 
         # Make sure we are in training mode and zero leftover gradients
         self.train()
@@ -141,9 +143,11 @@ class VAE(nn.Module):
         train_loader = torch.utils.data.DataLoader(X)
         for batch_idx, (data) in enumerate(train_loader):
             self.optimizer.zero_grad()
-            # TODO originally recon_batch, mu, logvar = model(data), with model = VAE(bags.size(1)). OK?
-            #recon_batch, mu, logvar = self(data)
-            recon_batch, mu, logvar = self(torch.cat((data, condition), 1))
+            # Build the model on the concatenated data, compute BCE without concatenation
+            if condition is not None:
+                recon_batch, mu, logvar = self(torch.cat((data, next(condition_it)), 1))
+            else:
+                recon_batch, mu, logvar = self(data)
             loss = self.loss_function(recon_batch, data, mu, logvar)
             loss.backward()
             train_loss += loss.data[0]
@@ -210,13 +214,18 @@ class VAE(nn.Module):
                 c_batch = Variable(torch.from_numpy(c_batch))
                 if torch.cuda.is_available():
                     c_batch = c_batch.cuda()
-                X_batch = torch.cat((X_batch, c_batch), 1)
+                # X_batch = torch.cat((X_batch, c_batch), 1)
+                condition_it = iter(torch.utils.data.DataLoader(c_batch))
+
 
             test_loss = 0
             # test_loader = torch.utils.data.DataLoader(X.toarray(), batch_size=self.batch_size, shuffle=True)
             test_loader = torch.utils.data.DataLoader(X_batch)
             for i, (data) in enumerate(test_loader):
-                recon_batch, mu, logvar = self(data)
+                if condition is not None:
+                    recon_batch, mu, logvar = self(torch.cat((data, next(condition_it)), 1))
+                else:
+                    recon_batch, mu, logvar = self(data)
                 test_loss += self.loss_function(recon_batch, data, mu, logvar).data[0]
                 pred.append(recon_batch.data.cpu().numpy())
 
