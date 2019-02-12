@@ -279,7 +279,11 @@ class VAERecommender(Recommender):
 
         if self.use_title:
             self.vae = VAE(X.shape[1] + titles.shape[1], **self.vae_params)
+            if sp.issparse(X):
+                X = X.toarray()
             X = Variable(torch.FloatTensor(X))
+            if sp.issparse(titles):
+                titles = titles.toarray()
             titles = Variable(torch.from_numpy(titles))
             X = torch.cat((X, titles), 1)
         else:
@@ -295,8 +299,12 @@ class VAERecommender(Recommender):
             # Use titles as condition
             titles = test_set.get_attribute("title")
             titles = self.vect.transform(titles)
+            if sp.issparse(X):
+                X = X.toarray()
             X = Variable(torch.FloatTensor(X))
-            titles = Variable(torch.FloatTensor(titles))
+            if sp.issparse(titles):
+                titles = titles.toarray()
+            titles = Variable(torch.from_numpy(titles))
             X = torch.cat((X, titles), 1)
             pred = self.vae.predict(X, condition=titles)
         else:
