@@ -87,7 +87,9 @@ TITLE_ENHANCED = [
     #                prior='gauss', gen_lr=0.001, reg_lr=0.001,
     #                **ae_params),
 ]
-
+with open(ARGS.outfile, 'a') as fh:
+    print("~ Conditioned Models", "~" * 42, file=fh)
+EVAL(RECOMMENDERS)
 with open(ARGS.outfile, 'a') as fh:
     print("~ Conditioned Models", "~" * 42, file=fh)
 EVAL(CONDITIONED_MODELS)

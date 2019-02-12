@@ -631,7 +631,8 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         desc += ", using a batch size of {}".format(self.batch_size)
         desc += "\nMatching the {} distribution".format(self.prior)
         desc += " by {} activation.".format(self.encoder_activation)
-        desc += "\nConditioned on " + ', '.join(self.conditions.keys())
+        if self.conditions:
+            desc += "\nConditioned on " + ', '.join(self.conditions.keys())
         return desc
 
     def eval(self):
