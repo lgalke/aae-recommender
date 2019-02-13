@@ -33,7 +33,7 @@ class SVDRecommender(Recommender, AutoEncoderMixin):
         x_train = training_set.tocsr()
         self.n_classes = x_train.shape[1]
         if self.use_title:
-            titles = training_set.get_attribute("title")
+            titles = training_set.get_single_attribute("title")
             titles = self.tfidf.fit_transform(titles)
             x_train = sp.hstack([x_train, titles])
         self.fit(x_train)
@@ -41,7 +41,7 @@ class SVDRecommender(Recommender, AutoEncoderMixin):
     def predict(self, test_set):
         x_test = test_set.tocsr()
         if self.use_title:
-            titles = test_set.get_attribute("title")
+            titles = test_set.get_single_attribute("title")
             titles = self.tfidf.transform(titles)
             x_test = sp.hstack([x_test, titles])
         # hidden = self.svd.transform(x_test)

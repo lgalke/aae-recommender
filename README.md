@@ -1,6 +1,8 @@
 # aae-recommender
 
 [![Build Status](https://travis-ci.org/lgalke/aae-recommender.svg?branch=master)](https://travis-ci.org/lgalke/aae-recommender)
+[![DOI](https://zenodo.org/badge/DOI/10.1145/3267471.3267476.svg)](https://doi.org/10.1145/3267471.3267476)
+[![DOI](https://zenodo.org/badge/DOI/10.1145/3209219.3209236.svg)](https://doi.org/10.1145/3209219.3209236)
 
 Adversarial Autoencoders for Recommendation Tasks
 
@@ -66,8 +68,10 @@ metadata of the documents in the aforementioned format.
 
 Please see our papers for additional information on the models implemented and the experiments conducted:
 
-[Multi-Modal Adversarial Autoencoders for Recommendations of Citations and Subject Labels](https://zenodo.org/record/1313577)  
-[Using Adversarial Autoencoders for Multi-Modal Automatic Playlist Continuation](https://zenodo.org/record/1455214)
+- [Multi-Modal Adversarial Autoencoders for Recommendations of Citations and Subject Labels](https://zenodo.org/record/1313577)
+
+- [Using Adversarial Autoencoders for Multi-Modal Automatic Playlist Continuation](https://zenodo.org/record/1455214) 
+
 
 If you use our code in your own work please cite one of these papers:
 

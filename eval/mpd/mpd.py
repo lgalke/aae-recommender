@@ -28,38 +28,52 @@ from aaerec.baselines import Countbased
 from aaerec.svd import SVDRecommender
 from aaerec.aae import AAERecommender, DecodingRecommender
 
-# Should work on kdsrv03
-DATA_PATH = "/data21/lgalke/datasets/MPD/data/"
+
 DEBUG_LIMIT = None
 # Use only this many most frequent items
 N_ITEMS = None
 # Use only items that appear this many times
-# MIN_COUNT = 50
+MIN_COUNT = 50
 # Use command line arg '-m' instead
 
-
-#N_WORDS = 50000
+TRACK_INFO = ['artist_name', 'track_name', 'album_name']
+# TODO: find the side info fields
+PLAYLIST_INFO = ['name']
+N_WORDS = 50000
 #TFIDF_PARAMS = { 'max_features': N_WORDS }
 
-W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
-W2V_IS_BINARY = True
-VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
+SERVER = False
+
+if SERVER:
+    W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
+    W2V_IS_BINARY = True
+    VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
+    DATA_PATH = "/data21/lgalke/datasets/MPD/data/"
+    # DATA_PATH = "/data22/ggerstenkorn/citation_test_data/"
+else:
+    VECTORS = None
+    DATA_PATH = "/workData/zbw/citation/local_data"
+
+
+
+
+
 
 # These need to be implemented in evaluation.py
-METRICS = ['mrr', 'map']
+METRICS = ['mrr']
 
 
 MODELS = [
     # Only item sets
-    Countbased(),
-    SVDRecommender(1000, use_title=False),
-    AAERecommender(adversarial=True, use_title=False, n_epochs=55, embedding=VECTORS),
-    AAERecommender(adversarial=False, use_title=False, n_epochs=55, embedding=VECTORS),
+    #Countbased(),
+    #SVDRecommender(1000, use_title=False),
+    #AAERecommender(adversarial=True, use_title=False, n_epochs=55, embedding=VECTORS),
+    AAERecommender(adversarial=False, use_side_info=["name"], n_epochs=1, embedding=VECTORS),
     # Title-enhanced
-    SVDRecommender(1000, use_title=True),
-    AAERecommender(adversarial=True, use_title=True, n_epochs=55, embedding=VECTORS),
-    AAERecommender(adversarial=False, use_title=True, n_epochs=55, embedding=VECTORS),
-    DecodingRecommender(n_epochs=55, embedding=VECTORS)
+    #SVDRecommender(1000, use_title=True),
+    #AAERecommender(adversarial=True, use_side_info=True, n_epochs=55, embedding=VECTORS),
+    #AAERecommender(adversarial=False, use_side_info=["name"], n_epochs=5, embedding=VECTORS),
+    #DecodingRecommender(n_epochs=55, embedding=VECTORS)
     # Put more here...
 ]
 
@@ -75,7 +89,16 @@ def playlists_from_slices(slices_dir, n_jobs=1, debug=False, only=None, without=
     """
     Loads a bunch of slices into a list of playlists,
     optionally sorted by id
+
+    :param slices_dir:
+    :param n_jobs:
+    :param debug:
+    :param only:
+    :param without:
+    :param verbose:
+    :return:
     """
+
     it = glob.glob(os.path.join(slices_dir, '*.json'))
 
     # Stuff to deal with dev set penc
@@ -111,6 +134,12 @@ def playlists_from_slices(slices_dir, n_jobs=1, debug=False, only=None, without=
 
 
 def aggregate_track_info(playlist, attributes):
+    """
+
+    :param playlist: dict, one playlist instance with it's information
+    :param attributes: iterable, keys of 'tracks' in playlist
+    :return: str, bag of words all side info combined
+    """
     if 'tracks' not in playlist:
         return ''
     acc = []
@@ -119,9 +148,6 @@ def aggregate_track_info(playlist, attributes):
             if attribute in track:
                 acc.append(track[attribute])
     return ' '.join(acc)
-
-
-TRACK_INFO = ['artist_name', 'track_name', 'album_name']
 
 
 def unpack_playlists(playlists, aggregate=None):
@@ -155,6 +181,79 @@ def unpack_playlists(playlists, aggregate=None):
     # In side info the pid is the key
     # Re-use 'title' property here because methods rely on it
     return bags_of_tracks, pids, {"title": side_info}
+
+
+
+def unpack_playlists_for_models_concatenated(playlists,condition_names = ["name"], aggregate=None):
+    """
+    Unpacks list of playlists in a way that makes them ready for the models .train step.
+    It is not mandatory that playlists are sorted.
+    :param playlists: a dictionary, of playlists
+    :param aggregate: an iterable, of potential names in the track model name space
+    :param condition_name: a string, side info name, which to retrieve
+    :return:
+    """
+    # Assume track_uri is primary key for track
+    if aggregate is not None:
+        for attr in aggregate:
+            assert attr in TRACK_INFO
+    for condition in condition_names:
+        print(condition)
+        assert condition in PLAYLIST_INFO
+
+
+    bags_of_tracks, pids = [], []
+    side_infos = {condition:{} for condition in condition_names}
+    for playlist in playlists:
+        # Extract pids
+        pids.append(playlist["pid"])
+        # Put all tracks of the playlists in here
+        bags_of_tracks.append([t["track_uri"] for t in playlist["tracks"]])
+        # Use dict here such that we can also deal with unsorted pids
+
+
+        try:
+            # TODO: find how it is used (in Bags class) to fit interface
+
+            # self.owner_attributes = side_info
+            # self.owner_attributes[attribute][owner]
+            # before: side_info[playlist["pid"]] = playlist["name"]
+            # ordering doesn't matter as it's always called with pid together
+            # TODO: think about more efficient handling via numpy/pandas in Bag class through slicing availability
+
+
+            for condition in condition_names:
+                side_infos[condition][playlist["pid"]] = playlist[condition] # whats coming out of playlist here? a string
+
+        except KeyError:
+            pass
+
+        try:
+
+            # TODO: check intuitiveness: different attribute names are added to side_info, but returned as "titles"
+            # TODO: check if just title is used, or information can be called seperately
+            # at the moment: just title used
+            if aggregate is not None:
+                # TODO: use the the track info separately as side info
+                # TODO: add it in doctex
+                # TODO: probably implement new aggregation method | is it necessary ?
+                # TODO: check if it complies upstream (calling "aggregate"/ what it's going to be)
+                # TODO: rename aggregate
+                for info in aggregate:
+                    aggregated = []
+                    for track in side_infos["tracks"]:
+                        if info in track:
+                            aggregated.append(track[info])
+                    side_infos[info][playlist["pid"]] = " ".join(aggregated)
+
+        except KeyError:
+            side_infos["no_side_info"] = {playlist["pid"]: ""}
+
+    # bag_of_tracks and pids should have corresponding indices
+    # In side info the pid is the key
+    # Re-use 'title' property here because methods rely on it
+    return bags_of_tracks, pids, side_infos
+
 
 
 def prepare_evaluation(bags, test_size=0.1, n_items=None, min_count=None):
@@ -192,14 +291,17 @@ def log(*print_args, logfile=None):
     print(*print_args)
 
 
-def main(outfile=None, min_count=None):
+def main(outfile=None, min_count=None, condition= None):
     """ Main function for training and evaluating AAE methods on MDP data """
     print("Loading data from", DATA_PATH)
     playlists = playlists_from_slices(DATA_PATH, n_jobs=4)
     print("Unpacking json data...")
-    bags_of_tracks, pids, side_info = unpack_playlists(playlists)
+    if condition is not None:
+        bags_of_tracks, pids, side_info = unpack_playlists_for_models_concatenated(playlists,condition_names=condition)
+    else:
+        bags_of_tracks, pids, side_info = unpack_playlists(playlists)
     del playlists
-    bags = Bags(bags_of_tracks, pids, side_info)
+    bags = Bags(data=bags_of_tracks, owners=pids, owner_attributes=side_info)
     log("Whole dataset:", logfile=outfile)
     log(bags, logfile=outfile)
     train_set, dev_set, y_test = prepare_evaluation(bags,
@@ -238,7 +340,7 @@ def main(outfile=None, min_count=None):
         y_pred = remove_non_missing(y_pred, x_test, copy=False)
 
         # Evaluate metrics
-        results = evaluate(y_test, y_pred, METRICS)
+        results = evaluate(y_test, y_pred, METRICS, batch_size=1000)
 
         log("-" * 78, logfile=outfile)
         for metric, stats in zip(METRICS, results):
@@ -254,6 +356,9 @@ if __name__ == '__main__':
     parser.add_argument('-m', '--min-count', type=int,
                         default=None,
                         help="Minimum count of items")
+    parser.add_argument('-s', '--side_information', type=str,
+                        default="name",
+                        help="list of incorporated additional attributes")
     args = parser.parse_args()
     print(args)
-    main(outfile=args.outfile, min_count=args.min_count)
+    main(outfile=args.outfile, min_count=args.min_count, condition= PLAYLIST_INFO)

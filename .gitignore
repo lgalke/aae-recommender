@@ -107,3 +107,7 @@ submissions/*
 # Results
 results/*
 !results/.gitkeep
+
+# vim swp files
+*.swp
+
