@@ -40,25 +40,28 @@ def assert_condition_callabilities(conditions):
         assert type(conditions) != type("") and hasattr(conditions,'__iter__'), "Conditions needs to be a list of different conditions. It is a {} now.".format(type(conditions))
 
 # TODO: pull this out, so its generally available
-# TODO: put it into use at other points in class
 # TODO: ensure features are appended correctly
-def concat_side_info(vectorizer,training_set,side_info_subset):
+def concat_side_info(vectorizer,training_set,side_info_subset, in_training = True):
     """
     Constructing an np.array with having the concatenated features in shape[1]
     :param training_set: Bag class dataset,
     :side_info_subset: list of str, the attribute keys in Bag class
     :return:
     """
+
+    if in_training:
+        vectorizing = lambda x: vectorizer.fit_transform(x)
+    else:
+        vectorizing = lambda x: vectorizer.transform(x)
     attr_vect = []
     # ugly substitute for do_until pattern
     for i, attribute in enumerate(side_info_subset):
         attr_data = training_set.get_single_attribute(attribute)
         if i < 1:
-            # TODO: fit vs. transform depending on train vs. predict
-            attr_vect = vectorizer.fit_transform(attr_data)
+            attr_vect = vectorizing(attr_data)
         else:
             # rows are instances, cols are features --> adding cols makes up new features
-            attr_vect = np.concatenate((attr_vect, vectorizer.fit_transform(attr_data)), axis=1)
+            attr_vect = np.concatenate((attr_vect, vectorizing(attr_data)), axis=1)
     return attr_vect
 
 def log_losses(*losses):
