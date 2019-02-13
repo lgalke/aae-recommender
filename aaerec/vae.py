@@ -12,12 +12,12 @@ from aaerec.evaluation import Evaluation
 from torch.autograd import Variable
 
 import sklearn
-from sklearn.feature_extraction.text import TfidfVectorizer
-from aaerec.ub import GensimEmbeddedVectorizer
 from gensim.models.keyedvectors import KeyedVectors
 
 import numpy as np
 import scipy.sparse as sp
+
+from aaerec.condition import _check_conditions
 
 torch.manual_seed(42)
 
@@ -116,9 +116,17 @@ class VAE(nn.Module):
 
         return BCE + KLD
 
-    # TODO may still need some adaptation. E.g. how to use condition?
-    def partial_fit(self, X, y=None, condition=None):
-        """ Performs reconstruction, discrimination, generator training steps """
+    def partial_fit(self, X, y=None, condition_data=None):
+        """
+            Performs reconstrction, discimination, generator training steps
+        :param X: np.array, the base data from Bag class
+        :param y: dummy variable, throws Error if used
+        :param condition_data: generic list of conditions
+        :return:
+        """
+        ### DONE Adapt to generic condition ###
+        use_condition = _check_conditions(self.conditions, condition_data)
+
         if y is not None:
             raise ValueError("(Semi-)supervised usage not supported")
         # Transform to Torch (Cuda) Variable, shift batch to GPU
@@ -126,15 +134,15 @@ class VAE(nn.Module):
         if torch.cuda.is_available():
             X = X.cuda()
 
-        if condition is not None:
-            condition = condition.astype('float32')
-            if sp.issparse(condition):
-                condition = condition.toarray()
-            condition = Variable(torch.from_numpy(condition))
-            if torch.cuda.is_available():
-                condition = condition.cuda()
+        if use_condition:
+            # condition = condition.astype('float32')
+            # if sp.issparse(condition):
+            #     condition = condition.toarray()
+            # condition = Variable(torch.from_numpy(condition))
+            # if torch.cuda.is_available():
+            #     condition = condition.cuda()
             # X = torch.cat((X, condition), 1)
-            condition_it = iter(torch.utils.data.DataLoader(condition))
+            condition_it = iter(torch.utils.data.DataLoader(condition_data))
 
 
         # Make sure we are in training mode and zero leftover gradients
@@ -144,8 +152,8 @@ class VAE(nn.Module):
         for batch_idx, (data) in enumerate(train_loader):
             self.optimizer.zero_grad()
             # Build the model on the concatenated data, compute BCE without concatenation
-            if condition is not None:
-                recon_batch, mu, logvar = self(torch.cat((data, next(condition_it)), 1))
+            if use_condition:
+                recon_batch, mu, logvar = self(self.conditions.encode_impose(data, next(condition_it)))
             else:
                 recon_batch, mu, logvar = self(data)
             loss = self.loss_function(recon_batch, data, mu, logvar)
@@ -162,29 +170,40 @@ class VAE(nn.Module):
                 train_loss / len(train_loader.dataset)))
         return self
 
-    # TODO may still need some adaptation. E.g. how to use condition?
-    def fit(self, X, y=None, condition=None):
+    def fit(self, X, y=None, condition_data=None):
+        """
+        :param X: np.array, the base data from Bag class
+        :param y: dummy variable, throws Error if used
+        :param condition_data: generic list of conditions
+        :return:
+        """
+        ### DONE Adapt to generic condition ###
+        # TODO: check how X representation and numpy.array work together
+        # TODO: adapt combining X and new_conditions_name
         if y is not None:
             raise NotImplementedError("(Semi-)supervised usage not supported")
+
+        use_condition = _check_conditions(self.conditions, condition_data)
 
         # do the actual training
         for epoch in range(self.n_epochs):
             if self.verbose:
                 print("Epoch", epoch + 1)
 
-            # TODO shuffle needed?
-            # Shuffle on each new epoch
-            if condition is not None:
-                X_shuf, condition_shuf = sklearn.utils.shuffle(X, condition)
+            if use_condition:
+                # shuffle(*arrays) takes several arrays and shuffles them so indices are still matching
+                X_shuf, *condition_data_shuf = sklearn.utils.shuffle(X, *condition_data)
             else:
                 X_shuf = sklearn.utils.shuffle(X)
 
             for start in range(0, X.shape[0], self.batch_size):
-                X_batch = X_shuf[start:(start + self.batch_size)].toarray()
+                end = start + self.batch_size
+                X_batch = X_shuf[start:end].toarray()
                 # condition may be None
-                if condition is not None:
-                    c_batch = condition_shuf[start:(start + self.batch_size)]
-                    self.partial_fit(X_batch, condition=c_batch)
+                if use_condition:
+                    # c_batch = condition_shuf[start:(start+self.batch_size)]
+                    c_batch = [c[start:end] for c in condition_data_shuf]
+                    self.partial_fit(X_batch, condition_data=c_batch)
                 else:
                     self.partial_fit(X_batch)
 
@@ -193,37 +212,39 @@ class VAE(nn.Module):
                 print()
         return self
 
-    # TODO handle condition (if it makes sense for VAE)
-    def predict(self, X, condition=None):
-        self.eval()
+    def predict(self, X, condition_data=None):
+        """
+        :param X: np.array, the base data from Bag class
+        :param condition_data: generic list of conditions
+        :return:
+        """
+        ### DONE Adapt to generic condition ###
+        use_condition = _check_conditions(self.conditions, condition_data)
+
+        self.eval()  # Deactivate dropout
+        if self.conditions:
+            self.conditions.eval()
         pred = []
         for start in range(0, X.shape[0], self.batch_size):
             # batched predictions, yet inclusive
-            X_batch = X[start:(start+self.batch_size)]
+            end = start + self.batch_size
+            X_batch = X[start:end].toarray()
             if sp.issparse(X_batch):
                 X_batch = X_batch.toarray()
             X_batch = Variable(torch.FloatTensor(X_batch), volatile=True)
             if torch.cuda.is_available():
                 X_batch = X_batch.cuda()
 
-            if condition is not None:
-                c_batch = condition[start:(start+self.batch_size)]
-                c_batch = c_batch.astype('float32')
-                if sp.issparse(c_batch):
-                    c_batch = c_batch.toarray()
-                c_batch = Variable(torch.from_numpy(c_batch))
-                if torch.cuda.is_available():
-                    c_batch = c_batch.cuda()
-                # X_batch = torch.cat((X_batch, c_batch), 1)
+            if use_condition:
+                c_batch = [c[start:end] for c in condition_data]
                 condition_it = iter(torch.utils.data.DataLoader(c_batch))
-
 
             test_loss = 0
             # test_loader = torch.utils.data.DataLoader(X.toarray(), batch_size=self.batch_size, shuffle=True)
             test_loader = torch.utils.data.DataLoader(X_batch)
             for i, (data) in enumerate(test_loader):
-                if condition is not None:
-                    recon_batch, mu, logvar = self(torch.cat((data, next(condition_it)), 1))
+                if use_condition:
+                    recon_batch, mu, logvar = self(self.conditions.encode_impose(data, next(condition_it)))
                 else:
                     recon_batch, mu, logvar = self(data)
                 test_loss += self.loss_function(recon_batch, data, mu, logvar).data[0]
@@ -253,77 +274,57 @@ class VAERecommender(Recommender):
     verbose: Print losses during training
     normalize_inputs: Whether l1-normalization is performed on the input
     """
-    def __init__(self, tfidf_params=dict(),
+    def __init__(self, conditions=None,
                  **kwargs):
-        """ tfidf_params get piped to either TfidfVectorizer or
-        EmbeddedVectorizer.  Remaining kwargs get passed to
-        AdversarialAutoencoder """
+
         super().__init__()
         self.verbose = kwargs.get('verbose', True)
-        self.use_title = kwargs.pop('use_title', False)
-        self.embedding = kwargs.pop('embedding', None)
-        self.vect = None
-        self.vae_params = kwargs
-        self.tfidf_params = tfidf_params
-        self.vae = None
+        self.conditions = conditions
+        self.model_params = kwargs
+        self.model = None
 
     def __str__(self):
         desc = "Variational Autoencoder"
-        desc += " using titles: " + ("Yes!" if self.use_title else "No.")
-        desc += '\nVAE Params: ' + str(self.vae_params)
-        desc += '\nTfidf Params: ' + str(self.tfidf_params)
+        if self.conditions:
+            desc += " conditioned on: " + ', '.join(self.conditions.keys())
+        desc += '\nModel Params: ' + str(self.model_params)
         return desc
 
     def train(self, training_set):
+        ### DONE Adapt to generic condition ###
+        """
+        1. get basic representation
+        2. ? add potential side_info in ??? representation
+        3. initialize a (Adversarial) Autoencoder variant
+        4. fit based on Autoencoder
+        :param training_set: ???, Bag Class training set
+        :return: trained self
+        """
         X = training_set.tocsr()
-        if self.use_title:
-            if self.embedding:
-                self.vect = GensimEmbeddedVectorizer(self.embedding,
-                                                     **self.tfidf_params)
-            else:
-                self.vect = TfidfVectorizer(**self.tfidf_params)
-
-            titles = training_set.get_attribute("title")
-            titles = self.vect.fit_transform(titles)
-            assert titles.shape[0] == X.shape[0], "Dims dont match"
-            # X = sp.hstack([X, titles])
+        if self.conditions:
+            condition_data_raw = training_set.get_attributes(self.conditions.keys())
+            condition_data = self.conditions.fit_transform(condition_data_raw)
         else:
-            titles = None
+            condition_data = None
 
         if self.use_title:
-            self.vae = VAE(X.shape[1] + titles.shape[1], X.shape[1], **self.vae_params)
-            # if sp.issparse(X):
-            #     X = X.toarray()
-            # X = Variable(torch.FloatTensor(X))
-            # titles = titles.astype('float32')
-            # if sp.issparse(titles):
-            #     titles = titles.toarray()
-            # titles = Variable(torch.from_numpy(titles))
-            # X = torch.cat((X, titles), 1)
+            self.model = VAE(X.shape[1] + self.conditions.size_increment(), X.shape[1], **self.model_params)
         else:
-            self.vae = VAE(X.shape[1], X.shape[1], **self.vae_params)
+            self.model = VAE(X.shape[1], X.shape[1], **self.model_params)
         if torch.cuda.is_available():
-            self.vae.cuda()
-        self.vae.fit(X, condition=titles)
+            self.model.cuda()
+        self.model.fit(X, condition_data=condition_data)
 
-    # TODO reimplement if needed. E.g. How to use condition?
     def predict(self, test_set):
         X = test_set.tocsr()
-        if self.use_title:
-            # Use titles as condition
-            titles = test_set.get_attribute("title")
-            titles = self.vect.transform(titles)
-            # if sp.issparse(X):
-            #     X = X.toarray()
-            # X = Variable(torch.FloatTensor(X))
-            # titles = titles.astype('float32')
-            # if sp.issparse(titles):
-            #     titles = titles.toarray()
-            # titles = Variable(torch.from_numpy(titles))
-            # X = torch.cat((X, titles), 1)
-            pred = self.vae.predict(X, condition=titles)
+        if self.conditions:
+            condition_data_raw = test_set.get_attributes(self.conditions.keys())
+            # Important to not call fit here, but just transform
+            condition_data = self.conditions.transform(condition_data_raw)
         else:
-            pred = self.vae.predict(X)
+            condition_data = None
+
+        pred = self.model.predict(X, condition_data=condition_data)
 
         return pred
 
