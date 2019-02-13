@@ -6,9 +6,6 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
-from aaerec.base import Recommender
-from aaerec.datasets import Bags
-from aaerec.evaluation import Evaluation
 from torch.autograd import Variable
 
 import sklearn
@@ -17,7 +14,18 @@ from gensim.models.keyedvectors import KeyedVectors
 import numpy as np
 import scipy.sparse as sp
 
-from aaerec.condition import _check_conditions, ConditionList, PretrainedWordEmbeddingCondition
+try:
+# within module
+    from .condition import _check_conditions, ConditionList, PretrainedWordEmbeddingCondition
+    from .base import Recommender
+    from .datasets import Bags
+    from .evaluation import Evaluation
+except SystemError:
+# if executable
+    from aaerec.condition import _check_conditions, ConditionList, PretrainedWordEmbeddingCondition
+    from aaerec.base import Recommender
+    from aaerec.datasets import Bags
+    from aaerec.evaluation import Evaluation
 
 torch.manual_seed(42)
 
