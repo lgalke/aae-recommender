@@ -46,6 +46,7 @@ class VAE(nn.Module):
                  final_activation='Sigmoid',
                  # TODO try later
                  # dropout=(.2,.2),
+                 conditions=None,
                  verbose=True,
                  log_interval=1):
 
@@ -62,6 +63,7 @@ class VAE(nn.Module):
         self.batch_size = batch_size
         self.lr = lr
         self.activation = activation
+        self.conditions = conditions
 
         self.fc1 = nn.Linear(inp, n_hidden)
         self.fc21 = nn.Linear(n_hidden, n_code)
