@@ -17,7 +17,7 @@ from gensim.models.keyedvectors import KeyedVectors
 import numpy as np
 import scipy.sparse as sp
 
-from aaerec.condition import _check_conditions
+from aaerec.condition import _check_conditions, ConditionList, PretrainedWordEmbeddingCondition
 
 torch.manual_seed(42)
 
@@ -304,13 +304,11 @@ class VAERecommender(Recommender):
         if self.conditions:
             condition_data_raw = training_set.get_attributes(self.conditions.keys())
             condition_data = self.conditions.fit_transform(condition_data_raw)
-        else:
-            condition_data = None
-
-        if self.use_title:
             self.model = VAE(X.shape[1] + self.conditions.size_increment(), X.shape[1], **self.model_params)
         else:
+            condition_data = None
             self.model = VAE(X.shape[1], X.shape[1], **self.model_params)
+
         if torch.cuda.is_available():
             self.model.cuda()
         self.model.fit(X, condition_data=condition_data)
@@ -348,7 +346,7 @@ def main():
                           year=c_year,
                           logfile=logfile).setup(min_count=DATA[2],
                                                  min_elements=2)
-    # print("Loading pre-trained embedding", W2V_PATH)
+    print("Loading pre-trained embedding", W2V_PATH)
     vectors = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 
     params = {
@@ -357,6 +355,11 @@ def main():
         'optimizer': 'adam',
         # 'normalize_inputs': True,
     }
+
+    CONDITIONS = ConditionList([
+        ('title', PretrainedWordEmbeddingCondition(vectors))
+    ])
+
     # 100 hidden units, 200 epochs, bernoulli prior, normalized inputs -> 0.174
     # activations = ['ReLU','SELU']
     # lrs = [(0.001, 0.0005), (0.001, 0.001)]
@@ -371,7 +374,7 @@ def main():
     #                          use_title=ut, embedding=vectors,
     #                          gen_lr=lr[0], reg_lr=lr[1], activation=a)
     #           for ut, lr, hc, a in itertools.product((True, False), lrs, hcs, activations)]
-    models = [VAERecommender(**params, use_title=True, embedding=vectors)]
+    models = [VAERecommender(**params, conditions=CONDITIONS)]
     evaluate(models)
 
 
