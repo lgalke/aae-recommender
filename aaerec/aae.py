@@ -46,6 +46,7 @@ def concat_side_info(vectorizer,training_set,side_info_subset, in_training = Tru
     Constructing an np.array with having the concatenated features in shape[1]
     :param training_set: Bag class dataset,
     :side_info_subset: list of str, the attribute keys in Bag class
+    :in_training: differs between fit_transform vectorizing for training and transform vectorizing in prediction
     :return:
     """
 
@@ -324,8 +325,6 @@ class AutoEncoder():
         :param condition_matrix: np.array, feature space of side_info
         :return:
         """
-        # TODO: 07.02: learn new vectorizer for each side_info filed separately
-        # TODO: 07.02: store trained vatorizer for each side_info separately
 
 
         if y is not None:
@@ -399,7 +398,6 @@ class AutoEncoder():
         :return:
         """
         # TODO: 07.02 load (not train/fit!) trained vectorizer depending on which side info is used
-        # TODO: 07.02 use "pred/fit-state dependent concat_side_info
         self.eval()  # Deactivate dropout
         pred = []
         # X shape (400,87337)
@@ -888,7 +886,8 @@ class AAERecommender(Recommender):
         :return: trained self
         """
         X = training_set.tocsr()
-        # X seems to be a "special" case formatting for input. TODO: check representation in function call tocsr()
+        # X seems to be a "special" case formatting for input.
+        # TODO: check representation in function call tocsr()
         if self.use_side_info:
 
 
@@ -900,10 +899,10 @@ class AAERecommender(Recommender):
             else:
                 self.vect = TfidfVectorizer(**self.tfidf_params)
 
+            # TODO: 07.02: learn new vectorizer for each side_info filed separately
+            # TODO: 07.02: store trained vatorizer for each side_info separately
 
-
-
-            attr_vect = concat_side_info(self.vect,training_set,side_info_subset=self.use_side_info)
+            attr_vect = concat_side_info(self.vect,training_set,side_info_subset=self.use_side_info,in_training=True)
             assert attr_vect.shape[0] == X.shape[0], "Dims dont match"
 
 
@@ -936,7 +935,7 @@ class AAERecommender(Recommender):
         if self.use_side_info:
             # change the attributes/conditions/side_infos here
 
-            attr_vect = concat_side_info(self.vect, test_set,side_info_subset=self.use_side_info)
+            attr_vect = concat_side_info(self.vect, test_set,side_info_subset=self.use_side_info,in_training=False)
             assert attr_vect.shape[0] == X.shape[0], "Dims dont match"
 
             pred = self.aae.predict(X, condition_matrix=attr_vect)
