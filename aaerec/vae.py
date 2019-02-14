@@ -72,7 +72,6 @@ class VAE(nn.Module):
         self.lr = lr
         self.activation = activation
         self.conditions = conditions
-        # print(self.conditions)
 
         self.fc1 = nn.Linear(inp, n_hidden)
         self.fc21 = nn.Linear(n_hidden, n_code)
@@ -164,7 +163,9 @@ class VAE(nn.Module):
             self.optimizer.zero_grad()
             # Build the model on the concatenated data, compute BCE without concatenation
             if use_condition:
-                recon_batch, mu, logvar = self(self.conditions.encode_impose(data, next(condition_it)))
+                # TODO encode impose expects a numpy array as condition. Would not be better to manage both Tensor and
+                # numpy arrays as condition? At now double convertion (numpy -> tensor -> numpy)
+                recon_batch, mu, logvar = self(self.conditions.encode_impose(data, next(condition_it).numpy()))
             else:
                 recon_batch, mu, logvar = self(data)
             loss = self.loss_function(recon_batch, data, mu, logvar)
@@ -194,7 +195,6 @@ class VAE(nn.Module):
         if y is not None:
             raise NotImplementedError("(Semi-)supervised usage not supported")
 
-        # print(self.conditions)
         use_condition = _check_conditions(self.conditions, condition_data)
 
         # do the actual training
@@ -256,7 +256,7 @@ class VAE(nn.Module):
             test_loader = torch.utils.data.DataLoader(X_batch)
             for i, (data) in enumerate(test_loader):
                 if use_condition:
-                    recon_batch, mu, logvar = self(self.conditions.encode_impose(data, next(condition_it)))
+                    recon_batch, mu, logvar = self(self.conditions.encode_impose(data, next(condition_it).numpy()))
                 else:
                     recon_batch, mu, logvar = self(data)
                 test_loss += self.loss_function(recon_batch, data, mu, logvar).data[0]
