@@ -72,7 +72,7 @@ class VAE(nn.Module):
         self.lr = lr
         self.activation = activation
         self.conditions = conditions
-        print(self.conditions)
+        # print(self.conditions)
 
         self.fc1 = nn.Linear(inp, n_hidden)
         self.fc21 = nn.Linear(n_hidden, n_code)
@@ -194,7 +194,7 @@ class VAE(nn.Module):
         if y is not None:
             raise NotImplementedError("(Semi-)supervised usage not supported")
 
-        print(self.conditions)
+        # print(self.conditions)
         use_condition = _check_conditions(self.conditions, condition_data)
 
         # do the actual training
@@ -316,14 +316,14 @@ class VAERecommender(Recommender):
         if self.conditions:
             condition_data_raw = training_set.get_attributes(self.conditions.keys())
             condition_data = self.conditions.fit_transform(condition_data_raw)
-            self.model = VAE(X.shape[1] + self.conditions.size_increment(), X.shape[1], **self.model_params)
+            self.model = VAE(X.shape[1] + self.conditions.size_increment(), X.shape[1],
+                             conditions=self.conditions, **self.model_params)
         else:
             condition_data = None
             self.model = VAE(X.shape[1], X.shape[1], **self.model_params)
 
         print(self)
         print(self.model)
-        print(self.model_params)
         print(self.conditions)
 
         if torch.cuda.is_available():
