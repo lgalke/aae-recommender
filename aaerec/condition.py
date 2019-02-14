@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from docutils.nodes import inline
 
 from torch import optim
 
@@ -270,6 +271,7 @@ class ConcatenationBasedConditioning(ConditionBase):
 
     def impose(self, inputs, encoded_condition):
         """ Concat condition at specified dimension (default 1) """
+        print(inputs.size(), encoded_condition.size())
         return torch.cat([inputs, encoded_condition], dim=self.dim)
 
 

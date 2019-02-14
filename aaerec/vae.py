@@ -165,9 +165,13 @@ class VAE(nn.Module):
             if use_condition:
                 # TODO encode impose expects a numpy array as condition. Would not be better to manage both Tensor and
                 # numpy arrays as condition? At now double convertion (numpy -> tensor -> numpy)
-                recon_batch, mu, logvar = self(self.conditions.encode_impose(data, next(condition_it).numpy()))
+                # recon_batch, mu, logvar = self(self.conditions.encode_impose(data, next(condition_it).numpy()))
+                cond_np = next(condition_it).numpy()
+                print(data.size(), cond_np.size())
+                recon_batch, mu, logvar = self(self.conditions.encode_impose(data, cond_np))
             else:
                 recon_batch, mu, logvar = self(data)
+
             loss = self.loss_function(recon_batch, data, mu, logvar)
             loss.backward()
             train_loss += loss.data[0]
