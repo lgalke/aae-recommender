@@ -72,6 +72,7 @@ class VAE(nn.Module):
         self.lr = lr
         self.activation = activation
         self.conditions = conditions
+        print(self.conditions)
 
         self.fc1 = nn.Linear(inp, n_hidden)
         self.fc21 = nn.Linear(n_hidden, n_code)
@@ -318,6 +319,11 @@ class VAERecommender(Recommender):
         else:
             condition_data = None
             self.model = VAE(X.shape[1], X.shape[1], **self.model_params)
+
+        print(self)
+        print(self.model)
+        print(self.model_params)
+        print(self.conditions)
 
         if torch.cuda.is_available():
             self.model.cuda()
