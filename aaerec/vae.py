@@ -167,7 +167,7 @@ class VAE(nn.Module):
                 # numpy arrays as condition? At now double convertion (numpy -> tensor -> numpy)
                 # recon_batch, mu, logvar = self(self.conditions.encode_impose(data, next(condition_it).numpy()))
                 cond_np = next(condition_it).numpy()
-                print(data.size(), cond_np.size())
+                print(data.size(), cond_np.shape)
                 recon_batch, mu, logvar = self(self.conditions.encode_impose(data, cond_np))
             else:
                 recon_batch, mu, logvar = self(data)
