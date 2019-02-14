@@ -194,6 +194,7 @@ class VAE(nn.Module):
         if y is not None:
             raise NotImplementedError("(Semi-)supervised usage not supported")
 
+        print(self.conditions)
         use_condition = _check_conditions(self.conditions, condition_data)
 
         # do the actual training
