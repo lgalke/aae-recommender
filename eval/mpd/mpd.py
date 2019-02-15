@@ -68,7 +68,7 @@ MODELS = [
     #Countbased(),
     #SVDRecommender(1000, use_title=False),
     #AAERecommender(adversarial=True, use_title=False, n_epochs=55, embedding=VECTORS),
-    AAERecommender(adversarial=False, use_side_info=["name"], n_epochs=1, embedding=VECTORS),
+    AAERecommender(adversarial=False, use_side_info=["name","artist_name"], n_epochs=1, embedding=VECTORS),
     # Title-enhanced
     #SVDRecommender(1000, use_title=True),
     #AAERecommender(adversarial=True, use_side_info=True, n_epochs=55, embedding=VECTORS),
@@ -184,7 +184,8 @@ def unpack_playlists(playlists, aggregate=None):
 
 
 
-def unpack_playlists_for_models_concatenated(playlists,condition_names = ["name"], aggregate=None):
+def unpack_playlists_for_models_concatenated(playlists,condition_names = ["name"]):
+    #TODO: rename? into ~ unpack_playlist_ ~ singularly
     """
     Unpacks list of playlists in a way that makes them ready for the models .train step.
     It is not mandatory that playlists are sorted.
@@ -193,13 +194,10 @@ def unpack_playlists_for_models_concatenated(playlists,condition_names = ["name"
     :param condition_name: a string, side info name, which to retrieve
     :return:
     """
-    # Assume track_uri is primary key for track
-    if aggregate is not None:
-        for attr in aggregate:
-            assert attr in TRACK_INFO
+    # TODO: check
     for condition in condition_names:
         print(condition)
-        assert condition in PLAYLIST_INFO
+        assert condition in PLAYLIST_INFO or condition in TRACK_INFO, "condition is neither in playlist_info nor in track_info"
 
 
     bags_of_tracks, pids = [], []
@@ -212,42 +210,23 @@ def unpack_playlists_for_models_concatenated(playlists,condition_names = ["name"
         # Use dict here such that we can also deal with unsorted pids
 
 
-        try:
-            # TODO: find how it is used (in Bags class) to fit interface
 
-            # self.owner_attributes = side_info
-            # self.owner_attributes[attribute][owner]
-            # before: side_info[playlist["pid"]] = playlist["name"]
-            # ordering doesn't matter as it's always called with pid together
-            # TODO: think about more efficient handling via numpy/pandas in Bag class through slicing availability
+        for condition in condition_names:
+            if condition in PLAYLIST_INFO:
+                # stored: self.owner_attributes = side_info
+                # called: self.owner_attributes[attribute][owner] # owner == pid
+                # before: side_info[playlist["pid"]] = playlist["name"]
+                # ordering doesn't matter as it's always called with pid together
+                extracted_condition = playlist[condition] # whats coming out of playlist here? a string
+                # TODO: think about more efficient handling via numpy/pandas in Bag class through slicing availability
+            else:
+            # TODO: add it in doctex
+                enlisted_track_info = []
+                for track in playlist["tracks"]:
+                    enlisted_track_info.append(track[condition])
+                extracted_condition = " ".join(enlisted_track_info)
 
-
-            for condition in condition_names:
-                side_infos[condition][playlist["pid"]] = playlist[condition] # whats coming out of playlist here? a string
-
-        except KeyError:
-            pass
-
-        try:
-
-            # TODO: check intuitiveness: different attribute names are added to side_info, but returned as "titles"
-            # TODO: check if just title is used, or information can be called seperately
-            # at the moment: just title used
-            if aggregate is not None:
-                # TODO: use the the track info separately as side info
-                # TODO: add it in doctex
-                # TODO: probably implement new aggregation method | is it necessary ?
-                # TODO: check if it complies upstream (calling "aggregate"/ what it's going to be)
-                # TODO: rename aggregate
-                for info in aggregate:
-                    aggregated = []
-                    for track in side_infos["tracks"]:
-                        if info in track:
-                            aggregated.append(track[info])
-                    side_infos[info][playlist["pid"]] = " ".join(aggregated)
-
-        except KeyError:
-            side_infos["no_side_info"] = {playlist["pid"]: ""}
+            side_infos[condition][playlist["pid"]] = extracted_condition
 
     # bag_of_tracks and pids should have corresponding indices
     # In side info the pid is the key
@@ -358,7 +337,8 @@ if __name__ == '__main__':
                         help="Minimum count of items")
     parser.add_argument('-s', '--side_information', type=str,
                         default="name",
+                        nargs='+',
                         help="list of incorporated additional attributes")
     args = parser.parse_args()
     print(args)
-    main(outfile=args.outfile, min_count=args.min_count, condition= PLAYLIST_INFO)
+    main(outfile=args.outfile, min_count=args.min_count, condition= args.side_information)
