@@ -39,7 +39,7 @@ def assert_condition_callabilities(conditions):
     else:
         assert type(conditions) != type("") and hasattr(conditions,'__iter__'), "Conditions needs to be a list of different conditions. It is a {} now.".format(type(conditions))
 
-# TODO: pull this out, so its generally available
+# TODO: pull this further out, so its generally available
 # TODO: ensure features are appended correctly
 def concat_side_info(vectorizer,training_set,side_info_subset, in_training = True):
     """
@@ -50,6 +50,11 @@ def concat_side_info(vectorizer,training_set,side_info_subset, in_training = Tru
     :return:
     """
 
+
+    # TODO: store different vectorizers separately, they are trained on different attributes
+    # TODO: check if error comes from different vectorizer dims (though dont think so)
+    # TODO: adopt for later condition   ~ "vectorizers" as well
+    # Tfidf Vectorizer
     if in_training:
         vectorizing = lambda x: vectorizer.fit_transform(x)
     else:
@@ -57,12 +62,13 @@ def concat_side_info(vectorizer,training_set,side_info_subset, in_training = Tru
     attr_vect = []
     # ugly substitute for do_until pattern
     for i, attribute in enumerate(side_info_subset):
-        attr_data = training_set.get_single_attribute(attribute)
+        attr_data = training_set.get_single_attribute(attribute) # len: 3600
         if i < 1:
-            attr_vect = vectorizing(attr_data)
+            attr_vect = vectorizing(attr_data) # shape (3600, 1557) , what would (0,990) mean?
         else:
             # rows are instances, cols are features --> adding cols makes up new features
-            attr_vect = np.concatenate((attr_vect, vectorizing(attr_data)), axis=1)
+            new_attrs_vect = vectorizing(attr_data) # shape (3600,18738), then (0,216)
+            attr_vect = np.concatenate((attr_vect, new_attrs_vect), axis=1)
     return attr_vect
 
 def log_losses(*losses):
