@@ -42,7 +42,7 @@ PLAYLIST_INFO = ['name']
 N_WORDS = 50000
 #TFIDF_PARAMS = { 'max_features': N_WORDS }
 
-SERVER = False
+SERVER = True
 
 if SERVER:
     W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
@@ -67,8 +67,11 @@ MODELS = [
     # Only item sets
     #Countbased(),
     #SVDRecommender(1000, use_title=False),
-    #AAERecommender(adversarial=True, use_title=False, n_epochs=55, embedding=VECTORS),
-    AAERecommender(adversarial=False, use_side_info=["name","artist_name"], n_epochs=1, embedding=VECTORS),
+    # TODO: first few epochs,
+    # TODO: later 55 epoch,
+    # TODO: also try adversarial ,
+    #AAERecommender(adversarial=True, use_side_info=["name"], n_epochs=55, embedding=VECTORS),
+    AAERecommender(adversarial=False, use_side_info=["name"], n_epochs=5, embedding=VECTORS),
     # Title-enhanced
     #SVDRecommender(1000, use_title=True),
     #AAERecommender(adversarial=True, use_side_info=True, n_epochs=55, embedding=VECTORS),

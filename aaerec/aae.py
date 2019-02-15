@@ -68,6 +68,7 @@ def concat_side_info(vectorizer,training_set,side_info_subset, in_training = Tru
         else:
             # rows are instances, cols are features --> adding cols makes up new features
             new_attrs_vect = vectorizing(attr_data) # shape (3600,18738), then (0,216)
+            # TODO: lookup scipy hstack (horizontal stack) to keep it sparse
             attr_vect = np.concatenate((attr_vect, new_attrs_vect), axis=1)
     return attr_vect
 
