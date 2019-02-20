@@ -144,7 +144,7 @@ class VAE(nn.Module):
         if torch.cuda.is_available():
             X = X.cuda()
 
-        if use_condition:
+        # if use_condition:
             # condition = condition.astype('float32')
             # if sp.issparse(condition):
             #     condition = condition.toarray()
@@ -152,40 +152,43 @@ class VAE(nn.Module):
             # if torch.cuda.is_available():
             #     condition = condition.cuda()
             # X = torch.cat((X, condition), 1)
-            condition_it = iter(torch.utils.data.DataLoader(condition_data))
+            # condition_it = iter(torch.utils.data.DataLoader(condition_data))
 
 
         # Make sure we are in training mode and zero leftover gradients
         self.train()
         train_loss = 0
-        train_loader = torch.utils.data.DataLoader(X)
-        for batch_idx, (data) in enumerate(train_loader):
-            self.optimizer.zero_grad()
-            # Build the model on the concatenated data, compute BCE without concatenation
-            if use_condition:
-                # TODO encode impose expects a numpy array as condition. Would not be better to manage both Tensor and
-                # numpy arrays as condition? At now double convertion (numpy -> tensor -> numpy)
-                # recon_batch, mu, logvar = self(self.conditions.encode_impose(data, next(condition_it).numpy()))
-                cond_np = next(condition_it)
-                print(data.size(), cond_np.size())
-                cond_np = cond_np.numpy()
-                print(data.size(), cond_np.shape)
-                recon_batch, mu, logvar = self(self.conditions.encode_impose(data, cond_np))
-            else:
-                recon_batch, mu, logvar = self(data)
+        # train_loader = torch.utils.data.DataLoader(X)
+        # for batch_idx, (data) in enumerate(train_loader):
+        self.optimizer.zero_grad()
+        # Build the model on the concatenated data, compute BCE without concatenation
+        if use_condition:
+            # TODO encode impose expects a numpy array as condition. Would not be better to manage both Tensor and
+            # numpy arrays as condition? At now double convertion (numpy -> tensor -> numpy)
+            # recon_batch, mu, logvar = self(self.conditions.encode_impose(data, next(condition_it).numpy()))
+            # cond_np = next(condition_it)
+            # print(data.size(), cond_np.size())
+            # cond_np = cond_np.numpy()
+            # print(data.size(), cond_np.shape)
+            # recon_batch, mu, logvar = self(self.conditions.encode_impose(data, cond_np))
+            recon_batch, mu, logvar = self(self.conditions.encode_impose(X, condition_data))
+        else:
+            recon_batch, mu, logvar = self(X)
 
-            loss = self.loss_function(recon_batch, data, mu, logvar)
-            loss.backward()
-            train_loss += loss.data[0]
-            self.optimizer.step()
-            if self.verbose and batch_idx % self.log_interval == 0:
-                print('[{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                    batch_idx * len(data), len(train_loader.dataset),
-                           100. * batch_idx / len(train_loader),
-                           loss.data[0] / len(data)))
+        # loss = self.loss_function(recon_batch, data, mu, logvar)
+        loss = self.loss_function(recon_batch, X, mu, logvar)
+        loss.backward()
+        train_loss += loss.data[0]
+        self.optimizer.step()
+        # if self.verbose and batch_idx % self.log_interval == 0:
+        #     print('[{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+        #         batch_idx * len(data), len(train_loader.dataset),
+        #                100. * batch_idx / len(train_loader),
+        #                loss.data[0] / len(data)))
         if self.verbose:
             print('====> Average loss: {:.4f}'.format(
-                train_loss / len(train_loader.dataset)))
+                # train_loss / len(train_loader.dataset)))
+                train_loss / len(X)))
         return self
 
     def fit(self, X, y=None, condition_data=None):
@@ -255,21 +258,23 @@ class VAE(nn.Module):
 
             if use_condition:
                 c_batch = [c[start:end] for c in condition_data]
-                condition_it = iter(torch.utils.data.DataLoader(c_batch))
+                # condition_it = iter(torch.utils.data.DataLoader(c_batch))
 
             test_loss = 0
             # test_loader = torch.utils.data.DataLoader(X.toarray(), batch_size=self.batch_size, shuffle=True)
-            test_loader = torch.utils.data.DataLoader(X_batch)
-            for i, (data) in enumerate(test_loader):
-                if use_condition:
-                    recon_batch, mu, logvar = self(self.conditions.encode_impose(data, next(condition_it).numpy()))
-                else:
-                    recon_batch, mu, logvar = self(data)
-                test_loss += self.loss_function(recon_batch, data, mu, logvar).data[0]
-                pred.append(recon_batch.data.cpu().numpy())
+            #test_loader = torch.utils.data.DataLoader(X_batch)
+            # for i, (data) in enumerate(test_loader):
+            if use_condition:
+                # recon_batch, mu, logvar = self(self.conditions.encode_impose(data, next(condition_it).numpy()))
+                recon_batch, mu, logvar = self(self.conditions.encode_impose(X_batch, c_batch))
+            else:
+                recon_batch, mu, logvar = self(X_batch)
+            test_loss += self.loss_function(recon_batch, X_batch, mu, logvar).data[0]
+            pred.append(recon_batch.data.cpu().numpy())
 
-            test_loss /= len(test_loader.dataset)
-            print('====> Test set loss: {:.4f}'.format(test_loss))
+            # test_loss /= len(test_loader.dataset)
+        test_loss /= len(X_batch)
+        print('====> Test set loss: {:.4f}'.format(test_loss))
 
         return np.vstack(pred)
 
