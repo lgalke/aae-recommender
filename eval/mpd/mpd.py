@@ -27,6 +27,7 @@ from aaerec.evaluation import remove_non_missing, evaluate
 from aaerec.baselines import Countbased
 from aaerec.svd import SVDRecommender
 from aaerec.aae import AAERecommender, DecodingRecommender
+from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, CategoricalCondition
 
 
 DEBUG_LIMIT = None
@@ -50,10 +51,15 @@ if SERVER:
     VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
     DATA_PATH = "/data21/lgalke/datasets/MPD/data/"
     # DATA_PATH = "/data22/ggerstenkorn/citation_test_data/"
+    CONDITIONS = ConditionList([
+        ('title', PretrainedWordEmbeddingCondition(VECTORS))
+    ])
 else:
     VECTORS = None
     DATA_PATH = "/workData/zbw/citation/local_data"
-
+    CONDITIONS = ConditionList([
+        ('title', PretrainedWordEmbeddingCondition(VECTORS))
+    ])
 
 
 
@@ -61,6 +67,7 @@ else:
 
 # These need to be implemented in evaluation.py
 METRICS = ['mrr']
+
 
 
 MODELS = [
