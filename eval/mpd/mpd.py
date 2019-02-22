@@ -200,7 +200,7 @@ def unpack_playlists_for_models_concatenated(playlists,condition_names = ["name"
     # TODO: check
     for condition in condition_names:
         print(condition)
-        assert condition in PLAYLIST_INFO or condition in TRACK_INFO, "condition is neither in playlist_info nor in track_info"
+        assert PLAYLIST_INFO.__contains__(condition) or TRACK_INFO.__contains__(condition), "condition is neither in playlist_info nor in track_info"
 
 
     bags_of_tracks, pids = [], []
@@ -339,9 +339,10 @@ if __name__ == '__main__':
                         default=None,
                         help="Minimum count of items")
     parser.add_argument('-s', '--side_information', type=str,
+                        # TODO: handle more than one argument
                         default="name",
                         nargs='+',
                         help="list of incorporated additional attributes")
     args = parser.parse_args()
     print(args)
-    main(outfile=args.outfile, min_count=args.min_count, condition= args.side_information)
+    main(outfile=args.outfile, min_count=args.min_count, condition= [args.side_information])
