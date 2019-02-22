@@ -197,9 +197,14 @@ def unpack_playlists_for_models_concatenated(playlists,condition_names = ["name"
     :param condition_name: a string, side info name, which to retrieve
     :return:
     """
+    if isinstance(condition_names,str):
+        condition_names = [condition_names]
+
     # TODO: check
     for condition in condition_names:
         print(condition)
+        print(PLAYLIST_INFO.__contains__(condition), condition, PLAYLIST_INFO)
+        print(TRACK_INFO.__contains__(condition), condition, TRACK_INFO)
         assert PLAYLIST_INFO.__contains__(condition) or TRACK_INFO.__contains__(condition), "condition is neither in playlist_info nor in track_info"
 
 
@@ -345,4 +350,4 @@ if __name__ == '__main__':
                         help="list of incorporated additional attributes")
     args = parser.parse_args()
     print(args)
-    main(outfile=args.outfile, min_count=args.min_count, condition= [args.side_information])
+    main(outfile=args.outfile, min_count=args.min_count, condition= args.side_information)
