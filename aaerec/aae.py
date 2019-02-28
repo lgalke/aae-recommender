@@ -429,8 +429,10 @@ class AutoEncoder():
                 X_batch = X_batch.cuda()
             X_batch = Variable(X_batch)
 
+
+            # TODO: is there shuffeling necessary in predict?
             if use_condition:
-                c_batch = [c[start:end] for c in condition_data_shuf]
+                c_batch = condition_data[start:end]
 
             z = self.enc(X_batch)
             if use_condition:
