@@ -42,7 +42,7 @@ PLAYLIST_INFO = ['name']
 N_WORDS = 50000
 #TFIDF_PARAMS = { 'max_features': N_WORDS }
 
-SERVER = True
+SERVER = False
 
 if SERVER:
     W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
@@ -51,8 +51,18 @@ if SERVER:
     DATA_PATH = "/data21/lgalke/datasets/MPD/data/"
     # DATA_PATH = "/data22/ggerstenkorn/citation_test_data/"
 else:
-    VECTORS = None
+
+    print("load WE from file")
+    W2V_PATH = "/workData/generalUseData/GoogleNews-vectors-negative300.bin.gz"
+    W2V_IS_BINARY = True
+    #VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
+    print("finished loading")
+
     DATA_PATH = "/workData/zbw/citation/local_data"
+    CONDITIONS = None
+    # CONDITIONS = ConditionList([
+    #     ('name', PretrainedWordEmbeddingCondition(VECTORS)) # first element is name of attribute in  the dataset
+    # ])
 
 
 
@@ -64,14 +74,13 @@ METRICS = ['mrr']
 
 
 MODELS = [
+    AAERecommender(adversarial=False, conditions=CONDITIONS,n_epochs=1),
     # Only item sets
     #Countbased(),
     #SVDRecommender(1000, use_title=False),
-    # TODO: first few epochs,
-    # TODO: later 55 epoch,
-    # TODO: also try adversarial ,
-    #AAERecommender(adversarial=True, use_side_info=["name"], n_epochs=55, embedding=VECTORS),
-    AAERecommender(adversarial=False, use_side_info=["name"], n_epochs=5, embedding=VECTORS),
+
+    #AAERecommender(adversarial=True, use_title=False, n_epochs=55, embedding=VECTORS),
+    #AAERecommender(adversarial=False, n_epochs=1),
     # Title-enhanced
     #SVDRecommender(1000, use_title=True),
     #AAERecommender(adversarial=True, use_side_info=True, n_epochs=55, embedding=VECTORS),
@@ -187,8 +196,7 @@ def unpack_playlists(playlists, aggregate=None):
 
 
 
-def unpack_playlists_for_models_concatenated(playlists,condition_names = ["name"]):
-    #TODO: rename? into ~ unpack_playlist_ ~ singularly
+def unpack_playlists_for_models_concatenated(playlists):
     """
     Unpacks list of playlists in a way that makes them ready for the models .train step.
     It is not mandatory that playlists are sorted.
@@ -197,17 +205,11 @@ def unpack_playlists_for_models_concatenated(playlists,condition_names = ["name"
     :param condition_name: a string, side info name, which to retrieve
     :return:
     """
-    if isinstance(condition_names,str):
-        condition_names = [condition_names]
 
-    # TODO: check
-    for condition in condition_names:
-        print(condition)
-        print(PLAYLIST_INFO.__contains__(condition), condition, PLAYLIST_INFO)
-        print(TRACK_INFO.__contains__(condition), condition, TRACK_INFO)
-        assert PLAYLIST_INFO.__contains__(condition) or TRACK_INFO.__contains__(condition), "condition is neither in playlist_info nor in track_info"
+    # Assume track_uri is primary key for track
 
-
+    condition_names = PLAYLIST_INFO + TRACK_INFO
+    print(condition_names)
     bags_of_tracks, pids = [], []
     side_infos = {condition:{} for condition in condition_names}
     for playlist in playlists:
@@ -218,6 +220,7 @@ def unpack_playlists_for_models_concatenated(playlists,condition_names = ["name"
         # Use dict here such that we can also deal with unsorted pids
 
 
+        #<<<<<<< Updated upstream
 
         for condition in condition_names:
             if condition in PLAYLIST_INFO:
@@ -228,7 +231,7 @@ def unpack_playlists_for_models_concatenated(playlists,condition_names = ["name"
                 extracted_condition = playlist[condition] # whats coming out of playlist here? a string
                 # TODO: think about more efficient handling via numpy/pandas in Bag class through slicing availability
             else:
-            # TODO: add it in doctex
+                # TODO: add it in doctex
                 enlisted_track_info = []
                 for track in playlist["tracks"]:
                     enlisted_track_info.append(track[condition])
@@ -236,11 +239,17 @@ def unpack_playlists_for_models_concatenated(playlists,condition_names = ["name"
 
             side_infos[condition][playlist["pid"]] = extracted_condition
 
+
+
+    for attr in side_infos:
+        print(attr)
+        for pid in list(side_infos[attr].keys())[:3]:
+            print(pid,side_infos[attr][pid])
+
     # bag_of_tracks and pids should have corresponding indices
     # In side info the pid is the key
     # Re-use 'title' property here because methods rely on it
     return bags_of_tracks, pids, side_infos
-
 
 
 def prepare_evaluation(bags, test_size=0.1, n_items=None, min_count=None):
@@ -278,15 +287,12 @@ def log(*print_args, logfile=None):
     print(*print_args)
 
 
-def main(outfile=None, min_count=None, condition= None):
+def main(outfile=None, min_count=None):
     """ Main function for training and evaluating AAE methods on MDP data """
     print("Loading data from", DATA_PATH)
     playlists = playlists_from_slices(DATA_PATH, n_jobs=4)
     print("Unpacking json data...")
-    if condition is not None:
-        bags_of_tracks, pids, side_info = unpack_playlists_for_models_concatenated(playlists,condition_names=condition)
-    else:
-        bags_of_tracks, pids, side_info = unpack_playlists(playlists)
+    bags_of_tracks, pids, side_info = unpack_playlists_for_models_concatenated(playlists)
     del playlists
     bags = Bags(data=bags_of_tracks, owners=pids, owner_attributes=side_info)
     log("Whole dataset:", logfile=outfile)
@@ -350,4 +356,4 @@ if __name__ == '__main__':
                         help="list of incorporated additional attributes")
     args = parser.parse_args()
     print(args)
-    main(outfile=args.outfile, min_count=args.min_count, condition= args.side_information)
+    main(outfile=args.outfile, min_count=args.min_count)
