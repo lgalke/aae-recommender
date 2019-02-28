@@ -279,7 +279,7 @@ class AutoEncoder():
         # concat base data with side_info
         # z_sample = torch.cat((z_sample, condition_matrix), 1)
 
-        use_condition = _check_conditions(self.condition, condition_data)
+        use_condition = _check_conditions(self.conditions, condition_data)
         if use_condition:
             z_sample = self.conditions.encode_impose(z_sample, condition_data)
 
@@ -994,9 +994,9 @@ class AAERecommender(Recommender):
         ### DONE Adapt to generic condition ###
         X = test_set.tocsr()
         if self.conditions:
-            condition_data_raw = training_set.get_attributes(self.condition_list.keys())
+            condition_data_raw = test_set.get_attributes(self.conditions.keys())
             # Important to not call fit here, but just transform
-            condition_data = self.condition_list.transform(condition_data_raw)
+            condition_data = self.conditions.transform(condition_data_raw)
         else:
             condition_data = None
 

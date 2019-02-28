@@ -44,8 +44,8 @@ def _check_conditions(conditions, condition_data):
         return False
 
     assert isinstance(conditions, ConditionList), "`conditions` no instance of ConditionList"
-    assert condition_data and self.conditions, "Mismatch between condition spec and supplied condition data."
-    assert len(condition_data) == len(self.conditions), "Unexpected number of supplied condition data"
+    assert condition_data and conditions, "Mismatch between condition spec and supplied condition data."
+    assert len(condition_data) == len(conditions), "Unexpected number of supplied condition data"
 
     return True
 

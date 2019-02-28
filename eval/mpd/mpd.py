@@ -40,7 +40,7 @@ MIN_COUNT = 50
 TRACK_INFO = ['artist_name', 'track_name', 'album_name']
 # TODO: find the side info fields
 PLAYLIST_INFO = ['name']
-N_WORDS = 50000
+N_WORDS = 20000
 #TFIDF_PARAMS = { 'max_features': N_WORDS }
 
 SERVER = False
@@ -59,14 +59,14 @@ else:
     print("load WE from file")
     W2V_PATH = "/workData/generalUseData/GoogleNews-vectors-negative300.bin.gz"
     W2V_IS_BINARY = True
-    #VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
+    VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY, limit=N_WORDS)
     print("finished loading")
 
     DATA_PATH = "/workData/zbw/citation/local_data"
-    CONDITIONS = None
-    # CONDITIONS = ConditionList([
-    #     ('name', PretrainedWordEmbeddingCondition(VECTORS)) # first element is name of attribute in  the dataset
-    # ])
+    #CONDITIONS = None
+    CONDITIONS = ConditionList([
+        ('name', PretrainedWordEmbeddingCondition(VECTORS)) # first element is name of attribute in  the dataset
+    ])
 
 
 
