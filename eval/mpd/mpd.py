@@ -40,7 +40,7 @@ MIN_COUNT = 50
 TRACK_INFO = ['artist_name', 'track_name', 'album_name']
 # TODO: find the side info fields
 PLAYLIST_INFO = ['name']
-N_WORDS = 20000
+MAX_embeddings = 20000
 #TFIDF_PARAMS = { 'max_features': N_WORDS }
 
 SERVER = False
@@ -52,7 +52,8 @@ if SERVER:
     DATA_PATH = "/data21/lgalke/datasets/MPD/data/"
     # DATA_PATH = "/data22/ggerstenkorn/citation_test_data/"
     CONDITIONS = ConditionList([
-        ('title', PretrainedWordEmbeddingCondition(VECTORS))
+        ('title', PretrainedWordEmbeddingCondition(VECTORS)),
+        ('artist_name',CategoricalCondition())
     ])
 else:
 
@@ -345,6 +346,8 @@ def main(outfile=None, min_count=None):
 
 
 if __name__ == '__main__':
+
+    # python3 ../eval/mpd/mpd.py -m 55 -o /data22/ivagliano/cit2vec-journal-results/mpd/titles-only/mpd-55-3.txt
     parser = argparse.ArgumentParser()
     parser.add_argument('-o', '--outfile',
                         help="File to store the results.")

@@ -432,11 +432,11 @@ class AutoEncoder():
 
             # TODO: is there shuffeling necessary in predict?
             if use_condition:
-                c_batch = condition_data[start:end]
+                c_batch = [c[start:end] for c in condition_data]
 
             z = self.enc(X_batch)
             if use_condition:
-                z = self.conditions.encode_impose(z, condition_data=c_batch)
+                z = self.conditions.encode_impose(z, c_batch)
             # reconstruct
             # Encoder is set in fit() method
             # TODO: find why it throws. seems to be dims mismatch

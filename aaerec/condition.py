@@ -83,6 +83,7 @@ class ConditionList(OrderedDict):
     def encode_impose(self, x, condition_inputs):
         """ Subsequently conduct encode & impose with all conditions
         in order.
+        : param x: ???, suspect its the normal data not the condition ones
         """
         assert len(condition_inputs) == len(self)
         for condition, condition_input in zip(self.values(), condition_inputs):
