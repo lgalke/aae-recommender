@@ -366,17 +366,17 @@ class DAERecommender(Recommender):
 
 
 def main():
-    """ Evaluates the AAE Recommender """
+    """ Evaluates the DAE Recommender """
     CONFIG = {
-        'pub': ('../Data/PMC/citations_pmc.tsv', 2011, 50),
-        'eco': ('../Data/Economics/econbiz62k.tsv', 2012, 1)
+        'pub': ('/data21/lgalke/datasets/citations_pmc.tsv', 2011, 50),
+        'eco': ('/data21/lgalke/datasets/econbiz62k.tsv', 2012, 1)
     }
 
     PARSER = argparse.ArgumentParser()
     PARSER.add_argument('data', type=str, choices=['pub', 'eco'])
     args = PARSER.parse_args()
     DATA = CONFIG[args.data]
-    logfile = 'results/' + args.data + '-decoder.log'
+    logfile = '/data22/ivagliano/test-vae/' + args.data + '-decoder.log'
     bags = Bags.load_tabcomma_format(DATA[0])
     c_year = DATA[1]
 
@@ -388,11 +388,11 @@ def main():
     vectors = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 
     params = {
-        'n_epochs': 100,
+        'n_epochs': 1,
         'batch_size': 100,
         'optimizer': 'adam',
         'normalize_inputs': True,
-        'prior': 'gauss',
+        # 'prior': 'gauss',
     }
     # 100 hidden units, 200 epochs, bernoulli prior, normalized inputs -> 0.174
     activations = ['ReLU', 'SELU']
@@ -404,10 +404,9 @@ def main():
     # normal = [True, False]
     # bernoulli was good, letz see if categorical is better... No
     import itertools
-    models = [DAERecommender(**params, n_hidden=hc[0], n_code=hc[1],
-                             use_title=ut, embedding=vectors,
-                             gen_lr=lr[0], reg_lr=lr[1], activation=a)
-              for ut, lr, hc, a in itertools.product((True, False), lrs, hcs, activations)]
+    models = [DAERecommender(**params,
+                             use_title=ut, embedding=vector)
+              for ut in itertools.product((True, False))]
     # models = [DecodingRecommender(embedding=vectors)]
     evaluate(models)
 
