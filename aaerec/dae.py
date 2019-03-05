@@ -325,7 +325,7 @@ class DAERecommender(Recommender):
 
     def __str__(self):
         desc = "Denoising Autoencoder using titles: " + ("Yes!" if self.use_title else "No.")
-        desc += '\nDAE Params: ' + str(self.aae_params)
+        desc += '\nDAE Params: ' + str(self.dae_params)
         desc += '\nTfidf Params: ' + str(self.tfidf_params)
         return desc
 
@@ -345,7 +345,7 @@ class DAERecommender(Recommender):
         else:
             titles = None
 
-        self.dae = DenoisingAutoEncoder(**self.aae_params)
+        self.dae = DenoisingAutoEncoder(**self.dae_params)
 
         self.dae.fit(X, condition=titles)
 
@@ -402,7 +402,7 @@ def main():
     # bernoulli was good, letz see if categorical is better... No
     import itertools
     models = [DAERecommender(**params,
-                             use_title=ut, embedding=vector)
+                             use_title=ut, embedding=vectors)
               for ut in itertools.product((True, False))]
     # models = [DecodingRecommender(embedding=vectors)]
     evaluate(models)
