@@ -22,10 +22,10 @@ import numpy as np
 import scipy.sparse as sp
 
 # own recommender stuff
-from .base import Recommender
-from .datasets import Bags
-from .evaluation import Evaluation
-from .ub import GensimEmbeddedVectorizer
+from aaerec.base import Recommender
+from aaerec.datasets import Bags
+from aaerec.evaluation import Evaluation
+from aaerec.ub import GensimEmbeddedVectorizer
 from gensim.models.keyedvectors import KeyedVectors
 
 torch.manual_seed(42)
