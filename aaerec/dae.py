@@ -389,7 +389,7 @@ def main():
     vectors = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 
     params = {
-        'n_epochs': 1,
+        'n_epochs': 10,
         'batch_size': 100,
         'optimizer': 'adam',
         'normalize_inputs': True,
@@ -407,7 +407,7 @@ def main():
     import itertools
     models = [DAERecommender(**params,
                              use_title=ut, embedding=vectors)
-              for ut in itertools.product((True, False))]
+              for ut in (True, False)]
     # models = [DecodingRecommender(embedding=vectors)]
     evaluate(models)
 
