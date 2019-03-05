@@ -13,9 +13,6 @@ from torch.autograd import Variable
 # sklearn
 import sklearn
 from sklearn.feature_extraction.text import TfidfVectorizer
-from torch.autograd.grad_mode import no_grad
-
-from .ub import AutoEncoderMixin
 
 # numpy
 import numpy as np
