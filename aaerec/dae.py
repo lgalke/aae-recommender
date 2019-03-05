@@ -26,6 +26,7 @@ from aaerec.ub import GensimEmbeddedVectorizer
 from gensim.models.keyedvectors import KeyedVectors
 
 torch.manual_seed(42)
+TINY = 1e-12
 
 W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
 W2V_IS_BINARY = True
@@ -148,7 +149,6 @@ class DenoisingAutoEncoder():
         self.lr = lr
         self.activation = activation
         self.noise_factor = noise_factor
-        self.loss = nn.MSELoss()
 
     # TODO Corrupt condition too?
     def corrupt(self, batch, condition=None):
@@ -180,7 +180,9 @@ class DenoisingAutoEncoder():
             z_sample = torch.cat((z_sample, condition), 1)
 
         x_sample = self.dec(z_sample)
-        recon_loss = self.loss(z_sample,batch)
+        recon_loss = F.binary_cross_entropy(x_sample + TINY,
+                                            batch.view(batch.size(0),
+                                                       batch.size(1)) + TINY)
         recon_loss.backward()
         self.enc_optim.step()
         self.dec_optim.step()
