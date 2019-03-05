@@ -154,6 +154,8 @@ class DenoisingAutoEncoder():
     def corrupt(self, batch, condition=None):
         """ Add noise to the input """
         noise = torch.randn(batch.size()) * self.noise_factor
+        if torch.cuda.is_available():
+            noise = noise.cuda()
         return (batch + noise)
 
     def eval(self):
