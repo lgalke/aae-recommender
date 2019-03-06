@@ -50,9 +50,8 @@ def gauss_noise(batch, noise_factor):
 
 def zeros_noise(batch, noise_factor):
     '''Randomly zeros some of the 1s with p=noise_factor'''
-    for one in torch.ones(batch):
-        if random.random() < noise_factor:
-            batch[one] = 0
+    mask = torch.rand(batch.size()) < noise_factor
+    batch[mask] = 0
     return batch
 
 TORCH_OPTIMIZERS = {
@@ -172,7 +171,7 @@ class DenoisingAutoEncoder():
         self.lr = lr
         self.activation = activation
         self.noise_factor = noise_factor
-        self.corrupt = NOISE_TYPES[corrupt.lower]
+        self.corrupt = NOISE_TYPES[corrupt.lower()]
 
     def eval(self):
         """ Put all NN modules into eval mode """
@@ -405,7 +404,7 @@ def main():
     vectors = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 
     params = {
-        'n_epochs': 10,
+        'n_epochs': 100,
         'batch_size': 100,
         'optimizer': 'adam',
         'normalize_inputs': True,
