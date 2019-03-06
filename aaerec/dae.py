@@ -25,6 +25,8 @@ from aaerec.evaluation import Evaluation
 from aaerec.ub import GensimEmbeddedVectorizer
 from gensim.models.keyedvectors import KeyedVectors
 
+import random
+
 torch.manual_seed(42)
 TINY = 1e-12
 
@@ -36,6 +38,32 @@ STATUS_FORMAT = "[ R: {:.4f} | D: {:.4f} | G: {:.4f} ]"
 
 def log_losses(*losses):
     print('\r' + STATUS_FORMAT.format(*losses), end='', flush=True)
+
+
+def gauss_noise(batch, noise_factor):
+    '''Add gaussian noise to the input'''
+    noise = torch.randn(batch.size()) * noise_factor
+    if torch.cuda.is_available():
+        noise = noise.cuda()
+    return (batch + noise)
+
+
+def zeros_noise(batch, noise_factor):
+    '''Randomly zeros some of the 1s with p=noise_factor'''
+    for one in torch.ones(batch):
+        if random.random() < noise_factor:
+            batch[one] = 0
+    return batch
+
+TORCH_OPTIMIZERS = {
+    'sgd': optim.SGD,
+    'adam': optim.Adam
+}
+
+NOISE_TYPES ={
+    'gauss': gauss_noise,
+    'zeros': zeros_noise
+}
 
 
 class Encoder(nn.Module):
@@ -117,12 +145,6 @@ class Decoder(nn.Module):
         return act
 
 
-TORCH_OPTIMIZERS = {
-    'sgd': optim.SGD,
-    'adam': optim.Adam
-}
-
-
 class DenoisingAutoEncoder():
     def __init__(self,
                  n_hidden=100,
@@ -135,6 +157,7 @@ class DenoisingAutoEncoder():
                  activation='ReLU',
                  dropout=(.2, .2),
                  noise_factor=0.2,
+                 corrupt='zeros',
                  verbose=True):
 
         self.enc, self.dec = None, None
@@ -149,14 +172,7 @@ class DenoisingAutoEncoder():
         self.lr = lr
         self.activation = activation
         self.noise_factor = noise_factor
-
-    # TODO Corrupt condition too?
-    def corrupt(self, batch, condition=None):
-        """ Add noise to the input """
-        noise = torch.randn(batch.size()) * self.noise_factor
-        if torch.cuda.is_available():
-            noise = noise.cuda()
-        return (batch + noise)
+        self.corrupt = NOISE_TYPES[corrupt.lower]
 
     def eval(self):
         """ Put all NN modules into eval mode """
@@ -175,7 +191,7 @@ class DenoisingAutoEncoder():
 
     def ae_step(self, batch, condition=None):
         """ Perform one autoencoder training step """
-        z_sample = self.enc(self.corrupt(batch))
+        z_sample = self.enc(self.corrupt(batch, self.noise_factor))
         if condition is not None:
             z_sample = torch.cat((z_sample, condition), 1)
 
