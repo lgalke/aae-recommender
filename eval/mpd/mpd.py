@@ -243,10 +243,10 @@ def unpack_playlists_for_models_concatenated(playlists):
 
 
 
-    for attr in side_infos:
-        print(attr)
-        for pid in list(side_infos[attr].keys())[:3]:
-            print(pid,side_infos[attr][pid])
+    # for attr in side_infos:
+    #     print(attr)
+    #     for pid in list(side_infos[attr].keys())[:3]:
+    #         print(pid,side_infos[attr][pid])
 
     # bag_of_tracks and pids should have corresponding indices
     # In side info the pid is the key
@@ -319,6 +319,7 @@ def main(outfile=None, min_count=None):
     for model in MODELS:
         log('=' * 78, logfile=outfile)
         log(model, logfile=outfile)
+        log(model.model_params, logfile=outfile)
 
         # Training
         model.train(train_set)
@@ -336,7 +337,7 @@ def main(outfile=None, min_count=None):
         y_pred = remove_non_missing(y_pred, x_test, copy=False)
 
         # Evaluate metrics
-        results = evaluate(y_test, y_pred, METRICS, batch_size=1000)
+        results = evaluate(y_test, y_pred, METRICS, batch_size=500)
 
         log("-" * 78, logfile=outfile)
         for metric, stats in zip(METRICS, results):
