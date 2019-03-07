@@ -32,7 +32,7 @@ from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, Ca
 
 DEBUG_LIMIT = None
 # Use only this many most frequent items
-N_ITEMS = None
+N_ITEMS = 10000
 # Use only items that appear this many times
 MIN_COUNT = 50
 # Use command line arg '-m' instead
@@ -48,7 +48,7 @@ SERVER = False
 if SERVER:
     W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
     W2V_IS_BINARY = True
-    VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
+    VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY,limit=MAX_embeddings)
     DATA_PATH = "/data21/lgalke/datasets/MPD/data/"
     # DATA_PATH = "/data22/ggerstenkorn/citation_test_data/"
     CONDITIONS = ConditionList([
@@ -60,7 +60,7 @@ else:
     print("load WE from file")
     W2V_PATH = "/workData/generalUseData/GoogleNews-vectors-negative300.bin.gz"
     W2V_IS_BINARY = True
-    VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY, limit=N_WORDS)
+    VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY, limit=MAX_embeddings)
     print("finished loading")
 
     DATA_PATH = "/workData/zbw/citation/local_data"
@@ -323,22 +323,28 @@ def main(outfile=None, min_count=None):
 
         # Training
         model.train(train_set)
+        print("training finished")
 
         # Prediction
         y_pred = model.predict(dev_set)
+        print("prediction finished")
 
+        print(" prediction sparse?:", sp.issparse(y_pred))
         # Sanity-fix #1, make sparse stuff dense, expect array
         if sp.issparse(y_pred):
             y_pred = y_pred.toarray()
         else:
             y_pred = np.asarray(y_pred)
 
+        print("remove non-missing:")
         # Sanity-fix, remove predictions for already present items
         y_pred = remove_non_missing(y_pred, x_test, copy=False)
 
+        print("evaluate:")
         # Evaluate metrics
         results = evaluate(y_test, y_pred, METRICS, batch_size=500)
 
+        print("metrics: ")
         log("-" * 78, logfile=outfile)
         for metric, stats in zip(METRICS, results):
             log("* {}: {} ({})".format(metric, *stats), logfile=outfile)
