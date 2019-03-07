@@ -290,8 +290,8 @@ class VAERecommender(Recommender):
         """
         1. get basic representation
         2. ? add potential side_info in ??? representation
-        3. initialize a (Adversarial) Autoencoder variant
-        4. fit based on Autoencoder
+        3. initialize a Variational Autoencoder
+        4. fit based on Variational Autoencoder
         :param training_set: ???, Bag Class training set
         :return: trained self
         """
