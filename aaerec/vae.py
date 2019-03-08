@@ -105,7 +105,7 @@ class VAE(nn.Module):
 
     def forward(self, x):
         if self.normalize_inputs:
-            inp = F.normalize(x, 1)
+            x = F.normalize(x, 1)
         # TODO could I use x instead of self.inp? Do we need x.view?
         mu, logvar = self.encode(x.view(-1, self.inp))
         z = self.reparametrize(mu, logvar)
