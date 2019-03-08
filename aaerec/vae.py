@@ -378,7 +378,7 @@ def main():
     #                          use_title=ut, embedding=vectors,
     #                          gen_lr=lr[0], reg_lr=lr[1], activation=a)
     #           for ut, lr, hc, a in itertools.product((True, False), lrs, hcs, activations)]
-    models = [VAERecommender(**params, conditions=CONDITIONS)]
+    models = [VAERecommender(conditions=CONDITIONS, **params)]
     evaluate(models)
 
 
