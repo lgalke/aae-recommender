@@ -105,10 +105,13 @@ class VAE(nn.Module):
         h3 = self.act(self.fc3(z))
         return self.final_act(self.fc4(h3))
 
-    def forward(self, x):
+    def forward(self, x, condition_data=None):
         # TODO could I use x instead of self.inp? Do we need x.view?
         mu, logvar = self.encode(x.view(-1, self.inp))
         z = self.reparametrize(mu, logvar)
+        use_condition = _check_conditions(self.conditions, condition_data)
+        if use_condition:
+            z = self.conditions.encode_impose(z, condition_data)
         return self.decode(z), mu, logvar
 
     def loss_function(self, recon_x, x, mu, logvar):
@@ -150,7 +153,7 @@ class VAE(nn.Module):
         self.optimizer.zero_grad()
         # Build the model on the concatenated data, compute BCE without concatenation
         if use_condition:
-            recon_batch, mu, logvar = self(self.conditions.encode_impose(X, condition_data))
+            recon_batch, mu, logvar = self(X, condition_data)
         else:
             recon_batch, mu, logvar = self(X)
 
