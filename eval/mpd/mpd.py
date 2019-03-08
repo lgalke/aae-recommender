@@ -32,35 +32,34 @@ from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, Ca
 
 DEBUG_LIMIT = None
 # Use only this many most frequent items
-N_ITEMS = 10000
+N_ITEMS = None
 # Use only items that appear this many times
-MIN_COUNT = 50
+MIN_COUNT = 55
 # Use command line arg '-m' instead
 
 TRACK_INFO = ['artist_name', 'track_name', 'album_name']
 # TODO: find the side info fields
 PLAYLIST_INFO = ['name']
-MAX_embeddings = 20000
+
 #TFIDF_PARAMS = { 'max_features': N_WORDS }
 
-SERVER = False
+SERVER = True
 
 if SERVER:
     W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
     W2V_IS_BINARY = True
-    VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY,limit=MAX_embeddings)
+    VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
     DATA_PATH = "/data21/lgalke/datasets/MPD/data/"
     # DATA_PATH = "/data22/ggerstenkorn/citation_test_data/"
     CONDITIONS = ConditionList([
-        ('title', PretrainedWordEmbeddingCondition(VECTORS)),
-        ('artist_name',CategoricalCondition())
+        ('name', PretrainedWordEmbeddingCondition(VECTORS))
     ])
 else:
 
     print("load WE from file")
     W2V_PATH = "/workData/generalUseData/GoogleNews-vectors-negative300.bin.gz"
     W2V_IS_BINARY = True
-    VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY, limit=MAX_embeddings)
+    VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
     print("finished loading")
 
     DATA_PATH = "/workData/zbw/citation/local_data"
@@ -342,7 +341,7 @@ def main(outfile=None, min_count=None):
 
         print("evaluate:")
         # Evaluate metrics
-        results = evaluate(y_test, y_pred, METRICS, batch_size=500)
+        results = evaluate(y_test, y_pred, METRICS, batch_size=100)
 
         print("metrics: ")
         log("-" * 78, logfile=outfile)
