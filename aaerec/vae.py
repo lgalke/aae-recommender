@@ -73,9 +73,14 @@ class VAE(nn.Module):
         self.activation = activation
         self.conditions = conditions
 
+        # 2-layers Encoder
         self.fc1 = nn.Linear(inp, n_hidden)
         self.fc21 = nn.Linear(n_hidden, n_code)
         self.fc22 = nn.Linear(n_hidden, n_code)
+
+        # 2-layers Decoder
+        if self.conditions:
+            n_code += self.conditions.size_increment()
         self.fc3 = nn.Linear(n_code, n_hidden)
         self.fc4 = nn.Linear(n_hidden, out)
         optimizer_gen = TORCH_OPTIMIZERS[optimizer.lower()]
@@ -302,12 +307,12 @@ class VAERecommender(Recommender):
         if self.conditions:
             condition_data_raw = training_set.get_attributes(self.conditions.keys())
             condition_data = self.conditions.fit_transform(condition_data_raw)
-            self.model = VAE(X.shape[1] + self.conditions.size_increment(), X.shape[1],
-                             conditions=self.conditions, **self.model_params)
+            #self.model = VAE(X.shape[1] + self.conditions.size_increment(), X.shape[1],
+            #                 conditions=self.conditions, **self.model_params)
         else:
             condition_data = None
-            self.model = VAE(X.shape[1], X.shape[1], **self.model_params)
-        # self.model = VAE(X.shape[1], X.shape[1], conditions=self.conditions, **self.model_params)
+            #self.model = VAE(X.shape[1], X.shape[1], **self.model_params)
+        self.model = VAE(X.shape[1], X.shape[1], conditions=self.conditions, **self.model_params)
 
         print(self)
         print(self.model)
