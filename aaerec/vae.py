@@ -307,7 +307,7 @@ class VAERecommender(Recommender):
         else:
             condition_data = None
             #self.model = VAE(X.shape[1], X.shape[1], **self.model_params)
-        self.model = VAE(X.shape[1], X.shape[1], **self.model_params)
+        self.model = VAE(X.shape[1], X.shape[1], conditions=self.conditions, **self.model_params)
 
         print(self)
         print(self.model)
