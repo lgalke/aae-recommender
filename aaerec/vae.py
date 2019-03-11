@@ -164,13 +164,8 @@ class VAE(nn.Module):
 
         loss = self.loss_function(recon_batch, X, mu, logvar)
         loss.backward()
-        train_loss += loss.data[0]
+        train_loss += loss.item()
         self.optimizer.step()
-        # if self.verbose and batch_idx % self.log_interval == 0:
-        #     print('[{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-        #         batch_idx * len(data), len(train_loader.dataset),
-        #                100. * batch_idx / len(train_loader),
-        #                loss.data[0] / len(data)))
         if self.verbose:
             print('====> Average loss: {:.4f}'.format(
                 train_loss / len(X)))
@@ -247,10 +242,10 @@ class VAE(nn.Module):
             test_loss = 0
 
             if use_condition:
-                recon_batch, mu, logvar = self(self.conditions.encode_impose(X_batch, c_batch))
+                recon_batch, mu, logvar = self(X_batch, c_batch)
             else:
                 recon_batch, mu, logvar = self(X_batch)
-            test_loss += self.loss_function(recon_batch, X_batch, mu, logvar).data[0]
+            test_loss += self.loss_function(recon_batch, X_batch, mu, logvar).item()
             pred.append(recon_batch.data.cpu().numpy())
 
         test_loss /= len(X_batch)
