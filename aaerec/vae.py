@@ -302,12 +302,12 @@ class VAERecommender(Recommender):
         if self.conditions:
             condition_data_raw = training_set.get_attributes(self.conditions.keys())
             condition_data = self.conditions.fit_transform(condition_data_raw)
-            #self.model = VAE(X.shape[1] + self.conditions.size_increment(), X.shape[1],
-            #                 conditions=self.conditions, **self.model_params)
+            self.model = VAE(X.shape[1] + self.conditions.size_increment(), X.shape[1],
+                             conditions=self.conditions, **self.model_params)
         else:
             condition_data = None
-            #self.model = VAE(X.shape[1], X.shape[1], **self.model_params)
-        self.model = VAE(X.shape[1], X.shape[1], conditions=self.conditions, **self.model_params)
+            self.model = VAE(X.shape[1], X.shape[1], **self.model_params)
+        # self.model = VAE(X.shape[1], X.shape[1], conditions=self.conditions, **self.model_params)
 
         print(self)
         print(self.model)
