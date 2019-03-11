@@ -22,7 +22,7 @@ from aaerec.datasets import Bags
 from aaerec.evaluation import Evaluation
 from gensim.models.keyedvectors import KeyedVectors
 
-from .condition import ConditionList, _check_conditions
+from aaerec.condition import ConditionList, _check_conditions, PretrainedWordEmbeddingCondition
 
 torch.manual_seed(42)
 TINY = 1e-12
@@ -154,6 +154,7 @@ class DenoisingAutoEncoder():
                  dropout=(.2, .2),
                  noise_factor=0.2,
                  corrupt='zeros',
+                 conditions=None,
                  verbose=True):
 
         self.enc, self.dec = None, None
@@ -169,6 +170,7 @@ class DenoisingAutoEncoder():
         self.activation = activation
         self.noise_factor = noise_factor
         self.corrupt = NOISE_TYPES[corrupt.lower()]
+        self.conditions = conditions
 
     def eval(self):
         """ Put all NN modules into eval mode """
@@ -413,14 +415,19 @@ def main():
     lrs = [(0.001, 0.0005), (0.001, 0.001)]
     hcs = [(100, 50), (300, 100)]
 
+    CONDITIONS = ConditionList([
+        ('title', PretrainedWordEmbeddingCondition(vectors))
+    ])
+
     # dropouts = [(.2,.2), (.1,.1), (.1, .2), (.25, .25), (.3,.3)] # .2,.2 is best
     # priors = ['categorical'] # gauss is best
     # normal = [True, False]
     # bernoulli was good, letz see if categorical is better... No
-    import itertools
-    models = [DAERecommender(**params,
-                             use_title=ut, embedding=vectors)
-              for ut in (True, False)]
+    # import itertools
+    # models = [DAERecommender(**params,
+    #                          use_title=ut, embedding=vectors)
+    #           for ut in (True, False)]
+    models = [DAERecommender(conditions=CONDITIONS, **params)]
     # models = [DecodingRecommender(embedding=vectors)]
     evaluate(models)
 
