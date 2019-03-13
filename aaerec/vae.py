@@ -354,7 +354,7 @@ def main():
     vectors = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 
     params = {
-        'n_epochs': 10,
+        #'n_epochs': 10,
         'batch_size': 100,
         'optimizer': 'adam',
         # 'normalize_inputs': True,
@@ -367,18 +367,17 @@ def main():
     # 100 hidden units, 200 epochs, bernoulli prior, normalized inputs -> 0.174
     # activations = ['ReLU','SELU']
     # lrs = [(0.001, 0.0005), (0.001, 0.001)]
-    # hcs = [(100, 50), (300, 100)]
+    hcs = [(100, 50), (300, 100)]
+    epochs = [50, 100, 200, 500]
 
     # dropouts = [(.2,.2), (.1,.1), (.1, .2), (.25, .25), (.3,.3)] # .2,.2 is best
     # priors = ['categorical'] # gauss is best
     # normal = [True, False]
     # bernoulli was good, letz see if categorical is better... No
-    # import itertools
-    # models = [VAERecommender(**params, n_hidden=hc[0], n_code=hc[1],
-    #                          use_title=ut, embedding=vectors,
-    #                          gen_lr=lr[0], reg_lr=lr[1], activation=a)
-    #           for ut, lr, hc, a in itertools.product((True, False), lrs, hcs, activations)]
-    models = [VAERecommender(conditions=CONDITIONS, **params)]
+    import itertools
+    models = [VAERecommender(conditions=CONDITIONS, **params, n_hidden=hc[0], n_code=hc[1], n_epochs=e)
+              for hc, e in itertools.product(hcs, epochs)]
+    # models = [VAERecommender(conditions=CONDITIONS, **params)]
     evaluate(models)
 
 
