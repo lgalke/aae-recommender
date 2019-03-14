@@ -20,7 +20,7 @@ PARSER.add_argument('-m', '--min-count', type=int,
                     help='Pruning parameter', default=50)
 PARSER.add_argument('-o', '--outfile', type=str, default=None)
 PARSER.add_argument('-e', '--epochs', type=int, default=50)
-PARSER.add_argument('--lr', type=float, default=0.0001)
+PARSER.add_argument('--lr', type=float, default=0.001)
 
 ARGS = PARSER.parse_args()
 
@@ -69,10 +69,10 @@ CONDITIONED_MODELS = [
                    conditions=CONDITIONS,
                    gen_lr=ARGS.lr,
                    reg_lr=ARGS.lr,
-                   **ae_params),
+                   **ae_params)
     DecodingRecommender(CONDITIONS,
                         n_epochs=ARGS.epochs, batch_size=100, optimizer='adam',
-                        n_hidden=100, lr=ARGS.lr, verbose=True),
+                        n_hidden=100, lr=ARGS.lr, verbose=True)
 ]
 
 
@@ -87,12 +87,12 @@ TITLE_ENHANCED = [
     #                prior='gauss', gen_lr=0.001, reg_lr=0.001,
     #                **ae_params),
 ]
-with open(ARGS.outfile, 'a') as fh:
-    print("~ Conditioned Models", "~" * 42, file=fh)
-EVAL(RECOMMENDERS)
+# with open(ARGS.outfile, 'a') as fh:
+#     print("~ Conditioned Models", "~" * 42, file=fh)
+# EVAL(RECOMMENDERS)
 with open(ARGS.outfile, 'a') as fh:
     print("~ Conditioned Models", "~" * 42, file=fh)
 EVAL(CONDITIONED_MODELS)
-with open(ARGS.outfile, 'a') as fh:
-    print("~ Partial List + Titles", "~" * 42, file=fh)
-EVAL(TITLE_ENHANCED)
+# with open(ARGS.outfile, 'a') as fh:
+#     print("~ Partial List + Titles", "~" * 42, file=fh)
+# EVAL(TITLE_ENHANCED)
