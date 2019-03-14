@@ -400,7 +400,7 @@ class BagsWithVocab(Bags):
     def size(self, dim=None):
         sizes = (len(self.data), len(self.vocab))
 
-        if dim:
+        if dim is not None:
             return sizes[dim]
         else:
             return sizes

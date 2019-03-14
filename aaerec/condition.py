@@ -21,6 +21,7 @@ and (optional) to update its parameters wrt (global) ae loss.
 
 """
 
+
 def _check_conditions(conditions, condition_data):
     """ Checks condition list and condition data for validity.
     Arguments
@@ -89,6 +90,12 @@ class ConditionList(OrderedDict):
         for condition, condition_input in zip(self.values(), condition_inputs):
             x = condition.encode_impose(x, condition_input)
         return x
+
+    def encode(self, condition_inputs):
+        assert len(condition_inputs) == len(self)
+        return [condition.encode(condition_input) for condition, condition_input
+                in zip(self.values(), condition_inputs)]
+
 
     def zero_grad(self):
         """ Forward the zero_grad call to all conditions in list
