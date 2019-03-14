@@ -192,12 +192,18 @@ def log(*print_args, logfile=None):
     print(*print_args)
 
 
-def main(outfile=None, min_count=None):
+def main(outfile=None, min_count=None, aggregate=None):
     """ Main function for training and evaluating AAE methods on MDP data """
     print("Loading data from", DATA_PATH)
     playlists = playlists_from_slices(DATA_PATH, n_jobs=4)
     print("Unpacking json data...")
-    bags_of_tracks, pids, side_info = unpack_playlists(playlists)
+    if aggregate is not None:
+        aggregate =['artist_name', 'track_name', 'album_name']
+        print("Using aggegated metadata {}".format(aggregate))
+    else:
+        print("Aggrgate={}".fomat(aggregate))
+        print("Using title only")
+    bags_of_tracks, pids, side_info = unpack_playlists(playlists, aggregate)
     del playlists
     bags = Bags(bags_of_tracks, pids, side_info)
     log("Whole dataset:", logfile=outfile)
@@ -254,6 +260,10 @@ if __name__ == '__main__':
     parser.add_argument('-m', '--min-count', type=int,
                         default=None,
                         help="Minimum count of items")
+    parser.add_argument('-a', '--aggregate',
+                        default=None, action='store_true',
+                        help="Aggregate more metatada in the condition")
     args = parser.parse_args()
     print(args)
-    main(outfile=args.outfile, min_count=args.min_count)
+    main(outfile=args.outfile, min_count=args.min_count,
+         aggregate=args.aggregate)
