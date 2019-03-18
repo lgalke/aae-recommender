@@ -52,7 +52,10 @@ if SERVER:
     DATA_PATH = "/data21/lgalke/datasets/MPD/data/"
     # DATA_PATH = "/data22/ggerstenkorn/citation_test_data/"
     CONDITIONS = ConditionList([
-        ('name', PretrainedWordEmbeddingCondition(VECTORS))
+        ('name', PretrainedWordEmbeddingCondition(VECTORS)),
+        ('artist_name', CategoricalCondition(embedding_dim=32)),
+        ('track_name', PretrainedWordEmbeddingCondition(VECTORS)),
+        ('album_name', PretrainedWordEmbeddingCondition(VECTORS))
     ])
 else:
 
@@ -78,7 +81,9 @@ METRICS = ['mrr']
 
 
 MODELS = [
-    AAERecommender(adversarial=False, conditions=CONDITIONS,n_epochs=1),
+    AAERecommender(adversarial=False, conditions=CONDITIONS, n_epochs=55),
+    AAERecommender(adversarial=True, conditions=CONDITIONS, n_epochs=55),
+    DecodingRecommender(conditions=CONDITIONS, n_epochs=55)
     # Only item sets
     #Countbased(),
     #SVDRecommender(1000, use_title=False),
