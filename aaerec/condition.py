@@ -394,8 +394,7 @@ class CategoricalCondition(ConcatenationBasedConditioning):
         return self
 
     def transform(self, raw_inputs):
-        return np.array([self.vocab.get(x, 0) for x in raw_inputs])\
-            .view(-1, 1)
+        return np.array([self.vocab.get(x, 0) for x in raw_inputs])
 
     def encode(self, inputs):
         inputs = torch.LongTensor(inputs)
