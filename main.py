@@ -43,7 +43,17 @@ BASELINES = [
 
 ae_params = {
     'n_code': 50,
-    'n_epochs': ARGS.epochs,
+    'n_epochs': 100,
+    'batch_size': 100,
+    'n_hidden': 100,
+    'normalize_inputs': True,
+}
+
+vae_params = {
+    'n_code': 50,
+    # VAE results get worse with more epochs in preliminary optimization 
+    #(Pumed with threshold 50)
+    'n_epochs': 50,
     'batch_size': 100,
     'n_hidden': 100,
     'normalize_inputs': True,
@@ -61,18 +71,19 @@ CONDITIONS = ConditionList([
 
 
 CONDITIONED_MODELS = [
-    AAERecommender(adversarial=False,
-                   conditions=CONDITIONS,
-                   lr=ARGS.lr,
-                   **ae_params),
-    AAERecommender(adversarial=True,
-                   conditions=CONDITIONS,
-                   gen_lr=ARGS.lr,
-                   reg_lr=ARGS.lr,
-                   **ae_params)
-    DecodingRecommender(CONDITIONS,
-                        n_epochs=ARGS.epochs, batch_size=100, optimizer='adam',
-                        n_hidden=100, lr=ARGS.lr, verbose=True)
+#    AAERecommender(adversarial=False,
+#                   conditions=CONDITIONS,
+#                   lr=ARGS.lr,
+#                   **ae_params),
+#    AAERecommender(adversarial=True,
+#                   conditions=CONDITIONS,
+#                   gen_lr=ARGS.lr,
+#                   reg_lr=ARGS.lr,
+#                   **ae_params),
+#    DecodingRecommender(CONDITIONS,
+#                        n_epochs=ARGS.epochs, batch_size=100, optimizer='adam',
+#                        n_hidden=100, lr=ARGS.lr, verbose=True),
+     VaeRecommender(CONDITIONS, **vae_params)
 ]
 
 
@@ -87,6 +98,7 @@ TITLE_ENHANCED = [
     #                prior='gauss', gen_lr=0.001, reg_lr=0.001,
     #                **ae_params),
 ]
+
 # with open(ARGS.outfile, 'a') as fh:
 #     print("~ Conditioned Models", "~" * 42, file=fh)
 # EVAL(RECOMMENDERS)
