@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from collections import OrderedDict, Counter
 import torch
 import scipy.sparse as sp
+import numpy as np
 
 
 from .ub import GensimEmbeddedVectorizer
@@ -393,10 +394,11 @@ class CategoricalCondition(ConcatenationBasedConditioning):
         return self
 
     def transform(self, raw_inputs):
-        return torch.LongTensor([self.vocab.get(x, 0) for x in raw_inputs])\
+        return np.array([self.vocab.get(x, 0) for x in raw_inputs])\
             .view(-1, 1)
 
     def encode(self, inputs):
+        inputs = torch.LongTensor(inputs)
         if self.use_cuda:
             inputs = inputs.cuda()
         return self.embedding_bag(inputs)
