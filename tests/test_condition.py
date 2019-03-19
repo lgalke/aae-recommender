@@ -112,7 +112,7 @@ def test_word_emb_condition():
         [s.split() for s in sentences],
         min_count=1, window=2, size=emb_dim
     )
-    condition = PretrainedWordEmbeddingCondition(model.wv)
+    condition = PretrainedWordEmbeddingCondition(model.wv, use_cuda=False)
     sentences_trf = condition.fit_transform(sentences)
 
     code = torch.rand(len(sentences), 5)
@@ -142,8 +142,8 @@ def test_full_pipeline():
         [s.split() for s in data['titles']],
         min_count=1, window=2, size=emb_dim
     )
-    cond1 = PretrainedWordEmbeddingCondition(model.wv)
-    cond2 = CategoricalCondition(3, emb_dim)
+    cond1 = PretrainedWordEmbeddingCondition(model.wv, use_cuda=False)
+    cond2 = CategoricalCondition(3, emb_dim, use_cuda=False)
 
     clist = ConditionList([('titles', cond1),
                            ('authors', cond2)])
@@ -180,6 +180,29 @@ def test_full_pipeline():
             losses.append(loss.item())
             clist.step()
             optimizer.step()
+
+
+def test_categorical_condition():
+
+    authors = ["Mr X", "Falafel", "Pizza", "Am I hungry?", "Mr X"]
+    catcond = CategoricalCondition(20, vocab_size=10, use_cuda=False)
+    author_ids = catcond.fit_transform(authors)
+    some_code = torch.rand(len(authors), 10)
+
+    encoded_authors = catcond.encode(author_ids)
+    assert encoded_authors.size(0) == len(authors) and encoded_authors.size(1) == 20
+
+    # Mr X is Mr X
+    assert ((encoded_authors[0] - encoded_authors[-1]).abs() < 1e-8).all()
+
+    cond_code = catcond.impose(some_code, encoded_authors)
+    # 20 + 10 should turn out to be 30
+    assert cond_code.size(0) == len(authors) and cond_code.size(1) == 30
+
+
+
+
+
 
 
 def test_assemble_condition():
