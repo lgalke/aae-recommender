@@ -83,7 +83,7 @@ CONDITIONED_MODELS = [
 #    DecodingRecommender(CONDITIONS,
 #                        n_epochs=ARGS.epochs, batch_size=100, optimizer='adam',
 #                        n_hidden=100, lr=ARGS.lr, verbose=True),
-     VAERecommender(conditions=CONDITIONS, **vae_params)
+     VAERecommender(conditions=CONDITIONS, **vae_params),
      DAERecommender(conditions=CONDITIONS, **ae_params)
 ]
 
