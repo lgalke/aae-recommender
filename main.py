@@ -1,9 +1,11 @@
 import argparse
 from aaerec.datasets import Bags
 from aaerec.evaluation import Evaluation
-from aaerec.aae import AAERecommender, DecodingRecommender, VAERecommender, DAERecommender
+from aaerec.aae import AAERecommender, DecodingRecommender
 from aaerec.baselines import RandomBaseline, Countbased, MostPopular
 from aaerec.svd import SVDRecommender
+from aaerec.vae import VAERecommender
+from aaerec.dae import DAERecommender
 from gensim.models.keyedvectors import KeyedVectors
 
 from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, CategoricalCondition
