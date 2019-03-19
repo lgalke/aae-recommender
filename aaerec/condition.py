@@ -5,9 +5,11 @@ from torch import optim
 
 from abc import ABC, abstractmethod
 from collections import OrderedDict, Counter
+import itertools as it
 import torch
 import scipy.sparse as sp
 import numpy as np
+
 
 
 from .ub import GensimEmbeddedVectorizer
@@ -359,13 +361,14 @@ class EmbeddingBagCondition(ConcatenationBasedConditioning):
 class CategoricalCondition(ConcatenationBasedConditioning):
     """ A *trainable* condition for categorical attributes.
     """
+    padding_idx = 0
 
     def __init__(self, embedding_dim, vocab_size=None,
                  sparse=True,
                  use_cuda=torch.cuda.is_available(),
                  embedding_on_gpu=False,
-                 ignore_oov=True,
                  lr=1e-3,
+                 reduce=None,
                  **embedding_params):
         """
         Arguments
@@ -375,6 +378,8 @@ class CategoricalCondition(ConcatenationBasedConditioning):
         - ignore_oov: bool - If given, set oov embedding to zero
         - lr: float - initial learning rate for Adam / SparseAdam
         - sparse: bool - If given, use sparse embedding & optimizer
+        - reduce: None or str - if given, expect list-of-list like inputs
+                  and aggregate according to `reduce` in 'mean', 'sum', 'max'
         """
         # register this module's parameters with the optimizer
         self.vocab_size = vocab_size
@@ -384,9 +389,8 @@ class CategoricalCondition(ConcatenationBasedConditioning):
         self.optimizer = None
         self.lr = lr
 
-        self.ignore_oov = ignore_oov
+        # Optimization and memory storay
         self.sparse = sparse
-
         self.use_cuda = use_cuda
         self.embedding_on_gpu = embedding_on_gpu
 
@@ -394,16 +398,20 @@ class CategoricalCondition(ConcatenationBasedConditioning):
         assert "padding_idx" not in embedding_params
         self.embedding_params = embedding_params
 
+
+        assert reduce is None or reduce in ['mean','sum','max'], "Reduce neither None nor in 'mean','sum','max'"
+        self.reduce = reduce
+
     def fit(self, raw_inputs):
         """ Learn a vocabulary """
-        items = Counter(raw_inputs).most_common(self.vocab_size)
+        flat_items = raw_inputs if self.reduce is None else it.chain.from_iterable(raw_inputs)
+        item_cnt = Counter(flat_items).most_common(self.vocab_size)
         # index 0 is reserved for unk idx
-        padding_idx = 0 if self.ignore_oov else None
-        self.vocab = {value: idx + 1 for idx, (value, __) in enumerate(items)}
+        self.vocab = {value: idx + 1 for idx, (value, __) in enumerate(item_cnt)}
         num_embeddings = len(self.vocab) + 1
         self.embedding = nn.Embedding(num_embeddings,
                                       self.embedding_dim,
-                                      padding_idx=padding_idx,
+                                      padding_idx=self.padding_idx,
                                       **self.embedding_params,
                                       sparse=self.sparse)
         if self.use_cuda and self.embedding_on_gpu:
@@ -416,13 +424,29 @@ class CategoricalCondition(ConcatenationBasedConditioning):
         return self
 
     def transform(self, raw_inputs):
-        return np.array([self.vocab.get(x, 0) for x in raw_inputs])
+        # Actually np.array is not needed,
+        # else we would need to do the padding globally
+        if self.reduce is None:
+            return [self.vocab.get(x, 0) for x in raw_inputs]
+        else:
+            return [[self.vocab.get(x, 0) for x in l] for l in raw_inputs]
+
+    def _pad_batch(self, batch_inputs):
+        maxlen = max(len(l) for l in batch_inputs)
+        return [l + [self.padding_idx] * (maxlen - len(l)) for l in batch_inputs]
 
     def encode(self, inputs):
+        if self.reduce is not None:
+            # inputs may have variable lengths, pad them
+            inputs = self._pad_batch(inputs)
         inputs = torch.LongTensor(inputs)
         if self.use_cuda:
             inputs = inputs.cuda()
-        return self.embedding(inputs)
+        h = self.embedding(inputs)
+        if self.reduce is not None:
+            # self.reduce in ['mean','sum','max']
+            h = getattr(h, self.reduce)(1)
+        return h
 
     def zero_grad(self):
         self.optimizer.zero_grad()

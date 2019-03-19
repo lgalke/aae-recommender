@@ -1,7 +1,9 @@
 """ Tests various functionalities wrt conditions """
 import pytest
 import torch
+import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.utils import shuffle
 from aaerec.condition import EmbeddingBagCondition,\
     PretrainedWordEmbeddingCondition,\
     ConditionBase,\
@@ -206,8 +208,7 @@ def test_categorical_condition_unk_treatment():
 
 
     ## OOV SHOULD BE IGNORE
-    catcond = CategoricalCondition(20, vocab_size=2, use_cuda=False,
-                                   ignore_oov=True)
+    catcond = CategoricalCondition(20, vocab_size=2, use_cuda=False)
     # Vocab should only hold A and B
     author_ids = catcond.fit_transform(authors)
     assert author_ids[-1] == 0
@@ -215,18 +216,6 @@ def test_categorical_condition_unk_treatment():
     enc_authors = catcond.encode(author_ids)
     # C token should be zero
     assert ((enc_authors[-1] - torch.zeros(20)).abs() < 1e-8).all()
-
-
-    ## OOV SHOULD GET RANDOM EMBEDDING
-    catcond = CategoricalCondition(20, vocab_size=2, use_cuda=False,
-                                   ignore_oov=False)
-    # Vocab should only hold A and B
-    author_ids = catcond.fit_transform(authors)
-    assert author_ids[-1] == 0
-
-    enc_authors = catcond.encode(author_ids)
-    # C token should be zero
-    assert ((enc_authors[-1] - torch.zeros(20)).abs() > 1e-8).any()
 
     with pytest.raises(AssertionError):
         catcond = CategoricalCondition(12, use_cuda=False, padding_idx=1231)
@@ -236,7 +225,7 @@ def test_categorical_condition_unk_treatment():
 def test_categorical_condition_sparse():
     authors = ["A", "A", "B", "B", "C"]
     catcond = CategoricalCondition(20, use_cuda=False,
-                                   ignore_oov=True, sparse=True)
+                                   sparse=True)
 
     author_ids = catcond.fit_transform(authors)
 
@@ -252,6 +241,60 @@ def test_categorical_condition_sparse():
     enc_authors_2 = catcond.encode(author_ids)
 
     assert (enc_authors_2.abs().sum() < enc_authors_1.abs().sum()).all()
+
+def test_categorical_condition_listoflists():
+    authors = [["A","B"],
+               ["A", "C"],
+               ["B", "C"],
+               ["A"],
+               ["B"],
+               ["A", "B", "C"]]
+    catcond = CategoricalCondition(20, use_cuda=False,
+                                   sparse=True, reduce='mean')
+
+    author_ids = catcond.fit_transform(authors)
+
+    enc_authors_1 = catcond.encode(author_ids)
+
+    loss = torch.nn.functional.mse_loss(enc_authors_1, torch.zeros(len(authors),20))
+
+    catcond.zero_grad()
+    loss.backward()
+    catcond.step()
+
+    # Encoded authors should now be closer to zero
+    enc_authors_2 = catcond.encode(author_ids)
+
+    assert (enc_authors_2.abs().sum() < enc_authors_1.abs().sum()).all()
+
+def test_categorical_condition_with_sklearn_shuffle():
+    authors = [["A","B"],
+               ["A", "C"],
+               ["B", "C"],
+               ["A"],  # 3
+               ["B"],  # 4
+               ["A", "B", "C"]]
+    catcond = CategoricalCondition(20, use_cuda=False,
+                                   sparse=True, reduce='mean')
+
+    author_ids = catcond.fit_transform(authors)
+
+    labels = np.arange(len(authors))
+    
+    labels_shf, authors_shf, author_ids_shf = shuffle(labels, authors, author_ids)
+
+    for l, a, i in zip(labels_shf, authors_shf, author_ids_shf):
+        if l == 0:
+            assert a[0] == "A" and a[1] == "B"
+            assert i[0] == catcond.vocab[a[0]]
+            assert i[1] == catcond.vocab[a[1]]
+        if l == 3:
+            assert a[0] == "A"
+            assert i[0] == catcond.vocab[a[0]]
+        if l == 4:
+            assert a[0] == "B"
+            assert i[0] == catcond.vocab[a[0]]
+
 
 
 def test_assemble_condition():
@@ -284,7 +327,4 @@ def test_assemble_condition():
         loss = criterion(x_enc, labels)
         loss.backward()
         condition.step()
-
-
-
 
