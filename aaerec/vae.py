@@ -342,7 +342,7 @@ def main():
     PARSER.add_argument('data', type=str, choices=['pub','eco'])
     args = PARSER.parse_args()
     DATA = CONFIG[args.data]
-    logfile = '/data22/ivagliano/test-vae/' + args.data + '-decoder.log'
+    logfile = '/data22/ivagliano/test-vae/' + args.data + '-hyperparams-opt.log'
     bags = Bags.load_tabcomma_format(DATA[0])
     c_year = DATA[1]
 
