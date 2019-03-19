@@ -440,12 +440,14 @@ class CategoricalCondition(ConcatenationBasedConditioning):
             # inputs may have variable lengths, pad them
             inputs = self._pad_batch(inputs)
         inputs = torch.LongTensor(inputs)
-        if self.use_cuda:
+        if self.embedding_on_gpu and self.use_cuda:
             inputs = inputs.cuda()
         h = self.embedding(inputs)
         if self.reduce is not None:
             # self.reduce in ['mean','sum','max']
             h = getattr(h, self.reduce)(1)
+        if self.use_cuda:
+            h = h.cuda()
         return h
 
     def zero_grad(self):
