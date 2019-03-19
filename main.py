@@ -1,7 +1,7 @@
 import argparse
 from aaerec.datasets import Bags
 from aaerec.evaluation import Evaluation
-from aaerec.aae import AAERecommender, DecodingRecommender
+from aaerec.aae import AAERecommender, DecodingRecommender, VAERecommender, DAERecommender
 from aaerec.baselines import RandomBaseline, Countbased, MostPopular
 from aaerec.svd import SVDRecommender
 from gensim.models.keyedvectors import KeyedVectors
@@ -83,7 +83,8 @@ CONDITIONED_MODELS = [
 #    DecodingRecommender(CONDITIONS,
 #                        n_epochs=ARGS.epochs, batch_size=100, optimizer='adam',
 #                        n_hidden=100, lr=ARGS.lr, verbose=True),
-     VaeRecommender(CONDITIONS, **vae_params)
+     VAERecommender(conditions=CONDITIONS, **vae_params)
+     DAERecommender(conditions=CONDITIONS, **ae_params)
 ]
 
 
