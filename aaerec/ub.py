@@ -78,7 +78,7 @@ class GensimEmbeddedVectorizer(EmbeddedVectorizer):
         `gensim_vectors` is expected to have index2word and syn0 defined
         """
         index2word = gensim_vectors.index2word
-        embedding = gensim_vectors.syn0
+        embedding = gensim_vectors.vectors
         super(GensimEmbeddedVectorizer, self).__init__(embedding,
                                                        index2word,
                                                        **kwargs)

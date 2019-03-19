@@ -1,4 +1,5 @@
 """ Tests various functionalities wrt conditions """
+import pytest
 import torch
 from sklearn.feature_extraction.text import TfidfVectorizer
 from aaerec.condition import EmbeddingBagCondition,\
@@ -112,7 +113,7 @@ def test_word_emb_condition():
         [s.split() for s in sentences],
         min_count=1, window=2, size=emb_dim
     )
-    condition = PretrainedWordEmbeddingCondition(model.wv)
+    condition = PretrainedWordEmbeddingCondition(model.wv, use_cuda=False)
     sentences_trf = condition.fit_transform(sentences)
 
     code = torch.rand(len(sentences), 5)
@@ -142,8 +143,8 @@ def test_full_pipeline():
         [s.split() for s in data['titles']],
         min_count=1, window=2, size=emb_dim
     )
-    cond1 = PretrainedWordEmbeddingCondition(model.wv)
-    cond2 = CategoricalCondition(3, emb_dim)
+    cond1 = PretrainedWordEmbeddingCondition(model.wv, use_cuda=False)
+    cond2 = CategoricalCondition(3, emb_dim, use_cuda=False)
 
     clist = ConditionList([('titles', cond1),
                            ('authors', cond2)])
@@ -180,6 +181,57 @@ def test_full_pipeline():
             losses.append(loss.item())
             clist.step()
             optimizer.step()
+
+
+def test_categorical_condition():
+
+    authors = ["Mr X", "Falafel", "Pizza", "Am I hungry?", "Mr X"]
+    catcond = CategoricalCondition(20, vocab_size=10, use_cuda=False)
+    author_ids = catcond.fit_transform(authors)
+    some_code = torch.rand(len(authors), 10)
+
+    encoded_authors = catcond.encode(author_ids)
+    assert encoded_authors.size(0) == len(authors) and encoded_authors.size(1) == 20
+
+    # Mr X is Mr X
+    assert ((encoded_authors[0] - encoded_authors[-1]).abs() < 1e-8).all()
+
+    cond_code = catcond.impose(some_code, encoded_authors)
+    # 20 + 10 should turn out to be 30
+    assert cond_code.size(0) == len(authors) and cond_code.size(1) == 30
+
+
+def test_categorical_condition_unk_treatment():
+    authors = ["A", "A", "B", "B", "C"]
+
+
+    ## OOV SHOULD BE IGNORE
+    catcond = CategoricalCondition(20, vocab_size=2, use_cuda=False,
+                                   ignore_oov=True)
+    # Vocab should only hold A and B
+    author_ids = catcond.fit_transform(authors)
+    assert author_ids[-1] == 0
+
+    enc_authors = catcond.encode(author_ids)
+    # C token should be zero
+    assert ((enc_authors[-1] - torch.zeros(20)).abs() < 1e-8).all()
+
+
+    ## OOV SHOULD GET RANDOM EMBEDDING
+    catcond = CategoricalCondition(20, vocab_size=2, use_cuda=False,
+                                   ignore_oov=False)
+    # Vocab should only hold A and B
+    author_ids = catcond.fit_transform(authors)
+    assert author_ids[-1] == 0
+
+    enc_authors = catcond.encode(author_ids)
+    # C token should be zero
+    assert ((enc_authors[-1] - torch.zeros(20)).abs() > 1e-8).any()
+
+    with pytest.raises(AssertionError):
+        catcond = CategoricalCondition(12, use_cuda=False, padding_idx=1231)
+
+
 
 
 def test_assemble_condition():
