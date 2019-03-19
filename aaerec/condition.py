@@ -363,6 +363,7 @@ class CategoricalCondition(ConcatenationBasedConditioning):
 
     def __init__(self, embedding_dim, vocab_size=None,
                  use_cuda=torch.cuda.is_available(),
+                 ignore_oov=True,
                  **embedding_params):
         """
         Arguments
@@ -377,17 +378,22 @@ class CategoricalCondition(ConcatenationBasedConditioning):
         self.vocab = None
         self.embedding = None
         self.optimizer = None
+        assert "padding_idx" not in embedding_params
         self.embedding_params = embedding_params
         self.use_cuda = use_cuda
+
+        self.ignore_oov = ignore_oov
 
     def fit(self, raw_inputs):
         """ Learn a vocabulary """
         items = Counter(raw_inputs).most_common(self.vocab_size)
         # index 0 is reserved for unk idx
+        padding_idx = 0 if self.ignore_oov else None
         self.vocab = {value: idx + 1 for idx, (value, __) in enumerate(items)}
         num_embeddings = len(self.vocab) + 1
         self.embedding = nn.Embedding(num_embeddings,
                                       self.embedding_dim,
+                                      padding_idx=padding_idx,
                                       **self.embedding_params)
         if self.use_cuda:
             self.embedding = self.embedding.cuda()

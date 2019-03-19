@@ -1,4 +1,5 @@
 """ Tests various functionalities wrt conditions """
+import pytest
 import torch
 from sklearn.feature_extraction.text import TfidfVectorizer
 from aaerec.condition import EmbeddingBagCondition,\
@@ -200,7 +201,35 @@ def test_categorical_condition():
     assert cond_code.size(0) == len(authors) and cond_code.size(1) == 30
 
 
+def test_categorical_condition_unk_treatment():
+    authors = ["A", "A", "B", "B", "C"]
 
+
+    ## OOV SHOULD BE IGNORE
+    catcond = CategoricalCondition(20, vocab_size=2, use_cuda=False,
+                                   ignore_oov=True)
+    # Vocab should only hold A and B
+    author_ids = catcond.fit_transform(authors)
+    assert author_ids[-1] == 0
+
+    enc_authors = catcond.encode(author_ids)
+    # C token should be zero
+    assert ((enc_authors[-1] - torch.zeros(20)).abs() < 1e-8).all()
+
+
+    ## OOV SHOULD GET RANDOM EMBEDDING
+    catcond = CategoricalCondition(20, vocab_size=2, use_cuda=False,
+                                   ignore_oov=False)
+    # Vocab should only hold A and B
+    author_ids = catcond.fit_transform(authors)
+    assert author_ids[-1] == 0
+
+    enc_authors = catcond.encode(author_ids)
+    # C token should be zero
+    assert ((enc_authors[-1] - torch.zeros(20)).abs() > 1e-8).any()
+
+    with pytest.raises(AssertionError):
+        catcond = CategoricalCondition(12, use_cuda=False, padding_idx=1231)
 
 
 
