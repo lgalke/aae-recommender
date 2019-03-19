@@ -144,7 +144,7 @@ def test_full_pipeline():
         min_count=1, window=2, size=emb_dim
     )
     cond1 = PretrainedWordEmbeddingCondition(model.wv, use_cuda=False)
-    cond2 = CategoricalCondition(3, emb_dim, use_cuda=False)
+    cond2 = CategoricalCondition(emb_dim, vocab_size=3, use_cuda=False)
 
     clist = ConditionList([('titles', cond1),
                            ('authors', cond2)])
@@ -232,6 +232,26 @@ def test_categorical_condition_unk_treatment():
         catcond = CategoricalCondition(12, use_cuda=False, padding_idx=1231)
 
 
+
+def test_categorical_condition_sparse():
+    authors = ["A", "A", "B", "B", "C"]
+    catcond = CategoricalCondition(20, use_cuda=False,
+                                   ignore_oov=True, sparse=True)
+
+    author_ids = catcond.fit_transform(authors)
+
+    enc_authors_1 = catcond.encode(author_ids)
+
+    loss = torch.nn.functional.mse_loss(enc_authors_1, torch.zeros(5,20))
+
+    catcond.zero_grad()
+    loss.backward()
+    catcond.step()
+
+    # Encoded authors should now be closer to zero
+    enc_authors_2 = catcond.encode(author_ids)
+
+    assert (enc_authors_2.abs().sum() < enc_authors_1.abs().sum()).all()
 
 
 def test_assemble_condition():

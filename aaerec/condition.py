@@ -357,20 +357,24 @@ class EmbeddingBagCondition(ConcatenationBasedConditioning):
 
 
 class CategoricalCondition(ConcatenationBasedConditioning):
-    """ A condition with a *trainable* embedding bag.
-    It is suited for conditioning on categorical variables.
+    """ A *trainable* condition for categorical attributes.
     """
 
     def __init__(self, embedding_dim, vocab_size=None,
+                 sparse=True,
                  use_cuda=torch.cuda.is_available(),
+                 embedding_on_gpu=False,
                  ignore_oov=True,
+                 lr=1e-3,
                  **embedding_params):
         """
         Arguments
         ---------
         - embedding_dim: int - Size of the embedding
         - vocab_size: int - Vocabulary size limit (if given)
-
+        - ignore_oov: bool - If given, set oov embedding to zero
+        - lr: float - initial learning rate for Adam / SparseAdam
+        - sparse: bool - If given, use sparse embedding & optimizer
         """
         # register this module's parameters with the optimizer
         self.vocab_size = vocab_size
@@ -378,11 +382,17 @@ class CategoricalCondition(ConcatenationBasedConditioning):
         self.vocab = None
         self.embedding = None
         self.optimizer = None
-        assert "padding_idx" not in embedding_params
-        self.embedding_params = embedding_params
-        self.use_cuda = use_cuda
+        self.lr = lr
 
         self.ignore_oov = ignore_oov
+        self.sparse = sparse
+
+        self.use_cuda = use_cuda
+        self.embedding_on_gpu = embedding_on_gpu
+
+        # We take care of vocab handling & padding ourselves
+        assert "padding_idx" not in embedding_params
+        self.embedding_params = embedding_params
 
     def fit(self, raw_inputs):
         """ Learn a vocabulary """
@@ -394,10 +404,15 @@ class CategoricalCondition(ConcatenationBasedConditioning):
         self.embedding = nn.Embedding(num_embeddings,
                                       self.embedding_dim,
                                       padding_idx=padding_idx,
-                                      **self.embedding_params)
-        if self.use_cuda:
+                                      **self.embedding_params,
+                                      sparse=self.sparse)
+        if self.use_cuda and self.embedding_on_gpu:
+            # Put the embedding on GPU only when wanted
             self.embedding = self.embedding.cuda()
-        self.optimizer = optim.Adam(self.embedding.parameters())
+        if self.sparse:
+            self.optimizer= optim.SparseAdam(self.embedding.parameters(), lr=self.lr)
+        else:
+            self.optimizer = optim.Adam(self.embedding.parameters(), lr=self.lr)
         return self
 
     def transform(self, raw_inputs):
