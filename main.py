@@ -62,8 +62,10 @@ vae_params = {
 }
 
 RECOMMENDERS = [
-    AAERecommender(adversarial=False, lr=ARGS.lr, **ae_params),
-    AAERecommender(gen_lr=ARGS.lr, reg_lr=ARGS.lr, **ae_params),
+    # AAERecommender(adversarial=False, lr=ARGS.lr, **ae_params),
+    # AAERecommender(gen_lr=ARGS.lr, reg_lr=ARGS.lr, **ae_params),
+    VAERecommender(conditions=None, **vae_params),
+    DAERecommender(conditions=None, **ae_params)
 ]
 
 
@@ -102,9 +104,9 @@ TITLE_ENHANCED = [
     #                **ae_params),
 ]
 
-# with open(ARGS.outfile, 'a') as fh:
-#     print("~ Conditioned Models", "~" * 42, file=fh)
-# EVAL(RECOMMENDERS)
+with open(ARGS.outfile, 'a') as fh:
+    print("~ Conditioned Models", "~" * 42, file=fh)
+EVAL(RECOMMENDERS)
 with open(ARGS.outfile, 'a') as fh:
     print("~ Conditioned Models", "~" * 42, file=fh)
 EVAL(CONDITIONED_MODELS)
