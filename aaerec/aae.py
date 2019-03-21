@@ -9,7 +9,6 @@ from torch.autograd import Variable
 
 # sklearn
 import sklearn
-from sklearn.feature_extraction.text import TfidfVectorizer
 from .ub import AutoEncoderMixin
 
 # numpy
@@ -20,10 +19,9 @@ import scipy.sparse as sp
 from .base import Recommender
 from .datasets import Bags
 from .evaluation import Evaluation
-from .ub import GensimEmbeddedVectorizer
 from gensim.models.keyedvectors import KeyedVectors
 
-from .condition import ConditionList, _check_conditions
+from .condition import _check_conditions
 
 
 torch.manual_seed(42)
@@ -461,7 +459,7 @@ class DecodingRecommender(Recommender):
         self.batch_size = batch_size
         self.lr = lr
         self.optimizer = optimizer.lower()
-        self.mlp_params = mlp_params
+        self.model_params = mlp_params
         self.verbose = verbose
         self.n_hidden = n_hidden
         assert len(conditions), "Minimum 1 condition is necessary for MLP"
@@ -476,7 +474,7 @@ class DecodingRecommender(Recommender):
         desc += " optimized by " + self.optimizer
         desc += " with learning rate " + str(self.lr)
         desc += " with %d conditions: %s " % (len(self.conditions), ', '.join(self.conditions.keys()))
-        desc += "\n MLP Params: " + str(self.mlp_params)
+        desc += "\n MLP Params: " + str(self.model_params)
         return desc
 
     def partial_fit(self, condition_data, y):
@@ -512,7 +510,7 @@ class DecodingRecommender(Recommender):
         self.mlp = Decoder(self.conditions.size_increment(),
                            self.n_hidden,
                            Y.shape[1],
-                           **self.mlp_params)
+                           **self.model_params)
         if torch.cuda.is_available():
             self.mlp = self.mlp.cuda()
         optimizer_cls = TORCH_OPTIMIZERS[self.optimizer]
