@@ -265,7 +265,6 @@ class Bags(object):
             print("Making items unique within user.")
             sets = [list(set(s)) for s in sets]
 
-
         bags = Bags(sets, set_owners, owner_attributes=owner_attributes)
 
         return bags
