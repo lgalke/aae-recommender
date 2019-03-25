@@ -384,7 +384,7 @@ def main():
     # print("Loading pre-trained embedding", W2V_PATH)
     # vectors = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 
-    models = [IRGANRecommender(param)]
+    models = [IRGANRecommender(param, evaluate.test_set)]
     evaluate(models)
 
 
