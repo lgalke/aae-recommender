@@ -1,7 +1,7 @@
 import tensorflow as tf
 from irgan.dis_model import DIS
 from irgan.gen_model import GEN
-import cPickle
+# import cPickle
 import numpy as np
 import irgan.utils as ut
 import multiprocessing
@@ -33,8 +33,7 @@ class IRGAN():
 
     def __init__(self,
                  # inp,
-                 gen_param,
-                 test_set,
+                 gen_param=None,
                  batch_size=16,
                  emb_dim=5,
                  lr=0.001,
@@ -65,7 +64,6 @@ class IRGAN():
         self.discriminator = DIS(ITEM_NUM, USER_NUM, emb_dim, lamda=0.1 / batch_size, param=None, initdelta=init_delta,
                                  learning_rate=lr)
 
-        self.user_pos_test = test_set
 
     def dcg_at_k(self, r, k):
         r = np.asfarray(r)[:k]
@@ -137,22 +135,22 @@ class IRGAN():
         # TODO use condition
         # use_condition = _check_conditions(self.conditions, condition_data)
 
-        config = tf.ConfigProto()
-        config.gpu_options.allow_growth = True
-        sess = tf.Session(config=config)
-        sess.run(tf.global_variables_initializer())
+        self.config = tf.ConfigProto()
+        self.config.gpu_options.allow_growth = True
+        self.sess = tf.Session(config=self.config)
+        self.sess.run(tf.global_variables_initializer())
 
-        print("gen ", self.predict(sess, self.generator))
-        print("dis ", self.predict(sess, self.discriminator))
+        # print("gen ", self.predict(sess, self.generator))
+        # print("dis ", self.predict(sess, self.discriminator))
 
         # TODO use proper logging file
-        dis_log = open(workdir + 'dis_log.txt', 'w')
-        gen_log = open(workdir + 'gen_log.txt', 'w')
+        # dis_log = open(workdir + 'dis_log.txt', 'w')
+        # gen_log = open(workdir + 'gen_log.txt', 'w')
 
         self.user_pos_train = X
 
         # minimax training
-        best = 0.
+        # best = 0.
         for epoch in range(self.n_epochs):
             if self.verbose:
                 print("Epoch", epoch + 1)
@@ -160,20 +158,21 @@ class IRGAN():
             if epoch >= 0:
                 for d_epoch in range(self.d_epochs): #100
                     if d_epoch % 5 == 0:
-                        self.generate_for_d(sess, self.generator, DIS_TRAIN_FILE)
+                        self.generate_for_d(self.sess, self.generator, DIS_TRAIN_FILE)
                         train_size = ut.file_len(DIS_TRAIN_FILE)
                     index = 1
                     while True:
                         if index > train_size:
                             break
                         if index + self.batch_size <= train_size + 1:
-                            input_user, input_item, input_label = ut.get_batch_data(DIS_TRAIN_FILE, index, self.batch_size)
+                            input_user, input_item, input_label = ut.get_batch_data(DIS_TRAIN_FILE, index,
+                                                                                    self.batch_size)
                         else:
                             input_user, input_item, input_label = ut.get_batch_data(DIS_TRAIN_FILE, index,
                                                                                     train_size - index + 1)
                         index += self.batch_size
 
-                        _ = sess.run(self.discriminator.d_updates,
+                        _ = self.sess.run(self.discriminator.d_updates,
                                      feed_dict={self.discriminator.u: input_user, self.discriminator.i: input_item,
                                                 self.discriminator.label: input_label})
 
@@ -183,7 +182,7 @@ class IRGAN():
                         sample_lambda = 0.2
                         pos = self.user_pos_train[u]
 
-                        rating = sess.run(self.generator.all_logits, {self.generator.u: u})
+                        rating = self.sess.run(self.generator.all_logits, {self.generator.u: u})
                         exp_rating = np.exp(rating)
                         prob = exp_rating / np.sum(exp_rating)  # prob is generator distribution p_\theta
 
@@ -195,36 +194,37 @@ class IRGAN():
                         ###########################################################################
                         # Get reward and adapt it with importance sampling
                         ###########################################################################
-                        reward = sess.run(self.discriminator.reward, {self.discriminator.u: u, self.discriminator.i: sample})
+                        reward = self.sess.run(self.discriminator.reward, {self.discriminator.u: u,
+                                                                           self.discriminator.i: sample})
                         reward = reward * prob[sample] / pn[sample]
                         ###########################################################################
                         # Update G
                         ###########################################################################
-                        _ = sess.run(self.generator.gan_updates,
+                        _ = self.sess.run(self.generator.gan_updates,
                                      {self.generator.u: u, self.generator.i: sample, self.generator.reward: reward})
 
-                    result = self.predict(sess, self.generator)
-                    print("epoch ", epoch, "gen: ", result)
-                    buf = '\t'.join([str(x) for x in result])
-                    gen_log.write(str(epoch) + '\t' + buf + '\n')
-                    gen_log.flush()
+                    # result = self.predict(sess, self.generator)
+                    # print("epoch ", epoch, "gen: ", result)
+                    # buf = '\t'.join([str(x) for x in result])
+                    # gen_log.write(str(epoch) + '\t' + buf + '\n')
+                    # gen_log.flush()
+                    #
+                    # p_5 = result[1]
+                    # if p_5 > best:
+                    #     print('best: ', result)
+                    #     best = p_5
+                    #     self.generator.save_model(sess, "ml-100k/gan_generator.pkl")
 
-                    p_5 = result[1]
-                    if p_5 > best:
-                        print('best: ', result)
-                        best = p_5
-                        self.generator.save_model(sess, "ml-100k/gan_generator.pkl")
-
-        gen_log.close()
-        dis_log.close()
+        # gen_log.close()
+        # dis_log.close()
 
         return self
 
-    def predict(self, X, sess, model):
+    def predict(self, X, condition_data=None):
         result = np.array([0.] * 6)
         pool = multiprocessing.Pool(cores)
         batch_size = 128
-        test_users = self.user_pos_test.keys()
+        test_users = X.keys()
         test_user_num = len(test_users)
         index = 0
         while True:
@@ -233,7 +233,7 @@ class IRGAN():
             user_batch = test_users[index:index + batch_size]
             index += batch_size
 
-            user_batch_rating = sess.run(model.all_rating, {model.u: user_batch})
+            user_batch_rating = self.sess.run(self.generator.all_rating, {self.generator.u: user_batch})
             user_batch_rating_uid = zip(user_batch_rating, user_batch)
             batch_result = pool.map(self.simple_test_one_user, user_batch_rating_uid)
             for re in batch_result:
@@ -264,7 +264,7 @@ class IRGANRecommender(Recommender):
     verbose: Print losses during training
     normalize_inputs: Whether l1-normalization is performed on the input
     """
-    def __init__(self, gen_param, test_set, conditions=None, **kwargs):
+    def __init__(self, gen_param=None, conditions=None, **kwargs):
         """ tfidf_params get piped to either TfidfVectorizer or
         EmbeddedVectorizer.  Remaining kwargs get passed to
         AdversarialAutoencoder """
@@ -273,7 +273,6 @@ class IRGANRecommender(Recommender):
         self.conditions = conditions
         self.model_params = kwargs
         self.gen_param = gen_param
-        self.test_set = test_set
 
     def __str__(self):
        desc = "IRGAN"
@@ -300,7 +299,7 @@ class IRGANRecommender(Recommender):
         else:
             condition_data = None
 
-        self.model = IRGAN(self.gen_param, self.test_set, conditions=self.conditions, **self.model_params)
+        self.model = IRGAN(self.gen_param, conditions=self.conditions, **self.model_params)
 
         print(self)
         print(self.model)
@@ -322,10 +321,11 @@ class IRGANRecommender(Recommender):
 
         return pred
 
+
 def main():
 
-    print("load model...")
-    param = cPickle.load(open(workdir + "model_dns_ori.pkl"))
+    # print("load model...")
+    # param = cPickle.load(open(workdir + "model_dns_ori.pkl"))
 
     CONFIG = {
         'pub': ('../Data/PMC/citations_pmc.tsv', 2011, 50),
@@ -347,7 +347,7 @@ def main():
     # print("Loading pre-trained embedding", W2V_PATH)
     # vectors = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 
-    models = [IRGANRecommender(param, evaluate.test_set)]
+    models = [IRGANRecommender()]
     evaluate(models)
 
 

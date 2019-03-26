@@ -224,7 +224,7 @@ class Bags(object):
         return [self.get_single_attribute(a) for a in attribute_list]
 
     def to_dict(self):
-        return dict(zip(self.bag_owners, self.data))
+        return dict(enumerate(self.data))
 
     @classmethod
     def load_tabcomma_format(self, path, unique=False):
