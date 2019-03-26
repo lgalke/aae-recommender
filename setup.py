@@ -10,6 +10,8 @@ requirements = [
       'joblib',
       'matplotlib',
       'seaborn',
+      'tensorflow',
+      'cPickle'
 ]
 setup(name='aaerec',
       version=0.1,
