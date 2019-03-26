@@ -339,7 +339,7 @@ class DAERecommender(Recommender):
         AdversarialAutoencoder """
         super().__init__()
         self.verbose = kwargs.get('verbose', True)
-        self.dae_params = kwargs
+        self.model_params = kwargs
         self.conditions = conditions
         self.dae = None
 
@@ -347,7 +347,7 @@ class DAERecommender(Recommender):
         desc = "Denoising Autoencoder"
         if self.conditions:
             desc += " conditioned on: " + ', '.join(self.conditions.keys())
-        desc += '\nDAE Params: ' + str(self.dae_params)
+        desc += '\nDAE Params: ' + str(self.model_params)
 
         return desc
 
@@ -359,7 +359,7 @@ class DAERecommender(Recommender):
         else:
             condition_data = None
 
-        self.dae = DenoisingAutoEncoder(conditions=self.conditions, **self.dae_params)
+        self.dae = DenoisingAutoEncoder(conditions=self.conditions, **self.model_params)
 
         print(self)
         print(self.dae)
