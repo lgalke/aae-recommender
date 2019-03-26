@@ -65,7 +65,7 @@ class IRGAN():
         self.discriminator = DIS(ITEM_NUM, USER_NUM, emb_dim, lamda=0.1 / batch_size, param=None, initdelta=init_delta,
                                  learning_rate=lr)
 
-        self.test_set = self.to_IRGAN_data(test_set)
+        self.user_pos_test = test_set
 
     def dcg_at_k(self, r, k):
         r = np.asfarray(r)[:k]
@@ -149,7 +149,7 @@ class IRGAN():
         dis_log = open(workdir + 'dis_log.txt', 'w')
         gen_log = open(workdir + 'gen_log.txt', 'w')
 
-        self.user_pos_train = self.to_IRGAN_data(X)
+        self.user_pos_train = X
 
         # minimax training
         best = 0.
@@ -244,12 +244,6 @@ class IRGAN():
         ret = list(ret)
         return ret
 
-    def to_IRGAN_data(self, X):
-        # TODO implement
-        user_pos = {}
-
-        return user_pos
-
 
 class IRGANRecommender(Recommender):
     ### DONE Adapt to generic condition ###
@@ -299,7 +293,7 @@ class IRGANRecommender(Recommender):
         :param training_set: ???, Bag Class training set
         :return: trained self
         """
-        X = training_set.tocsr()
+        X = training_set.to_dict()
         if self.conditions:
             condition_data_raw = training_set.get_attributes(self.conditions.keys())
             condition_data = self.conditions.fit_transform(condition_data_raw)
@@ -316,7 +310,7 @@ class IRGANRecommender(Recommender):
 
     def predict(self, test_set):
         ### DONE Adapt to generic condition ###
-        X = test_set.tocsr()
+        X = test_set.to_dict()
         if self.conditions:
             condition_data_raw = test_set.get_attributes(self.conditions.keys())
             # Important to not call fit here, but just transform
@@ -329,37 +323,6 @@ class IRGANRecommender(Recommender):
         return pred
 
 def main():
-    #########################################################################################
-    # Load data
-    #########################################################################################
-    user_pos_train = {}
-    with open(workdir + 'movielens-100k-train.txt')as fin:
-        for line in fin:
-            line = line.split()
-            uid = int(line[0])
-            iid = int(line[1])
-            r = float(line[2])
-            if r > 3.99:
-                if uid in user_pos_train:
-                    user_pos_train[uid].append(iid)
-                else:
-                    user_pos_train[uid] = [iid]
-
-    user_pos_test = {}
-    with open(workdir + 'movielens-100k-test.txt')as fin:
-        for line in fin:
-            line = line.split()
-            uid = int(line[0])
-            iid = int(line[1])
-            r = float(line[2])
-            if r > 3.99:
-                if uid in user_pos_test:
-                    user_pos_test[uid].append(iid)
-                else:
-                    user_pos_test[uid] = [iid]
-
-    all_users = user_pos_train.keys()
-    all_users.sort()
 
     print("load model...")
     param = cPickle.load(open(workdir + "model_dns_ori.pkl"))

@@ -173,7 +173,6 @@ class Bags(object):
         # consumes performance
         # self.index2token = invert_mapping(vocab)
 
-
     def clone(self):
         """ Creates a really deep copy """
         data = [[t for t in b] for b in self.data]
@@ -201,8 +200,6 @@ class Bags(object):
         """ Computes the number of (non-zero) elements """
         return sum(map(len, self.data))
 
-
-
     def get_single_attribute(self, attribute):
         # TODO: find representation in owner_attributes for doctex
         """
@@ -226,6 +223,8 @@ class Bags(object):
     def get_attributes(self, attribute_list):
         return [self.get_single_attribute(a) for a in attribute_list]
 
+    def to_dict(self):
+        return dict(zip(self.bag_owners, self.data))
 
     @classmethod
     def load_tabcomma_format(self, path, unique=False):
@@ -249,7 +248,6 @@ class Bags(object):
         for meta_header in header[2:]:
             meta_vals.append(df[meta_header].values)
         print("with", len(header) - 2, "metadata columns.")
-
 
         # for i, owner in enumerate(set_owners):
         #     for j in range(2, len(header)):
