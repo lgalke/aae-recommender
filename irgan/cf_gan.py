@@ -16,23 +16,14 @@ from gensim.models.keyedvectors import KeyedVectors
 
 cores = multiprocessing.cpu_count()
 
-#########################################################################################
-# Hyper-parameters
-#########################################################################################
-EMB_DIM = 5
-USER_NUM = 943
-ITEM_NUM = 1683
-BATCH_SIZE = 16
-INIT_DELTA = 0.05
-
-all_items = set(range(ITEM_NUM))
-workdir = 'ml-100k/'
-DIS_TRAIN_FILE = workdir + 'dis-train.txt'
+# workdir = 'ml-100k/'
+DIS_TRAIN_FILE = 'dis-train.txt'
 
 class IRGAN():
 
     def __init__(self,
-                 # inp,
+                 user_num,
+                 item_num,
                  gen_param=None,
                  batch_size=16,
                  emb_dim=5,
@@ -47,7 +38,6 @@ class IRGAN():
                  verbose=True):
 
         # self.normalize_inputs = normalize_inputs
-        # self.inp = inp
         self.verbose = verbose
         self.batch_size = batch_size
         self.conditions = conditions
@@ -58,12 +48,14 @@ class IRGAN():
         self.n_epochs = n_epochs
         self.g_epochs = g_epochs
         self.d_epochs = d_epochs
+        self.user_num = user_num
+        self.item_num = item_num
+        self.all_items = set(range(item_num))
 
-        self.generator = GEN(ITEM_NUM, USER_NUM, emb_dim, lamda=0.0 / batch_size, param=gen_param, initdelta=init_delta,
+        self.generator = GEN(item_num, user_num, emb_dim, lamda=0.0 / batch_size, param=gen_param, initdelta=init_delta,
                              learning_rate=lr)
-        self.discriminator = DIS(ITEM_NUM, USER_NUM, emb_dim, lamda=0.1 / batch_size, param=None, initdelta=init_delta,
+        self.discriminator = DIS(item_num, user_num, emb_dim, lamda=0.1 / batch_size, param=None, initdelta=init_delta,
                                  learning_rate=lr)
-
 
     def dcg_at_k(self, r, k):
         r = np.asfarray(r)[:k]
@@ -79,7 +71,7 @@ class IRGAN():
         rating = x[0]
         u = x[1]
 
-        test_items = list(all_items - set(self.user_pos_train[u]))
+        test_items = list(self.all_items - set(self.user_pos_train[u]))
         item_score = []
         for i in test_items:
             item_score.append((i, rating[i]))
@@ -114,7 +106,7 @@ class IRGAN():
             exp_rating = np.exp(rating)
             prob = exp_rating / np.sum(exp_rating)
 
-            neg = np.random.choice(np.arange(ITEM_NUM), size=len(pos), p=prob)
+            neg = np.random.choice(np.arange(self.item_num), size=len(pos), p=prob)
             for i in range(len(pos)):
                 data.append(str(u) + '\t' + str(pos[i]) + '\t' + str(neg[i]))
 
@@ -190,7 +182,7 @@ class IRGAN():
                         pn[pos] += sample_lambda * 1.0 / len(pos)
                         # Now, pn is the Pn in importance sampling, prob is generator distribution p_\theta
 
-                        sample = np.random.choice(np.arange(ITEM_NUM), 2 * len(pos), p=pn)
+                        sample = np.random.choice(np.arange(self.item_num), 2 * len(pos), p=pn)
                         ###########################################################################
                         # Get reward and adapt it with importance sampling
                         ###########################################################################
@@ -264,7 +256,7 @@ class IRGANRecommender(Recommender):
     verbose: Print losses during training
     normalize_inputs: Whether l1-normalization is performed on the input
     """
-    def __init__(self, gen_param=None, conditions=None, **kwargs):
+    def __init__(self, user_num, item_num, gen_param=None, conditions=None, **kwargs):
         """ tfidf_params get piped to either TfidfVectorizer or
         EmbeddedVectorizer.  Remaining kwargs get passed to
         AdversarialAutoencoder """
@@ -273,6 +265,8 @@ class IRGANRecommender(Recommender):
         self.conditions = conditions
         self.model_params = kwargs
         self.gen_param = gen_param
+        self.user_num = user_num
+        self.item_num = item_num
 
     def __str__(self):
        desc = "IRGAN"
@@ -299,7 +293,8 @@ class IRGANRecommender(Recommender):
         else:
             condition_data = None
 
-        self.model = IRGAN(self.gen_param, conditions=self.conditions, **self.model_params)
+        self.model = IRGAN(self.user_num, self.item_num, self.gen_param, conditions=self.conditions,
+                           **self.model_params)
 
         print(self)
         print(self.model)
@@ -346,8 +341,8 @@ def main():
                                                  min_elements=2)
     # print("Loading pre-trained embedding", W2V_PATH)
     # vectors = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
-
-    models = [IRGANRecommender()]
+    sizes = bags.sizes()
+    models = [IRGANRecommender(sizes[0], sizes[1])]
     evaluate(models)
 
 
