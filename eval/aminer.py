@@ -35,7 +35,7 @@ VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 ae_params = {
     'n_code': 50,
     'n_epochs': 20,
-    'embedding': VECTORS,
+#    'embedding': VECTORS,
     'batch_size': 100,
     'n_hidden': 100,
     'normalize_inputs': True,
@@ -49,10 +49,12 @@ BASELINES = [
 ]
 
 RECOMMENDERS = [
-    AAERecommender(use_title=False, adversarial=False, lr=0.0001,
-                   **ae_params),
-    AAERecommender(use_title=False, prior='gauss', gen_lr=0.0001,
-                   reg_lr=0.0001, **ae_params),
+    # AAERecommender(use_title=False, adversarial=False, lr=0.0001,
+    #                **ae_params),
+    # AAERecommender(use_title=False, prior='gauss', gen_lr=0.0001,
+    #                reg_lr=0.0001, **ae_params),
+    VAERecommender(conditions=None, **ae_params),
+    DAERecommender(conditions=None, **ae_params)
 ]
 
 TITLE_ENHANCED = [
@@ -65,6 +67,28 @@ TITLE_ENHANCED = [
     AAERecommender(adversarial=True, use_title=True,
                    prior='gauss', gen_lr=0.001, reg_lr=0.001,
                    **ae_params),
+]
+
+CONDITIONS = ConditionList([
+    ('title', PretrainedWordEmbeddingCondition(VECTORS))
+])
+
+
+CONDITIONED_MODELS = [
+#    AAERecommender(adversarial=False,
+#                   conditions=CONDITIONS,
+#                   lr=ARGS.lr,
+#                   **ae_params),
+#    AAERecommender(adversarial=True,
+#                   conditions=CONDITIONS,
+#                   gen_lr=ARGS.lr,
+#                   reg_lr=ARGS.lr,
+#                   **ae_params),
+#    DecodingRecommender(CONDITIONS,
+#                        n_epochs=ARGS.epochs, batch_size=100, optimizer='adam',
+#                        n_hidden=100, lr=ARGS.lr, verbose=True),
+     VAERecommender(conditions=CONDITIONS, **vae_params),
+     DAERecommender(conditions=CONDITIONS, **ae_params)
 ]
 
 
@@ -204,12 +228,13 @@ def main(year, dataset, min_count=None, outfile=None):
 
     with open(outfile, 'a') as fh:
         print("~ Partial List", "~" * 42, file=fh)
-    evaluation(BASELINES + RECOMMENDERS)
+    # evaluation(BASELINES + RECOMMENDERS)
+    evaluation(RECOMMENDERS)
 
     with open(outfile, 'a') as fh:
         print("~ Partial List + Titles", "~" * 42, file=fh)
-    evaluation(TITLE_ENHANCED)
-
+    # evaluation(TITLE_ENHANCED)
+    evaluation(CONDITIONED_MODELS)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
