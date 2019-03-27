@@ -341,8 +341,9 @@ def main():
                                                  min_elements=2)
     # print("Loading pre-trained embedding", W2V_PATH)
     # vectors = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
-    users_items = bags.size()
-    models = [IRGANRecommender(users_items[0], users_items[1])]
+    user_num = evaluate.train_set.size()[0] + evaluate.test_set.size()[0]
+    item_num = evaluate.train_set.size()[1]
+    models = [IRGANRecommender(user_num, item_num)]
     evaluate(models)
 
 
