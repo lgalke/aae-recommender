@@ -323,15 +323,15 @@ def main():
     # param = cPickle.load(open(workdir + "model_dns_ori.pkl"))
 
     CONFIG = {
-        'pub': ('../Data/PMC/citations_pmc.tsv', 2011, 50),
-        'eco': ('../Data/Economics/econbiz62k.tsv', 2012, 1)
+        'pub': ('/data21/lgalke/datasets/citations_pmc.tsv', 2011, 50),
+        'eco': ('/data21/lgalke/datasets/econbiz62k.tsv', 2012, 1)
     }
 
     PARSER = argparse.ArgumentParser()
     PARSER.add_argument('data', type=str, choices=['pub', 'eco'])
     args = PARSER.parse_args()
     DATA = CONFIG[args.data]
-    logfile = 'results/' + args.data + '-decoder.log'
+    logfile = '/data22/ivagliano/test-irgan/' + args.data + '-decoder.log'
     bags = Bags.load_tabcomma_format(DATA[0])
     c_year = DATA[1]
 
