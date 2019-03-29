@@ -182,6 +182,9 @@ class IRGAN():
                         pn[pos] += sample_lambda * 1.0 / len(pos)
                         # Now, pn is the Pn in importance sampling, prob is generator distribution p_\theta
 
+                        # print('pn sum=',pn.sum())
+                        # Normilize by probability sum to avoid np.random.choice error 'probability do not sum to one'
+                        pn /= pn.sum()
                         sample = np.random.choice(np.arange(self.item_num), 2 * len(pos), p=pn)
                         ###########################################################################
                         # Get reward and adapt it with importance sampling
