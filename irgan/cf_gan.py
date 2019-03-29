@@ -219,7 +219,7 @@ class IRGAN():
         result = np.array([0.] * 6)
         pool = multiprocessing.Pool(cores)
         batch_size = 128
-        test_users = X.keys()
+        test_users = list(X.keys())
         test_user_num = len(test_users)
         index = 0
         while True:
