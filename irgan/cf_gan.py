@@ -67,12 +67,12 @@ class IRGAN():
             return 0.
         return self.dcg_at_k(r, k) / dcg_max
 
-    # def simple_test_one_user(self, x):
-    def simple_test_one_user(self, rating, u):
-        # rating = x[0]
-        # u = x[1]
+    def simple_test_one_user(self, x):
+        rating = x[0]
+        u = x[1]
 
-        test_items = list(self.all_items - set(self.user_pos_train[u]))
+        # test_items = list(self.all_items - set(self.user_pos_train[u]))
+        test_items = list(self.all_items - set([self.user_pos_train[k] for k in u]))
         item_score = []
         for i in test_items:
             item_score.append((i, rating[i]))
@@ -230,10 +230,9 @@ class IRGAN():
             index += batch_size
 
             user_batch_rating = self.sess.run(self.generator.all_rating, {self.generator.u: user_batch})
-            # user_batch_rating_uid = list(zip(user_batch_rating, user_batch))
+            user_batch_rating_uid = list(zip(user_batch_rating, user_batch))
             # batch_result = pool.map(self.simple_test_one_user, user_batch_rating_uid)
-            # result += self.simple_test_one_user(user_batch_rating_uid)
-            result += self.simple_test_one_user(user_batch_rating, user_batch)
+            result += self.simple_test_one_user(user_batch_rating_uid)
             # for re in batch_result:
             #     result += re
 
