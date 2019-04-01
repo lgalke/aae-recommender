@@ -217,7 +217,7 @@ class IRGAN():
 
     def predict(self, X, condition_data=None):
         result = np.array([0.] * 6)
-        pool = multiprocessing.Pool(cores)
+        # pool = multiprocessing.Pool(cores)
         batch_size = 128
         test_users = list(X.keys())
         test_user_num = len(test_users)
@@ -230,11 +230,12 @@ class IRGAN():
 
             user_batch_rating = self.sess.run(self.generator.all_rating, {self.generator.u: user_batch})
             user_batch_rating_uid = zip(user_batch_rating, user_batch)
-            batch_result = pool.map(self.simple_test_one_user, user_batch_rating_uid)
-            for re in batch_result:
-                result += re
+            # batch_result = pool.map(self.simple_test_one_user, user_batch_rating_uid)
+            result += self.simple_test_one_user(user_batch_rating_uid)
+            # for re in batch_result:
+            #     result += re
 
-        pool.close()
+        # pool.close()
         ret = result / test_user_num
         ret = list(ret)
         return ret
