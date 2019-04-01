@@ -229,7 +229,7 @@ class IRGAN():
             index += batch_size
 
             user_batch_rating = self.sess.run(self.generator.all_rating, {self.generator.u: user_batch})
-            user_batch_rating_uid = zip(user_batch_rating, user_batch)
+            user_batch_rating_uid = list(zip(user_batch_rating, user_batch))
             # batch_result = pool.map(self.simple_test_one_user, user_batch_rating_uid)
             result += self.simple_test_one_user(user_batch_rating_uid)
             # for re in batch_result:
