@@ -71,6 +71,9 @@ class IRGAN():
         rating = x[0]
         u = x[1]
 
+        print(len(self.all_items))
+        print(len(self.user_pos_train[u]))
+
         # test_items = list(self.all_items - set(self.user_pos_train[u]))
         test_items = list(self.all_items - set([self.user_pos_train[k] for k in u]))
         item_score = []
