@@ -347,7 +347,7 @@ def main():
     # vectors = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
     user_num = evaluate.train_set.size()[0] + evaluate.test_set.size()[0]
     item_num = evaluate.train_set.size()[1]
-    models = [IRGANRecommender(user_num, item_num)]
+    models = [IRGANRecommender(user_num, item_num,g_epochs=1,d_epochs=1,n_epochs=1)]
     evaluate(models)
 
 

@@ -10,7 +10,7 @@ requirements = [
       'joblib',
       'matplotlib',
       'seaborn',
-      'tensorflow',
+      'tensorflow-gpu==1.12.0',
 ]
 setup(name='aaerec',
       version=0.1,
