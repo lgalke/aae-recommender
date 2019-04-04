@@ -6,7 +6,6 @@ import numpy as np
 import irgan.utils as ut
 import multiprocessing
 import argparse
-import collections
 
 # own recommender stuff
 from aaerec.base import Recommender
@@ -14,6 +13,8 @@ from aaerec.datasets import Bags
 from aaerec.evaluation import Evaluation
 from aaerec.ub import GensimEmbeddedVectorizer
 from gensim.models.keyedvectors import KeyedVectors
+
+from aaerec.condition import ConditionList, _check_conditions
 
 cores = multiprocessing.cpu_count()
 
@@ -81,6 +82,7 @@ class IRGAN():
 
     def generate_for_d(self, sess, model, filename):
         data = []
+
         for u in self.user_pos_train:
             pos = self.user_pos_train[u]
 
@@ -107,19 +109,18 @@ class IRGAN():
         if y is not None:
             raise NotImplementedError("(Semi-)supervised usage not supported")
 
-        # TODO use condition
-        # use_condition = _check_conditions(self.conditions, condition_data)
+        use_condition = _check_conditions(self.conditions, condition_data)
 
         self.config = tf.ConfigProto()
         self.config.gpu_options.allow_growth = True
         self.sess = tf.Session(config=self.config)
         self.sess.run(tf.global_variables_initializer())
 
-        # TODO use proper logging file
-        # dis_log = open(workdir + 'dis_log.txt', 'w')
-        # gen_log = open(workdir + 'gen_log.txt', 'w')
-
         self.user_pos_train = X
+        if use_condition:
+            # impose condition line by line (by each key of the dictionary)
+            for u in self.user_pos_train:
+                self.user_pos_train[u] = self.conditions.encode_impose(self.user_pos_train[u], condition_data[u])
 
         # minimax training
         # best = 0.
@@ -193,6 +194,7 @@ class IRGAN():
             index += batch_size
 
             user_batch_rating = self.sess.run(self.generator.all_rating, {self.generator.u: user_batch})
+            # TODO encode_impose on user_batch_rating?
             for user_batch_rating_uid in zip(user_batch_rating, user_batch):
                 pred.append(self.simple_test_one_user(user_batch_rating_uid))
 
