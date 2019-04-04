@@ -82,7 +82,11 @@ class IRGAN():
         item_score = sorted(item_score, key=lambda x: x[1])
         item_score.reverse()
         # predicted items list (ordered by score)
-        item_sort = [x[0] for x in item_score]
+        # item_sort = [x[0] for x in item_score]
+        # generate a matrix row with score as probability
+        pred = np.zeros(self.item_num)
+        for item in item_score:
+            pred[item[0]] = item[1]
 
         # r = []
         # for i in item_sort:
@@ -99,7 +103,7 @@ class IRGAN():
         # ndcg_10 = self.ndcg_at_k(r, 10)
 
         # return np.array([p_3, p_5, p_10, ndcg_3, ndcg_5, ndcg_10])
-        return np.array(item_sort)
+        return pred
 
     def generate_for_d(self, sess, model, filename):
         data = []
