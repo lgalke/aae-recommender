@@ -58,17 +58,8 @@ class IRGAN():
         self.discriminator = DIS(item_num, user_num, emb_dim, lamda=0.1 / batch_size, param=None, initdelta=init_delta,
                                  learning_rate=lr)
 
-    def dcg_at_k(self, r, k):
-        r = np.asfarray(r)[:k]
-        return np.sum(r / np.log2(np.arange(2, r.size + 2)))
 
-    def ndcg_at_k(self, r, k):
-        dcg_max = self.dcg_at_k(sorted(r, reverse=True), k)
-        if not dcg_max:
-            return 0.
-        return self.dcg_at_k(r, k) / dcg_max
-
-    def simple_test_one_user(self, x, user_pos_test):
+    def simple_test_one_user(self, x):
         rating = x[0]
         u = x[1]
 
@@ -81,28 +72,11 @@ class IRGAN():
         # sort predicted items by score
         item_score = sorted(item_score, key=lambda x: x[1])
         item_score.reverse()
-        # predicted items list (ordered by score)
-        # item_sort = [x[0] for x in item_score]
         # generate a matrix row with score as probability
         pred = np.zeros(self.item_num)
         for item in item_score:
             pred[item[0]] = item[1]
 
-        # r = []
-        # for i in item_sort:
-        #     if i in user_pos_test[u]:
-        #         r.append(1)
-        #     else:
-        #         r.append(0)
-        #
-        # p_3 = np.mean(r[:3])
-        # p_5 = np.mean(r[:5])
-        # p_10 = np.mean(r[:10])
-        # ndcg_3 = self.ndcg_at_k(r, 3)
-        # ndcg_5 = self.ndcg_at_k(r, 5)
-        # ndcg_10 = self.ndcg_at_k(r, 10)
-
-        # return np.array([p_3, p_5, p_10, ndcg_3, ndcg_5, ndcg_10])
         return pred
 
     def generate_for_d(self, sess, model, filename):
@@ -140,9 +114,6 @@ class IRGAN():
         self.config.gpu_options.allow_growth = True
         self.sess = tf.Session(config=self.config)
         self.sess.run(tf.global_variables_initializer())
-
-        # print("gen ", self.predict(sess, self.generator))
-        # print("dis ", self.predict(sess, self.discriminator))
 
         # TODO use proper logging file
         # dis_log = open(workdir + 'dis_log.txt', 'w')
@@ -207,31 +178,13 @@ class IRGAN():
                         _ = self.sess.run(self.generator.gan_updates,
                                      {self.generator.u: u, self.generator.i: sample, self.generator.reward: reward})
 
-                    # result = self.predict(sess, self.generator)
-                    # print("epoch ", epoch, "gen: ", result)
-                    # buf = '\t'.join([str(x) for x in result])
-                    # gen_log.write(str(epoch) + '\t' + buf + '\n')
-                    # gen_log.flush()
-                    #
-                    # p_5 = result[1]
-                    # if p_5 > best:
-                    #     print('best: ', result)
-                    #     best = p_5
-                    #     self.generator.save_model(sess, "ml-100k/gan_generator.pkl")
-
-        # gen_log.close()
-        # dis_log.close()
-
         return self
 
     def predict(self, X, condition_data=None):
-        # result = np.array([0.] * 6)
-        # pool = multiprocessing.Pool(cores)
         batch_size = 128
         test_users = list(X.keys())
         test_user_num = len(test_users)
         index = 0
-        # pred = {}
         pred = []
         while True:
             if index >= test_user_num:
@@ -240,19 +193,9 @@ class IRGAN():
             index += batch_size
 
             user_batch_rating = self.sess.run(self.generator.all_rating, {self.generator.u: user_batch})
-            # batch_result = pool.map(self.simple_test_one_user, user_batch_rating_uid)
-            # for re in batch_result:
-            #     result += re
             for user_batch_rating_uid in zip(user_batch_rating, user_batch):
-                #result += self.simple_test_one_user(user_batch_rating_uid, X)
-                pred.append(self.simple_test_one_user(user_batch_rating_uid, X))
+                pred.append(self.simple_test_one_user(user_batch_rating_uid))
 
-        # pred = collections.OrderedDict(sorted(pred.items()))
-        # pred = list(pred.values())
-        # pool.close()
-        # ret = result / test_user_num
-        # ret = list(ret)
-        # return ret
         return pred
 
 
@@ -362,7 +305,7 @@ def main():
     # vectors = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
     user_num = evaluate.train_set.size()[0] + evaluate.test_set.size()[0]
     item_num = evaluate.train_set.size()[1]
-    models = [IRGANRecommender(user_num, item_num,g_epochs=1,d_epochs=1,n_epochs=1)]
+    models = [IRGANRecommender(user_num, item_num)]
     evaluate(models)
 
 
