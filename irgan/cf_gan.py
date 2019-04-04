@@ -74,27 +74,31 @@ class IRGAN():
         test_items = list(self.all_items - set(self.user_pos_train[u]))
         item_score = []
         for i in test_items:
+            # pairs predicted item-score
             item_score.append((i, rating[i]))
 
+        # sort predicted items by score
         item_score = sorted(item_score, key=lambda x: x[1])
         item_score.reverse()
+        # predicted items list (ordered by score)
         item_sort = [x[0] for x in item_score]
 
-        r = []
-        for i in item_sort:
-            if i in user_pos_test[u]:
-                r.append(1)
-            else:
-                r.append(0)
+        # r = []
+        # for i in item_sort:
+        #     if i in user_pos_test[u]:
+        #         r.append(1)
+        #     else:
+        #         r.append(0)
+        #
+        # p_3 = np.mean(r[:3])
+        # p_5 = np.mean(r[:5])
+        # p_10 = np.mean(r[:10])
+        # ndcg_3 = self.ndcg_at_k(r, 3)
+        # ndcg_5 = self.ndcg_at_k(r, 5)
+        # ndcg_10 = self.ndcg_at_k(r, 10)
 
-        p_3 = np.mean(r[:3])
-        p_5 = np.mean(r[:5])
-        p_10 = np.mean(r[:10])
-        ndcg_3 = self.ndcg_at_k(r, 3)
-        ndcg_5 = self.ndcg_at_k(r, 5)
-        ndcg_10 = self.ndcg_at_k(r, 10)
-
-        return np.array([p_3, p_5, p_10, ndcg_3, ndcg_5, ndcg_10])
+        # return np.array([p_3, p_5, p_10, ndcg_3, ndcg_5, ndcg_10])
+        return item_sort
 
     def generate_for_d(self, sess, model, filename):
         data = []
@@ -216,12 +220,13 @@ class IRGAN():
         return self
 
     def predict(self, X, condition_data=None):
-        result = np.array([0.] * 6)
+        # result = np.array([0.] * 6)
         # pool = multiprocessing.Pool(cores)
         batch_size = 128
         test_users = list(X.keys())
         test_user_num = len(test_users)
         index = 0
+        pred = []
         while True:
             if index >= test_user_num:
                 break
@@ -233,12 +238,14 @@ class IRGAN():
             # for re in batch_result:
             #     result += re
             for user_batch_rating_uid in zip(user_batch_rating, user_batch):
-                result += self.simple_test_one_user(user_batch_rating_uid, X)
+                #result += self.simple_test_one_user(user_batch_rating_uid, X)
+                pred.append(self.simple_test_one_user(user_batch_rating_uid, X))
 
         # pool.close()
-        ret = result / test_user_num
-        ret = list(ret)
-        return ret
+        # ret = result / test_user_num
+        # ret = list(ret)
+        # return ret
+        return pred
 
 
 class IRGANRecommender(Recommender):
