@@ -6,6 +6,7 @@ import numpy as np
 import irgan.utils as ut
 import multiprocessing
 import argparse
+import collections
 
 # own recommender stuff
 from aaerec.base import Recommender
@@ -98,7 +99,7 @@ class IRGAN():
         # ndcg_10 = self.ndcg_at_k(r, 10)
 
         # return np.array([p_3, p_5, p_10, ndcg_3, ndcg_5, ndcg_10])
-        return item_sort
+        return np.array(item_sort)
 
     def generate_for_d(self, sess, model, filename):
         data = []
@@ -226,6 +227,7 @@ class IRGAN():
         test_users = list(X.keys())
         test_user_num = len(test_users)
         index = 0
+        # pred = {}
         pred = []
         while True:
             if index >= test_user_num:
@@ -241,6 +243,8 @@ class IRGAN():
                 #result += self.simple_test_one_user(user_batch_rating_uid, X)
                 pred.append(self.simple_test_one_user(user_batch_rating_uid, X))
 
+        # pred = collections.OrderedDict(sorted(pred.items()))
+        # pred = list(pred.values())
         # pool.close()
         # ret = result / test_user_num
         # ret = list(ret)
