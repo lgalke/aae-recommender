@@ -3,7 +3,8 @@ import _pickle as cPickle
 
 
 class DIS():
-    def __init__(self, itemNum, userNum, emb_dim, lamda, param=None, initdelta=0.05, learning_rate=0.05):
+    def __init__(self, itemNum, userNum, emb_dim, lamda, param=None, initdelta=0.05, learning_rate=0.05,
+                 conditions=None):
         self.itemNum = itemNum
         self.userNum = userNum
         self.emb_dim = emb_dim
@@ -12,6 +13,9 @@ class DIS():
         self.initdelta = initdelta
         self.learning_rate = learning_rate
         self.d_params = []
+        self.conditions = conditions
+        # reduce the dimensionality from embeddings dimension + condition_size to embeddings dimension
+        self.reduce = tf.keras.layers.Dense(self.emb_dim, input_shape=(self.emb_dim + self.conditions.size_increment()))
 
         with tf.variable_scope('discriminator'):
             if self.param == None:
@@ -37,6 +41,11 @@ class DIS():
         self.u_embedding = tf.nn.embedding_lookup(self.user_embeddings, self.u)
         self.i_embedding = tf.nn.embedding_lookup(self.item_embeddings, self.i)
         self.i_bias = tf.gather(self.item_bias, self.i)
+
+        if self.conditions:
+            self.u_embedding = self.conditions.encode_impose(self.u_embedding, self.condition_data)
+            # reduce to embeddings size again
+            self.u_embedding = self.reduce(self.u_embedding)
 
         self.pre_logits = tf.reduce_sum(tf.multiply(self.u_embedding, self.i_embedding), 1) + self.i_bias
         self.pre_loss = tf.nn.sigmoid_cross_entropy_with_logits(labels=self.label,

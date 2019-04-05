@@ -3,7 +3,8 @@ import _pickle as cPickle
 
 
 class GEN():
-    def __init__(self, itemNum, userNum, emb_dim, lamda, param=None, initdelta=0.05, learning_rate=0.05):
+    def __init__(self, itemNum, userNum, emb_dim, lamda, param=None, initdelta=0.05, learning_rate=0.05,
+                 conditions=None):
         self.itemNum = itemNum
         self.userNum = userNum
         self.emb_dim = emb_dim
@@ -12,6 +13,9 @@ class GEN():
         self.initdelta = initdelta
         self.learning_rate = learning_rate
         self.g_params = []
+        self.conditions = conditions
+        # reduce the dimensionality from embeddings dimension + condition_size to embeddings dimension
+        self.reduce = tf.keras.layers.Dense(self.emb_dim, input_shape=(self.emb_dim + self.conditions.size_increment()))
 
         with tf.variable_scope('generator'):
             if self.param == None:
@@ -32,10 +36,17 @@ class GEN():
         self.u = tf.placeholder(tf.int32)
         self.i = tf.placeholder(tf.int32)
         self.reward = tf.placeholder(tf.float32)
+        # placeholder for the condition
+        self.condition_data = tf.placeholder(tf.float32)
 
         self.u_embedding = tf.nn.embedding_lookup(self.user_embeddings, self.u)
         self.i_embedding = tf.nn.embedding_lookup(self.item_embeddings, self.i)
         self.i_bias = tf.gather(self.item_bias, self.i)
+
+        if self.conditions:
+            self.u_embedding = self.conditions.encode_impose(self.u_embedding, self.condition_data)
+            # reduce to embeddings size again
+            self.u_embedding = self.reduce(self.u_embedding)
 
         self.all_logits = tf.reduce_sum(tf.multiply(self.u_embedding, self.item_embeddings), 1) + self.item_bias
         self.i_prob = tf.gather(

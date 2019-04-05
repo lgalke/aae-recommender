@@ -55,10 +55,9 @@ class IRGAN():
         self.all_items = set(range(item_num))
 
         self.generator = GEN(item_num, user_num, emb_dim, lamda=0.0 / batch_size, param=gen_param, initdelta=init_delta,
-                             learning_rate=lr)
+                             learning_rate=lr, conditions=conditions)
         self.discriminator = DIS(item_num, user_num, emb_dim, lamda=0.1 / batch_size, param=None, initdelta=init_delta,
-                                 learning_rate=lr)
-
+                                 learning_rate=lr, conditions=conditions)
 
     def simple_test_one_user(self, x):
         rating = x[0]
@@ -109,7 +108,7 @@ class IRGAN():
         if y is not None:
             raise NotImplementedError("(Semi-)supervised usage not supported")
 
-        use_condition = _check_conditions(self.conditions, condition_data)
+        # use_condition = _check_conditions(self.conditions, condition_data)
 
         self.config = tf.ConfigProto()
         self.config.gpu_options.allow_growth = True
@@ -117,10 +116,11 @@ class IRGAN():
         self.sess.run(tf.global_variables_initializer())
 
         self.user_pos_train = X
-        if use_condition:
-            # impose condition line by line (by each key of the dictionary)
-            for u in self.user_pos_train:
-                self.user_pos_train[u] = self.conditions.encode_impose(self.user_pos_train[u], condition_data[u])
+        # TODO where to pass condition data to gen and discr?
+        # if use_condition:
+        #     # impose condition line by line (by each key of the dictionary)
+        #     for u in self.user_pos_train:
+        #         self.user_pos_train[u] = self.conditions.encode_impose(self.user_pos_train[u], condition_data[u])
 
         # minimax training
         # best = 0.
@@ -147,7 +147,8 @@ class IRGAN():
 
                         _ = self.sess.run(self.discriminator.d_updates,
                                      feed_dict={self.discriminator.u: input_user, self.discriminator.i: input_item,
-                                                self.discriminator.label: input_label})
+                                                self.discriminator.label: input_label,
+                                                self.condition_data: condition_data})
 
                 # Train G
                 for g_epoch in range(self.g_epochs):  # 50
