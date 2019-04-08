@@ -140,15 +140,18 @@ class IRGAN():
                         if index + self.batch_size <= train_size + 1:
                             input_user, input_item, input_label = ut.get_batch_data(DIS_TRAIN_FILE, index,
                                                                                     self.batch_size)
+                            end = index + self.batch_size
                         else:
                             input_user, input_item, input_label = ut.get_batch_data(DIS_TRAIN_FILE, index,
                                                                                     train_size - index + 1)
+                            end = train_size + 1
+                        c_batch = [c[index:end] for c in condition_data]
                         index += self.batch_size
 
                         _ = self.sess.run(self.discriminator.d_updates,
                                      feed_dict={self.discriminator.u: input_user, self.discriminator.i: input_item,
                                                 self.discriminator.label: input_label,
-                                                self.condition_data: condition_data})
+                                                self.condition_data: c_batch})
 
                 # Train G
                 for g_epoch in range(self.g_epochs):  # 50
