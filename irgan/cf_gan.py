@@ -57,7 +57,7 @@ class IRGAN():
 
         self.generator = Generator(item_num, user_num, emb_dim, lamda=0.0 / batch_size, param=gen_param,
                                    initdelta=init_delta, learning_rate=lr, conditions=conditions)
-        self.discriminator = Discriminator(item_num, user_num, emb_dim, lamda=0.0 / batch_size, param=gen_param,
+        self.discriminator = Discriminator(item_num, user_num, emb_dim, lamda=0.1 / batch_size, param=gen_param,
                                            initdelta=init_delta, learning_rate=lr, conditions=conditions)
         if torch.cuda.is_available():
             self.generator = self.generator.cuda()
@@ -146,11 +146,15 @@ class IRGAN():
                             end = train_size + 1
 
                         index += self.batch_size
+                        if torch.cuda.is_available():
+                            input_label = torch.tensor(input_label).cuda()
+                        else:
+                            input_label =  torch.tensor(input_label)
                         if use_condition:
                             c_batch = [c[index:end] for c in condition_data]
-                            D_loss = self.discriminator(input_user, input_item, torch.tensor(input_label), c_batch)
+                            D_loss = self.discriminator(input_user, input_item, input_label, c_batch)
                         else:
-                            D_loss = self.discriminator(input_user, input_item, torch.tensor(input_label))
+                            D_loss = self.discriminator(input_user, input_item, input_label)
                         self.discriminator.step(D_loss)
 
                     if self.verbose:
