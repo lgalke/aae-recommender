@@ -24,10 +24,12 @@ class Generator(nn.Module):
 
         if self.param == None:
             self.G_user_embeddings = Variable(
-                torch.FloatTensor(self.userNum, self.emb_dim).uniform_(-self.initdelta, self.initdelta))
+                torch.FloatTensor(self.userNum, self.emb_dim).uniform_(-self.initdelta, self.initdelta),
+                requires_grad=True)
             self.G_item_embeddings = Variable(
-                torch.FloatTensor(self.itemNum, self.emb_dim).uniform_(-self.initdelta, self.initdelta))
-            self.G_item_bias = Variable(torch.zeros(self.itemNum, dtype=torch.float32))
+                torch.FloatTensor(self.itemNum, self.emb_dim).uniform_(-self.initdelta, self.initdelta),
+                requires_grad=True)
+            self.G_item_bias = Variable(torch.zeros(self.itemNum, dtype=torch.float32), requires_grad=True)
         else:
             self.G_user_embeddings = torch.autograd.Variable(torch.tensor(param[0]).cuda(), requires_grad=True)
             self.G_item_embeddings = torch.autograd.Variable(torch.tensor(param[1]).cuda(), requires_grad=True)

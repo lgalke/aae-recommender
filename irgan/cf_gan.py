@@ -149,7 +149,7 @@ class IRGAN():
                         if torch.cuda.is_available():
                             input_label = torch.tensor(input_label).cuda()
                         else:
-                            input_label =  torch.tensor(input_label)
+                            input_label = torch.tensor(input_label)
                         if use_condition:
                             c_batch = [c[index:end] for c in condition_data]
                             D_loss = self.discriminator(input_user, input_item, input_label, c_batch)
