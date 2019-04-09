@@ -83,13 +83,13 @@ class IRGAN():
 
         return pred
 
-    def generate_for_d(self, filename):
+    def generate_for_d(self, filename, condition_data=None):
         data = []
 
         for u in self.user_pos_train:
             pos = self.user_pos_train[u]
 
-            rating = self.generator.all_rating(u)
+            rating = self.generator.all_rating(u, condition_data)
             rating = rating.detach_().cpu().numpy()
             rating = np.array(rating[0]) / 0.2  # Temperature
             exp_rating = np.exp(rating)
@@ -162,7 +162,10 @@ class IRGAN():
                         sample_lambda = 0.2
                         pos = self.user_pos_train[u]
 
-                        rating = self.generator.all_logits(u)
+                        if use_condition:
+                            rating = self.generator.all_logits(u, condition_data[u])
+                        else:
+                            rating = self.generator.all_logits(u)
                         rating = rating.detach_().cpu().numpy()
                         exp_rating = np.exp(rating)
                         prob = exp_rating / np.sum(exp_rating)  # prob is generator distribution p_\theta
@@ -183,7 +186,10 @@ class IRGAN():
                         ###########################################################################
                         # Update G
                         ###########################################################################
-                        G_loss = self.generator(u, torch.tensor(sample), torch.tensor(reward))
+                        if use_condition:
+                            G_loss = self.generator(u, torch.tensor(sample), torch.tensor(reward), condition_data[u])
+                        else:
+                            G_loss = self.generator(u, torch.tensor(sample), torch.tensor(reward))
                         self.generator.step(G_loss)
 
                     if self.verbose:

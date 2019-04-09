@@ -35,7 +35,7 @@ class Generator(nn.Module):
 
         self.g_params = [self.G_user_embeddings, self.G_item_embeddings, self.G_item_bias]
 
-    def all_rating(self, user_index, condition_data):
+    def all_rating(self, user_index, condition_data=None):
         u_embedding = self.G_user_embeddings[user_index, :]
         item_embeddings = self.G_item_embeddings
 
