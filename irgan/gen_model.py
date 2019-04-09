@@ -1,10 +1,14 @@
-import tensorflow as tf
-import _pickle as cPickle
+import torch.nn as nn
+import torch.nn.functional as F
+import torch
+from torch.autograd import Variable
 
 
-class GEN():
+class Generator(nn.Module):
     def __init__(self, itemNum, userNum, emb_dim, lamda, param=None, initdelta=0.05, learning_rate=0.05,
                  conditions=None):
+        super(Generator, self).__init__()
+
         self.itemNum = itemNum
         self.userNum = userNum
         self.emb_dim = emb_dim
@@ -12,57 +16,53 @@ class GEN():
         self.param = param
         self.initdelta = initdelta
         self.learning_rate = learning_rate
-        self.g_params = []
         self.conditions = conditions
-        # reduce the dimensionality from embeddings dimension + condition_size to embeddings dimension
-        self.reduce = tf.keras.layers.Dense(self.emb_dim, input_shape=(self.emb_dim + self.conditions.size_increment()))
 
-        with tf.variable_scope('generator'):
-            if self.param == None:
-                self.user_embeddings = tf.Variable(
-                    tf.random_uniform([self.userNum, self.emb_dim], minval=-self.initdelta, maxval=self.initdelta,
-                                      dtype=tf.float32))
-                self.item_embeddings = tf.Variable(
-                    tf.random_uniform([self.itemNum, self.emb_dim], minval=-self.initdelta, maxval=self.initdelta,
-                                      dtype=tf.float32))
-                self.item_bias = tf.Variable(tf.zeros([self.itemNum]))
-            else:
-                self.user_embeddings = tf.Variable(self.param[0])
-                self.item_embeddings = tf.Variable(self.param[1])
-                self.item_bias = tf.Variable(param[2])
+        self.g_params = []
 
-            self.g_params = [self.user_embeddings, self.item_embeddings, self.item_bias]
+        if self.param == None:
+            self.G_user_embeddings = Variable(
+                torch.FloatTensor(self.userNum, self.emb_dim).uniform_(-self.initdelta, self.initdelta))
+            self.G_item_embeddings = Variable(
+                torch.FloatTensor(self.itemNum, self.emb_dim).uniform_(-self.initdelta, self.initdelta))
+            self.G_item_bias = Variable(torch.zeros(self.itemNum, dtype=torch.float32))
+        else:
+            self.G_user_embeddings = torch.autograd.Variable(torch.tensor(param[0]).cuda(), requires_grad=True)
+            self.G_item_embeddings = torch.autograd.Variable(torch.tensor(param[1]).cuda(), requires_grad=True)
+            self.G_item_bias = torch.autograd.Variable(torch.tensor(param[2]).cuda(), requires_grad=True)
 
-        self.u = tf.placeholder(tf.int32)
-        self.i = tf.placeholder(tf.int32)
-        self.reward = tf.placeholder(tf.float32)
-        # placeholder for the condition
-        self.condition_data = tf.placeholder(tf.float32)
+        self.g_params = [self.G_user_embeddings, self.G_item_embeddings, self.G_item_bias]
 
-        self.u_embedding = tf.nn.embedding_lookup(self.user_embeddings, self.u)
-        self.i_embedding = tf.nn.embedding_lookup(self.item_embeddings, self.i)
-        self.i_bias = tf.gather(self.item_bias, self.i)
+    def all_rating(self, user_index, condition_data):
+        u_embedding = self.G_user_embeddings[user_index, :]
+        item_embeddings = self.G_item_embeddings
 
         if self.conditions:
-            self.u_embedding = self.conditions.encode_impose(self.u_embedding, self.condition_data)
-            # reduce to embeddings size again
-            self.u_embedding = self.reduce(self.u_embedding)
+            u_embedding = self.conditions.encode_impose(u_embedding, condition_data)
+            u_embedding = self.lin(u_embedding)
 
-        self.all_logits = tf.reduce_sum(tf.multiply(self.u_embedding, self.item_embeddings), 1) + self.item_bias
-        self.i_prob = tf.gather(
-            tf.reshape(tf.nn.softmax(tf.reshape(self.all_logits, [1, -1])), [-1]),
-            self.i)
+        all_rating = torch.mm(u_embedding.view(-1, 5), item_embeddings.t()) + self.G_item_bias
+        return all_rating
 
-        self.gan_loss = -tf.reduce_mean(tf.log(self.i_prob) * self.reward) + self.lamda * (
-            tf.nn.l2_loss(self.u_embedding) + tf.nn.l2_loss(self.i_embedding) + tf.nn.l2_loss(self.i_bias))
+    def all_logits(self, user_index, condition_data=None):
+        u_embedding = self.G_user_embeddings[user_index]
 
-        g_opt = tf.train.GradientDescentOptimizer(self.learning_rate)
-        self.gan_updates = g_opt.minimize(self.gan_loss, var_list=self.g_params)
+        if self.conditions:
+            u_embedding = self.conditions.encode_impose(u_embedding, condition_data)
+            u_embedding = self.lin(u_embedding)
+        item_embeddings = self.G_item_embeddings
 
-        # for test stage, self.u: [batch_size]
-        self.all_rating = tf.matmul(self.u_embedding, self.item_embeddings, transpose_a=False,
-                                    transpose_b=True) + self.item_bias
+        score = torch.sum(u_embedding*item_embeddings, 1) + self.G_item_bias
+        return score
 
-    def save_model(self, sess, filename):
-        param = sess.run(self.g_params)
-        cPickle.dump(param, open(filename, 'w'))
+    def forward(self, user_index, sample, reward, condition_data=None):
+        softmax_score = F.softmax(self.all_logits(user_index, condition_data).view(1, -1), -1)
+        gan_prob = torch.gather(softmax_score.view(-1), 0, sample.long()).clamp(min=1e-8)
+        loss = -torch.mean(torch.log(gan_prob) * reward)
+
+        return loss
+
+    def step(self, loss):
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()

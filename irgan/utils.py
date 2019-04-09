@@ -1,5 +1,23 @@
 import linecache
 import numpy as np
+import torch.nn as nn
+import torch
+
+
+class L2Loss(nn.Module):
+    def __init__(self):
+        super(L2Loss, self).__init__()
+        self.loss = nn.MSELoss()
+        self.register_buffer('target', torch.tensor(0.0))
+
+    def get_target_tensor(self, input):
+        target_tensor = self.target
+
+        return target_tensor.expand_as(input)
+
+    def __call__(self, input):
+        target_tensor = self.get_target_tensor(input)
+        return self.loss(input, target_tensor)
 
 
 def file_len(fname):

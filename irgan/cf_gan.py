@@ -1,11 +1,12 @@
-import tensorflow as tf
-from irgan.dis_model import DIS
-from irgan.gen_model import GEN
+from irgan.dis_model import Discriminator
+from irgan.gen_model import Generator
 # import cPickle
 import numpy as np
 import irgan.utils as ut
 import multiprocessing
 import argparse
+
+import torch
 
 # own recommender stuff
 from aaerec.base import Recommender
@@ -54,10 +55,13 @@ class IRGAN():
         self.item_num = item_num
         self.all_items = set(range(item_num))
 
-        self.generator = GEN(item_num, user_num, emb_dim, lamda=0.0 / batch_size, param=gen_param, initdelta=init_delta,
-                             learning_rate=lr, conditions=conditions)
-        self.discriminator = DIS(item_num, user_num, emb_dim, lamda=0.1 / batch_size, param=None, initdelta=init_delta,
-                                 learning_rate=lr, conditions=conditions)
+        self.generator = Generator(item_num, user_num, emb_dim, lamda=0.0 / batch_size, param=gen_param,
+                                   initdelta=init_delta, learning_rate=lr, conditions=conditions)
+        self.discriminator = Discriminator(item_num, user_num, emb_dim, lamda=0.0 / batch_size, param=gen_param,
+                                           initdelta=init_delta, learning_rate=lr, conditions=conditions)
+        if torch.cuda.is_available():
+            self.generator.cuda()
+            self.discriminator.cuda()
 
     def simple_test_one_user(self, x):
         rating = x[0]
@@ -79,13 +83,14 @@ class IRGAN():
 
         return pred
 
-    def generate_for_d(self, sess, model, filename):
+    def generate_for_d(self, filename):
         data = []
 
         for u in self.user_pos_train:
             pos = self.user_pos_train[u]
 
-            rating = sess.run(model.all_rating, {model.u: [u]})
+            rating = self.generator.all_rating(u)
+            rating = rating.detach_().cpu().numpy()
             rating = np.array(rating[0]) / 0.2  # Temperature
             exp_rating = np.exp(rating)
             prob = exp_rating / np.sum(exp_rating)
@@ -108,12 +113,7 @@ class IRGAN():
         if y is not None:
             raise NotImplementedError("(Semi-)supervised usage not supported")
 
-        # use_condition = _check_conditions(self.conditions, condition_data)
-
-        self.config = tf.ConfigProto()
-        self.config.gpu_options.allow_growth = True
-        self.sess = tf.Session(config=self.config)
-        self.sess.run(tf.global_variables_initializer())
+        use_condition = _check_conditions(self.conditions, condition_data)
 
         self.user_pos_train = X
         # TODO where to pass condition data to gen and discr?
@@ -123,7 +123,6 @@ class IRGAN():
         #         self.user_pos_train[u] = self.conditions.encode_impose(self.user_pos_train[u], condition_data[u])
 
         # minimax training
-        # best = 0.
         for epoch in range(self.n_epochs):
             if self.verbose:
                 print("Epoch", epoch + 1)
@@ -131,7 +130,7 @@ class IRGAN():
             if epoch >= 0:
                 for d_epoch in range(self.d_epochs): #100
                     if d_epoch % 5 == 0:
-                        self.generate_for_d(self.sess, self.generator, DIS_TRAIN_FILE)
+                        self.generate_for_d(DIS_TRAIN_FILE)
                         train_size = ut.file_len(DIS_TRAIN_FILE)
                     index = 1
                     while True:
@@ -145,13 +144,17 @@ class IRGAN():
                             input_user, input_item, input_label = ut.get_batch_data(DIS_TRAIN_FILE, index,
                                                                                     train_size - index + 1)
                             end = train_size + 1
-                        c_batch = [c[index:end] for c in condition_data]
-                        index += self.batch_size
 
-                        _ = self.sess.run(self.discriminator.d_updates,
-                                     feed_dict={self.discriminator.u: input_user, self.discriminator.i: input_item,
-                                                self.discriminator.label: input_label,
-                                                self.condition_data: c_batch})
+                        index += self.batch_size
+                        if use_condition:
+                            c_batch = [c[index:end] for c in condition_data]
+                            D_loss = self.discriminator(input_user, input_item, torch.tensor(input_label), c_batch)
+                        else:
+                            D_loss = self.discriminator(input_user, input_item, torch.tensor(input_label))
+                        self.discriminator.step(D_loss)
+
+                    if self.verbose:
+                        print("\r[D Epoch %d/%d] [loss: %f]" % (d_epoch, self.d_epochs, D_loss.item()))
 
                 # Train G
                 for g_epoch in range(self.g_epochs):  # 50
@@ -159,7 +162,8 @@ class IRGAN():
                         sample_lambda = 0.2
                         pos = self.user_pos_train[u]
 
-                        rating = self.sess.run(self.generator.all_logits, {self.generator.u: u})
+                        rating = self.generator.all_logits(u)
+                        rating = rating.detach_().cpu().numpy()
                         exp_rating = np.exp(rating)
                         prob = exp_rating / np.sum(exp_rating)  # prob is generator distribution p_\theta
 
@@ -174,14 +178,16 @@ class IRGAN():
                         ###########################################################################
                         # Get reward and adapt it with importance sampling
                         ###########################################################################
-                        reward = self.sess.run(self.discriminator.reward, {self.discriminator.u: u,
-                                                                           self.discriminator.i: sample})
-                        reward = reward * prob[sample] / pn[sample]
+                        reward = self.discriminator.get_reward(u, sample)
+                        reward = reward.detach_().cpu().numpy() * prob[sample] / pn[sample]
                         ###########################################################################
                         # Update G
                         ###########################################################################
-                        _ = self.sess.run(self.generator.gan_updates,
-                                     {self.generator.u: u, self.generator.i: sample, self.generator.reward: reward})
+                        G_loss = self.generator(u, torch.tensor(sample), torch.tensor(reward))
+                        self.generator.step(G_loss)
+
+                    if self.verbose:
+                        print("\r[G Epoch %d/%d] [loss: %f]" % (g_epoch, self.g_epochs, G_loss.item()))
 
         return self
 
@@ -197,7 +203,8 @@ class IRGAN():
             user_batch = test_users[index:index + batch_size]
             index += batch_size
 
-            user_batch_rating = self.sess.run(self.generator.all_rating, {self.generator.u: user_batch})
+            user_batch_rating = self.generator.all_rating(user_batch, condition_data)
+            user_batch_rating = user_batch_rating.detach_().cpu().numpy()
             # TODO encode_impose on user_batch_rating?
             for user_batch_rating_uid in zip(user_batch_rating, user_batch):
                 pred.append(self.simple_test_one_user(user_batch_rating_uid))
@@ -311,7 +318,7 @@ def main():
     # vectors = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
     user_num = evaluate.train_set.size()[0] + evaluate.test_set.size()[0]
     item_num = evaluate.train_set.size()[1]
-    models = [IRGANRecommender(user_num, item_num)]
+    models = [IRGANRecommender(user_num, item_num, g_epochs=1, d_epochs=1, n_epochs=1)]
     evaluate(models)
 
 
