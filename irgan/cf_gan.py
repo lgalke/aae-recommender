@@ -89,7 +89,7 @@ class IRGAN():
         for u in self.user_pos_train:
             pos = self.user_pos_train[u]
             if self.conditions:
-                rating = self.generator.all_rating(u, condition_data[u, :])
+                rating = self.generator.all_rating(u, condition_data[u[0], :])
             else:
                 rating = self.generator.all_rating(u)
             rating = rating.detach_().cpu().numpy()
@@ -164,7 +164,7 @@ class IRGAN():
                         pos = self.user_pos_train[u]
 
                         if use_condition:
-                            rating = self.generator.all_logits(u, condition_data[u])
+                            rating = self.generator.all_logits(u, condition_data[u[0]])
                         else:
                             rating = self.generator.all_logits(u)
                         rating = rating.detach_().cpu().numpy()
@@ -194,7 +194,7 @@ class IRGAN():
                             sample = torch.tensor(sample)
                             reward = torch.tensor(reward)
                         if use_condition:
-                            G_loss = self.generator(u, sample, reward, condition_data[u])
+                            G_loss = self.generator(u, sample, reward, condition_data[u[0]])
                         else:
                             G_loss = self.generator(u, sample, reward)
                         self.generator.step(G_loss)
