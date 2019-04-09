@@ -36,6 +36,7 @@ class Discriminator(nn.Module):
 
         self.d_param = [self.D_user_embeddings, self.D_item_embeddings, self.D_item_bias]
         self.optimizer = torch.optim.SGD(self.d_param, lr=self.learning_rate, momentum=0.9)
+        self.l2l = L2Loss()
 
     def pre_logits(self, input_user, input_item, condition_data=None):
         u_embedding = self.D_user_embeddings[input_user, :]
@@ -50,7 +51,7 @@ class Discriminator(nn.Module):
 
     def forward(self, input_user, input_item, pred_data_label, condition_data=None):
         loss = F.binary_cross_entropy_with_logits(self.pre_logits(input_user, input_item), pred_data_label.float()) \
-            + self.lamda * (L2Loss(self.D_user_embeddings) + L2Loss(self.D_item_embeddings) + L2Loss(self.D_item_bias))
+            + self.lamda * (self.l2l(self.D_user_embeddings) + self.l2l(self.D_item_embeddings) + self.l2l(self.D_item_bias))
         return loss
 
     def get_reward(self, user_index, sample):
