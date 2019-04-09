@@ -190,10 +190,16 @@ class IRGAN():
                         ###########################################################################
                         # Update G
                         ###########################################################################
-                        if use_condition:
-                            G_loss = self.generator(u, torch.tensor(sample), torch.tensor(reward), condition_data[u])
+                        if torch.cuda.is_available():
+                            sample = torch.tensor(sample).cuda()
+                            reward = torch.tensor(reward).cuda()
                         else:
-                            G_loss = self.generator(u, torch.tensor(sample), torch.tensor(reward))
+                            sample = torch.tensor(sample)
+                            reward = torch.tensor(reward)
+                        if use_condition:
+                            G_loss = self.generator(u, sample, reward, condition_data[u])
+                        else:
+                            G_loss = self.generator(u, sample, reward)
                         self.generator.step(G_loss)
 
                     if self.verbose:
