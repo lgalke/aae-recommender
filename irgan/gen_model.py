@@ -36,6 +36,7 @@ class Generator(nn.Module):
             self.G_item_bias = torch.autograd.Variable(torch.tensor(param[2]).cuda(), requires_grad=True)
 
         self.g_params = [self.G_user_embeddings, self.G_item_embeddings, self.G_item_bias]
+        self.optimizer = torch.optim.SGD(self.g_param, lr=self.learning_rate, momentum=0.9)
 
         if torch.cuda.is_available():
             self.G_user_embeddings = self.G_user_embeddings.cuda()
