@@ -18,7 +18,8 @@ class Discriminator(nn.Module):
         self.initdelta = initdelta
         self.learning_rate = learning_rate
         self.conditions = conditions
-        self.lin = nn.Linear(self.emb_dim + self.conditions.size_increment(), self.emb_dim)
+        if self.conditions:
+            self.lin = nn.Linear(self.emb_dim + self.conditions.size_increment(), self.emb_dim)
 
         self.d_param = []
 

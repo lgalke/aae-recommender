@@ -17,6 +17,8 @@ class Generator(nn.Module):
         self.initdelta = initdelta
         self.learning_rate = learning_rate
         self.conditions = conditions
+        if self.conditions:
+            self.lin = nn.Linear(self.emb_dim + self.conditions.size_increment(), self.emb_dim)
 
         self.g_params = []
 
