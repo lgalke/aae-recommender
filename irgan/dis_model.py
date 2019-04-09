@@ -38,6 +38,9 @@ class Discriminator(nn.Module):
         self.optimizer = torch.optim.SGD(self.d_param, lr=self.learning_rate, momentum=0.9)
         self.l2l = L2Loss()
         if torch.cuda.is_available():
+            self.D_user_embeddings = self.D_user_embeddings.cuda()
+            self.D_item_embeddings = self.D_item_embeddings.cuda()
+            self.D_item_bias = self.D_item_bias.cuda()
             self.l2l = self.l2l.cuda()
 
     def pre_logits(self, input_user, input_item, condition_data=None):

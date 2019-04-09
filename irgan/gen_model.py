@@ -35,6 +35,11 @@ class Generator(nn.Module):
 
         self.g_params = [self.G_user_embeddings, self.G_item_embeddings, self.G_item_bias]
 
+        if torch.cuda.is_available():
+            self.G_user_embeddings = self.G_user_embeddings.cuda()
+            self.G_item_embeddings = self.G_item_embeddings.cuda()
+            self.G_item_bias = self.G_item_bias.cuda()
+
     def all_rating(self, user_index, condition_data=None):
         u_embedding = self.G_user_embeddings[user_index, :]
         item_embeddings = self.G_item_embeddings
