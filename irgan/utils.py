@@ -1,4 +1,6 @@
 import linecache
+from encodings.punycode import selective_find
+
 import numpy as np
 import torch.nn as nn
 import torch
@@ -9,6 +11,8 @@ class L2Loss(nn.Module):
         super(L2Loss, self).__init__()
         self.loss = nn.MSELoss()
         self.register_buffer('target', torch.tensor(0.0))
+        if torch.cuda.is_available():
+            self.target = self.target.cuda()
 
     def get_target_tensor(self, input):
         target_tensor = self.target
