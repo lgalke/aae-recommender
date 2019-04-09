@@ -88,8 +88,10 @@ class IRGAN():
 
         for u in self.user_pos_train:
             pos = self.user_pos_train[u]
-
-            rating = self.generator.all_rating(u, condition_data)
+            if self.conditions:
+                rating = self.generator.all_rating(u, condition_data[u, :])
+            else:
+                rating = self.generator.all_rating(u)
             rating = rating.detach_().cpu().numpy()
             rating = np.array(rating[0]) / 0.2  # Temperature
             exp_rating = np.exp(rating)
@@ -116,7 +118,7 @@ class IRGAN():
         use_condition = _check_conditions(self.conditions, condition_data)
 
         self.user_pos_train = X
-        
+
         # minimax training
         for epoch in range(self.n_epochs):
             if self.verbose:
@@ -125,7 +127,7 @@ class IRGAN():
             if epoch >= 0:
                 for d_epoch in range(self.d_epochs): #100
                     if d_epoch % 5 == 0:
-                        self.generate_for_d(DIS_TRAIN_FILE)
+                        self.generate_for_d(DIS_TRAIN_FILE, condition_data)
                         train_size = ut.file_len(DIS_TRAIN_FILE)
                     index = 1
                     while True:
