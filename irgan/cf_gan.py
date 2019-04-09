@@ -1,6 +1,5 @@
 from irgan.dis_model import Discriminator
 from irgan.gen_model import Generator
-# import cPickle
 import numpy as np
 import irgan.utils as ut
 import multiprocessing
@@ -15,12 +14,13 @@ from aaerec.evaluation import Evaluation
 from aaerec.ub import GensimEmbeddedVectorizer
 from gensim.models.keyedvectors import KeyedVectors
 
-from aaerec.condition import ConditionList, _check_conditions
-
-cores = multiprocessing.cpu_count()
+from aaerec.condition import ConditionList, _check_conditions, PretrainedWordEmbeddingCondition
 
 # workdir = 'ml-100k/'
 DIS_TRAIN_FILE = 'dis-train.txt'
+
+W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
+W2V_IS_BINARY = True
 
 class IRGAN():
 
@@ -116,12 +116,7 @@ class IRGAN():
         use_condition = _check_conditions(self.conditions, condition_data)
 
         self.user_pos_train = X
-        # TODO where to pass condition data to gen and discr?
-        # if use_condition:
-        #     # impose condition line by line (by each key of the dictionary)
-        #     for u in self.user_pos_train:
-        #         self.user_pos_train[u] = self.conditions.encode_impose(self.user_pos_train[u], condition_data[u])
-
+        
         # minimax training
         for epoch in range(self.n_epochs):
             if self.verbose:
@@ -310,13 +305,17 @@ class IRGANRecommender(Recommender):
 
 def main():
 
-    # print("load model...")
-    # param = cPickle.load(open(workdir + "model_dns_ori.pkl"))
-
     CONFIG = {
         'pub': ('/data21/lgalke/datasets/citations_pmc.tsv', 2011, 50),
         'eco': ('/data21/lgalke/datasets/econbiz62k.tsv', 2012, 1)
     }
+
+    print("Loading pre-trained embedding", W2V_PATH)
+    vectors = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
+
+    CONDITIONS = ConditionList([
+        ('title', PretrainedWordEmbeddingCondition(vectors))
+    ])
 
     PARSER = argparse.ArgumentParser()
     PARSER.add_argument('data', type=str, choices=['pub', 'eco'])
@@ -330,11 +329,9 @@ def main():
                           year=c_year,
                           logfile=logfile).setup(min_count=DATA[2],
                                                  min_elements=2)
-    # print("Loading pre-trained embedding", W2V_PATH)
-    # vectors = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
     user_num = evaluate.train_set.size()[0] + evaluate.test_set.size()[0]
     item_num = evaluate.train_set.size()[1]
-    models = [IRGANRecommender(user_num, item_num, g_epochs=1, d_epochs=1, n_epochs=1)]
+    models = [IRGANRecommender(user_num, item_num, g_epochs=1, d_epochs=1, n_epochs=1, conditions=CONDITIONS)]
     evaluate(models)
 
 
