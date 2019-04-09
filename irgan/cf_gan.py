@@ -60,8 +60,8 @@ class IRGAN():
         self.discriminator = Discriminator(item_num, user_num, emb_dim, lamda=0.0 / batch_size, param=gen_param,
                                            initdelta=init_delta, learning_rate=lr, conditions=conditions)
         if torch.cuda.is_available():
-            self.generator.cuda()
-            self.discriminator.cuda()
+            self.generator = self.generator.cuda()
+            self.discriminator = self.discriminator.cuda()
 
     def simple_test_one_user(self, x):
         rating = x[0]
