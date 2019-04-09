@@ -10,6 +10,8 @@ class L2Loss(nn.Module):
     def __init__(self):
         super(L2Loss, self).__init__()
         self.loss = nn.MSELoss()
+        if torch.cuda.is_available():
+            self.loss = self.loss.cuda()
         self.register_buffer('target', torch.tensor(0.0))
 
     def get_target_tensor(self, input):
@@ -19,8 +21,6 @@ class L2Loss(nn.Module):
 
     def __call__(self, input):
         target_tensor = self.get_target_tensor(input)
-        if torch.cuda.is_available():
-            target_tensor = target_tensor.cuda()
         return self.loss(input, target_tensor)
 
 
