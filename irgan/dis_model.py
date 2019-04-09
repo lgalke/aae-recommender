@@ -34,7 +34,7 @@ class Discriminator(nn.Module):
             self.D_item_embeddings = torch.autograd.Variable(torch.tensor(param[1]).cuda(), requires_grad=True)
             self.D_item_bias = torch.autograd.Variable(torch.tensor(param[2]).cuda(), requires_grad=True)
 
-        self.d_param = [self.D_user_embeddings, self.G_item_embeddings, self.G_item_bias]
+        self.d_param = [self.D_user_embeddings, self.D_item_embeddings, self.D_item_bias]
         self.optimizer = torch.optim.SGD(self.d_param, lr=self.learning_rate, momentum=0.9)
 
     def pre_logits(self, input_user, input_item, condition_data=None):
