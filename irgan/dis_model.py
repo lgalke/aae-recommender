@@ -48,8 +48,19 @@ class Discriminator(nn.Module):
     def pre_logits(self, input_user, input_item, condition_data=None):
         u_embedding = self.D_user_embeddings[input_user, :]
         if self.conditions:
+            # In generator need to use dimension 0 in discriminator 1 so by default 0 (given in condition creation)
+            # and here we change impose and set it back to 0
+            # TODO Better solutionis to always use a batch instead of a specific user as for all other methods
+            for c in self.conditions:
+                self.conditions[c].dim = 1
+
             u_embedding = self.conditions.encode_impose(u_embedding, condition_data)
+
+            for c in self.conditions:
+                self.conditions[c].dim = 0
+
             u_embedding = self.lin(u_embedding)
+
         item_embeddings = self.D_item_embeddings[input_item, :]
         D_item_bias = self.D_item_bias[input_item]
 
@@ -57,7 +68,7 @@ class Discriminator(nn.Module):
         return score
 
     def forward(self, input_user, input_item, pred_data_label, condition_data=None):
-        loss = F.binary_cross_entropy_with_logits(self.pre_logits(input_user, input_item), pred_data_label.float()) \
+        loss = F.binary_cross_entropy_with_logits(self.pre_logits(input_user, input_item, condition_data), pred_data_label.float()) \
             + self.lamda * (self.l2l(self.D_user_embeddings) + self.l2l(self.D_item_embeddings) + self.l2l(self.D_item_bias))
         return loss
 

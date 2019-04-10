@@ -89,7 +89,7 @@ class IRGAN():
         for u in self.user_pos_train:
             pos = self.user_pos_train[u]
             if self.conditions:
-                c_batch = [c[u:u+1] for c in condition_data]
+                c_batch = [c[u, :] for c in condition_data]
                 rating = self.generator.all_rating(u, c_batch)
             else:
                 rating = self.generator.all_rating(u)
@@ -165,7 +165,7 @@ class IRGAN():
                         pos = self.user_pos_train[u]
 
                         if use_condition:
-                            c_batch = [c[u:u+1] for c in condition_data]
+                            c_batch = [c[u] for c in condition_data]
                             rating = self.generator.all_logits(u, c_batch)
                         else:
                             rating = self.generator.all_logits(u)
@@ -196,7 +196,7 @@ class IRGAN():
                             sample = torch.tensor(sample)
                             reward = torch.tensor(reward)
                         if use_condition:
-                            c_batch = [c[u:u+1] for c in condition_data]
+                            c_batch = [c[u] for c in condition_data]
                             G_loss = self.generator(u, sample, reward, c_batch)
                         else:
                             G_loss = self.generator(u, sample, reward)
@@ -319,7 +319,7 @@ def main():
     vectors = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 
     CONDITIONS = ConditionList([
-        ('title', PretrainedWordEmbeddingCondition(vectors))
+        ('title', PretrainedWordEmbeddingCondition(vectors, dim=0))
     ])
 
     PARSER = argparse.ArgumentParser()
