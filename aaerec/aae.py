@@ -545,7 +545,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         self.enc_optim.step()
         self.dec_optim.step()
         self.zero_grad()
-        return recon_loss.data[0].item()
+        return recon_loss.data.item()
 
     def disc_step(self, batch):
         """ Perform one discriminator step on batch """
