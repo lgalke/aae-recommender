@@ -143,17 +143,19 @@ class IRGAN():
                                                                                     train_size - index + 1)
                             end = train_size + 1
 
-                        index += self.batch_size
                         if torch.cuda.is_available():
                             input_label = torch.tensor(input_label).cuda()
                         else:
                             input_label = torch.tensor(input_label)
                         if use_condition:
-                            c_batch = [c[index:end] for c in condition_data]
+                            # Each user is repeated twice in input_user
+                            c_batch = [c[index:end].repeat(2,axis=0) for c in condition_data]
+                            print(index,end)
                             D_loss = self.discriminator(input_user, input_item, input_label, c_batch)
                         else:
                             D_loss = self.discriminator(input_user, input_item, input_label)
                         self.discriminator.step(D_loss)
+                        index += self.batch_size
 
                     if self.verbose:
                         print("\r[D Epoch %d/%d] [loss: %f]" % (d_epoch, self.d_epochs, D_loss.item()))
