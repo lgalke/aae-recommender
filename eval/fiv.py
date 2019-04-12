@@ -42,10 +42,10 @@ BASELINES = [
 ]
 
 RECOMMENDERS = [
-    AAERecommender(use_title=False, adversarial=False, lr=0.0001,
+    AAERecommender(use_title=False, adversarial=False, lr=0.001,
                    **ae_params),
-    AAERecommender(use_title=False, prior='gauss', gen_lr=0.0001,
-                   reg_lr=0.0001, **ae_params),
+    AAERecommender(use_title=False, prior='gauss', gen_lr=0.001,
+                   reg_lr=0.001, **ae_params),
 ]
 
 TITLE_ENHANCED = [
