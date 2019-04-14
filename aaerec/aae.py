@@ -234,7 +234,7 @@ class AutoEncoder():
         self.enc_optim.step()
         self.dec_optim.step()
         self.zero_grad()
-        return recon_loss.data[0].item()
+        return recon_loss.data.item()
 
     def partial_fit(self, X, y=None, condition=None):
         """ Performs reconstrction, discimination, generator training steps """
