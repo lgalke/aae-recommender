@@ -565,7 +565,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         disc_loss.backward()
         self.disc_optim.step()
         self.zero_grad()
-        return disc_loss.data[0].item()
+        return disc_loss.data.item()
 
     def gen_step(self, batch):
         self.enc.train()
@@ -575,7 +575,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         gen_loss.backward()
         self.gen_optim.step()
         self.zero_grad()
-        return gen_loss.data[0].item()
+        return gen_loss.data.item()
 
     def partial_fit(self, X, y=None, condition=None):
         """ Performs reconstrction, discimination, generator training steps """
