@@ -54,7 +54,7 @@ class Discriminator(nn.Module):
             for c in self.conditions:
                 self.conditions[c].dim = 1
 
-            print(u_embedding.size(), torch.Tensor(condition_data).size())
+            # print(u_embedding.size(), torch.Tensor(condition_data).size())
             u_embedding = self.conditions.encode_impose(u_embedding, condition_data)
 
             for c in self.conditions:

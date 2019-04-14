@@ -148,9 +148,12 @@ class IRGAN():
                         else:
                             input_label = torch.tensor(input_label)
                         if use_condition:
-                            # Each user is repeated twice in input_user
-                            c_batch = [c[index:end].repeat(2,axis=0) for c in condition_data]
+                            # Each user is repeated a varying number of times in input_user
+                            user_cnt = [input_user.count(u) for u in set(input_user)]
+                            c_batch = [c[index:end].repeat(user_cnt,axis=0) for c in condition_data]
                             print(index,end)
+                            # TODO error in pre_logits c_batch [4,300], input_batch [32,5]
+                            # Why 4 and not 32? end - index = 16 c_batch shorter than input_users?
                             D_loss = self.discriminator(input_user, input_item, input_label, c_batch)
                         else:
                             D_loss = self.discriminator(input_user, input_item, input_label)
