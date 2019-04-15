@@ -152,7 +152,7 @@ class IRGAN():
                             user_cnt = [[u, input_user.count(u)] for u in set(input_user)]
                             c_batch = []
                             for c in condition_data:
-                                c_batch.append(c[u].repeat(user_cnt[u], axis=0) for u in user_cnt)
+                                c_batch.append(np.array([c[u].repeat(user_cnt[u], axis=0) for u in user_cnt]))
                             D_loss = self.discriminator(input_user, input_item, input_label, c_batch)
                         else:
                             D_loss = self.discriminator(input_user, input_item, input_label)
