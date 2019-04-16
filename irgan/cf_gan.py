@@ -138,11 +138,9 @@ class IRGAN():
                         if index + self.batch_size <= train_size + 1:
                             input_user, input_item, input_label = ut.get_batch_data(DIS_TRAIN_FILE, index,
                                                                                     self.batch_size)
-                            # end = index + self.batch_size
                         else:
                             input_user, input_item, input_label = ut.get_batch_data(DIS_TRAIN_FILE, index,
                                                                                     train_size - index + 1)
-                            # end = train_size + 1
 
                         if torch.cuda.is_available():
                             input_label = torch.tensor(input_label).cuda()
@@ -151,8 +149,12 @@ class IRGAN():
                         if use_condition:
                             # Each user is repeated a varying number of times in dis_train.txt, users not ordered
                             user_cnt = collections.OrderedDict([(u, input_user.count(u)) for u in set(input_user)])
-                            c_batch = [np.array(user_cnt.keys()).repeat(user_cnt.items(), axis=0)
-                                       for c in condition_data]
+                            c_batch = []
+                            for c in condition_data:
+                                raw_c_bacth = []
+                                for u in set(input_user):
+                                    raw_c_bacth.append(c[u])
+                                c_batch.append(np.asarray(raw_c_bacth).repeat(list(user_cnt.values()), axis=0))
                             D_loss = self.discriminator(input_user, input_item, input_label, c_batch)
                         else:
                             D_loss = self.discriminator(input_user, input_item, input_label)
