@@ -4,6 +4,7 @@ import numpy as np
 import irgan.utils as ut
 import multiprocessing
 import argparse
+import collections
 
 import torch
 
@@ -149,10 +150,9 @@ class IRGAN():
                             input_label = torch.tensor(input_label)
                         if use_condition:
                             # Each user is repeated a varying number of times in dis_train.txt, users not ordered
-                            user_cnt = [[u, input_user.count(u)] for u in set(input_user)]
-                            c_batch = []
-                            for c in condition_data:
-                                c_batch.append(np.array([c[u].repeat(user_cnt[u], axis=0) for u in user_cnt]))
+                            user_cnt = collections.OrderedDict([(u, input_user.count(u)) for u in set(input_user)])
+                            c_batch = [np.array(user_cnt.keys()).repeat(user_cnt.items(), axis=0)
+                                       for c in condition_data]
                             D_loss = self.discriminator(input_user, input_item, input_label, c_batch)
                         else:
                             D_loss = self.discriminator(input_user, input_item, input_label)
