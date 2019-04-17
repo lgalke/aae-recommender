@@ -238,7 +238,6 @@ class IRGAN():
                 c_batch = [c[index:index + batch_size] for c in condition_data]
 
             user_batch_rating = user_batch_rating.detach_().cpu().numpy()
-            # TODO encode_impose on user_batch_rating?
             for user_batch_rating_uid in zip(user_batch_rating, user_batch):
                 pred.append(self.simple_test_one_user(user_batch_rating_uid))
 
