@@ -214,6 +214,11 @@ class IRGAN():
         return self
 
     def predict(self, X, condition_data=None):
+        use_condition = _check_conditions(self.conditions, condition_data)
+        if use_condition:
+            for c in self.conditions:
+                self.conditions[c].dim = 1
+
         batch_size = 128
         test_users = list(X.keys())
         test_user_num = len(test_users)
@@ -223,13 +228,23 @@ class IRGAN():
             if index >= test_user_num:
                 break
             user_batch = test_users[index:index + batch_size]
+            if use_condition:
+                c_batch = [c[index:index + batch_size] for c in condition_data]
             index += batch_size
 
-            user_batch_rating = self.generator.all_rating(user_batch, condition_data)
+            user_batch_rating = self.generator.all_rating(user_batch, c_batch)
+
+            if use_condition:
+                c_batch = [c[index:index + batch_size] for c in condition_data]
+
             user_batch_rating = user_batch_rating.detach_().cpu().numpy()
             # TODO encode_impose on user_batch_rating?
             for user_batch_rating_uid in zip(user_batch_rating, user_batch):
                 pred.append(self.simple_test_one_user(user_batch_rating_uid))
+
+        if use_condition:
+            for c in self.conditions:
+                self.conditions[c].dim = 0
 
         return pred
 
