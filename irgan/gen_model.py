@@ -43,12 +43,12 @@ class Generator(nn.Module):
             self.G_item_embeddings = self.G_item_embeddings.cuda()
             self.G_item_bias = self.G_item_bias.cuda()
 
-    def all_rating(self, user_index, condition_data=None):
+    def all_rating(self, user_index, condition_data=None, impose_dim=None):
         u_embedding = self.G_user_embeddings[user_index, :]
         item_embeddings = self.G_item_embeddings
 
         if self.conditions:
-            u_embedding = self.conditions.encode_impose(u_embedding, condition_data)
+            u_embedding = self.conditions.encode_impose(u_embedding, condition_data, dim=impose_dim)
             u_embedding = self.lin(u_embedding)
 
         all_rating = torch.mm(u_embedding.view(-1, 5), item_embeddings.t()) + self.G_item_bias

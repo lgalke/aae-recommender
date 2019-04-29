@@ -51,14 +51,14 @@ class Discriminator(nn.Module):
             # In generator need to use dimension 0 in discriminator 1 so by default 0 (given in condition creation)
             # and here we change impose and set it back to 0
             # TODO Better solutionis to always use a batch instead of a specific user as for all other methods
-            for c in self.conditions:
-                self.conditions[c].dim = 1
+            #for c in self.conditions:
+            #    self.conditions[c].dim = 1
 
             # print(u_embedding.size(), torch.Tensor(condition_data).size())
-            u_embedding = self.conditions.encode_impose(u_embedding, condition_data)
+            u_embedding = self.conditions.encode_impose(u_embedding, condition_data, dim=1)
 
-            for c in self.conditions:
-                self.conditions[c].dim = 0
+            #for c in self.conditions:
+            #    self.conditions[c].dim = 0
 
             u_embedding = self.lin(u_embedding)
 

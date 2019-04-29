@@ -215,9 +215,9 @@ class IRGAN():
 
     def predict(self, X, condition_data=None):
         use_condition = _check_conditions(self.conditions, condition_data)
-        if use_condition:
-            for c in self.conditions:
-                self.conditions[c].dim = 1
+        #if use_condition:
+        #    for c in self.conditions:
+        #        self.conditions[c].dim = 1
 
         batch_size = 128
         test_users = list(X.keys())
@@ -232,7 +232,7 @@ class IRGAN():
                 c_batch = [c[index:index + batch_size] for c in condition_data]
             index += batch_size
 
-            user_batch_rating = self.generator.all_rating(user_batch, c_batch)
+            user_batch_rating = self.generator.all_rating(user_batch, c_batch, impose_dim=1)
 
             if use_condition:
                 c_batch = [c[index:index + batch_size] for c in condition_data]
@@ -241,9 +241,9 @@ class IRGAN():
             for user_batch_rating_uid in zip(user_batch_rating, user_batch):
                 pred.append(self.simple_test_one_user(user_batch_rating_uid))
 
-        if use_condition:
-            for c in self.conditions:
-                self.conditions[c].dim = 0
+        #if use_condition:
+        #    for c in self.conditions:
+        #        self.conditions[c].dim = 0
 
         return pred
 
