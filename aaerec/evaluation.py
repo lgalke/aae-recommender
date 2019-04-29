@@ -315,7 +315,7 @@ class Evaluation(object):
         self.x_test = lists2sparse(noisy, train_set.size(1)).tocsr(copy=False)
         return self
 
-    def __call__(self, recommenders):
+    def __call__(self, recommenders, batch_size=None):
         if None in (self.train_set, self.test_set, self.x_test, self.y_test):
             raise UserWarning("Call .setup() before running the experiment")
 
@@ -363,7 +363,7 @@ class Evaluation(object):
                       .format(timedelta(seconds=timer()-t_1)), file=log_fh)
 
             t_1 = timer()
-            results = evaluate(self.y_test, y_pred, metrics=self.metrics)
+            results = evaluate(self.y_test, y_pred, metrics=self.metrics, batch_size=batch_size)
             print("Evaluation took {} seconds."
                   .format(timedelta(seconds=timer()-t_1)), file=log_fh)
 
