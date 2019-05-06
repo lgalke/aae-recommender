@@ -87,14 +87,14 @@ CONDITIONED_MODELS = [
 
 TITLE_ENHANCED = [
     SVDRecommender(1000, use_title=True),
-    DecodingRecommender(n_epochs=100, batch_size=100, optimizer='adam',
-                        n_hidden=100, embedding=VECTORS,
-                        lr=0.001, verbose=True),
-    AAERecommender(adversarial=False, use_title=True, lr=0.001,
-                   **ae_params),
-    AAERecommender(adversarial=True, use_title=True,
-                   prior='gauss', gen_lr=0.001, reg_lr=0.001,
-                   **ae_params),
+    # DecodingRecommender(n_epochs=100, batch_size=100, optimizer='adam',
+    #                     n_hidden=100, embedding=VECTORS,
+    #                     lr=0.001, verbose=True),
+    # AAERecommender(adversarial=False, use_title=True, lr=0.001,
+    #                **ae_params),
+    # AAERecommender(adversarial=True, use_title=True,
+    #                prior='gauss', gen_lr=0.001, reg_lr=0.001,
+    #                **ae_params),
 ]
 
 
@@ -209,9 +209,9 @@ def main(year, min_count=None, outfile=None):
         print("~ Conditioned Models", "~" * 42, file=fh)
     evaluation(CONDITIONED_MODELS)
 
-    with open(outfile, 'a') as fh:
-        print("~ Partial List + Titles", "~" * 42, file=fh)
-    evaluation(TITLE_ENHANCED)
+    # with open(outfile, 'a') as fh:
+    #     print("~ Partial List + Titles", "~" * 42, file=fh)
+    # evaluation(TITLE_ENHANCED)
 
 
 if __name__ == '__main__':
