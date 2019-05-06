@@ -205,7 +205,7 @@ def main(year, min_count=None, outfile=None):
     #evaluation(BASELINES + RECOMMENDERS)
     evaluation(RECOMMENDERS)
 
-    with open(ARGS.outfile, 'a') as fh:
+    with open(outfile, 'a') as fh:
         print("~ Conditioned Models", "~" * 42, file=fh)
     evaluation(CONDITIONED_MODELS)
 
