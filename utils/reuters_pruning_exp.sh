@@ -1,4 +1,4 @@
-OUTPUT_PREFIX=/data22/ivagliano/cit2vec-journal-results/titles-only
+OUTPUT_PREFIX=/data22/ivagliano/cit2vec-journal-results/reuters/titles-only
 RUN=1
 mkdir -p $OUTPUT_PREFIX
 # epochs 20
