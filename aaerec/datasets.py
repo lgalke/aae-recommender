@@ -173,7 +173,6 @@ class Bags(object):
         # consumes performance
         # self.index2token = invert_mapping(vocab)
 
-
     def clone(self):
         """ Creates a really deep copy """
         data = [[t for t in b] for b in self.data]
@@ -201,8 +200,6 @@ class Bags(object):
         """ Computes the number of (non-zero) elements """
         return sum(map(len, self.data))
 
-
-
     def get_single_attribute(self, attribute):
         # TODO: find representation in owner_attributes for doctex
         """
@@ -226,6 +223,8 @@ class Bags(object):
     def get_attributes(self, attribute_list):
         return [self.get_single_attribute(a) for a in attribute_list]
 
+    def to_dict(self):
+        return dict(enumerate(self.data))
 
     @classmethod
     def load_tabcomma_format(self, path, unique=False):
@@ -250,7 +249,6 @@ class Bags(object):
             meta_vals.append(df[meta_header].values)
         print("with", len(header) - 2, "metadata columns.")
 
-
         # for i, owner in enumerate(set_owners):
         #     for j in range(2, len(header)):
         #         owner_attributes[header[j]][owner] = meta_vals[j - 2][i]
@@ -264,7 +262,6 @@ class Bags(object):
         if unique:
             print("Making items unique within user.")
             sets = [list(set(s)) for s in sets]
-
 
         bags = Bags(sets, set_owners, owner_attributes=owner_attributes)
 

@@ -82,13 +82,13 @@ class ConditionList(OrderedDict):
         return [cond.fit_transform(inp) for cond, inp
                 in zip(self.values(), raw_inputs)]
 
-    def encode_impose(self, x, condition_inputs):
+    def encode_impose(self, x, condition_inputs, dim=None):
         """ Subsequently conduct encode & impose with all conditions
         in order.
         """
         assert len(condition_inputs) == len(self)
         for condition, condition_input in zip(self.values(), condition_inputs):
-            x = condition.encode_impose(x, condition_input)
+            x = condition.encode_impose(x, condition_input, dim)
         return x
 
     def encode(self, condition_inputs):
@@ -180,10 +180,10 @@ class ConditionBase(ABC):
         Could also use multiplicative or additive conditioning.
         """
 
-    def encode_impose(self, inputs, condition_input):
+    def encode_impose(self, inputs, condition_input, dim=None):
         """ First encodes `condition_input`, then applies condition to `inputs`.
         """
-        return self.impose(inputs, self.encode(condition_input))
+        return self.impose(inputs, self.encode(condition_input), dim)
     ###########################################################################
 
     ################################################
@@ -269,9 +269,11 @@ class ConcatenationBasedConditioning(ConditionBase):
     def size_increment(self):
         """ Subclasses need to specify size increment """
 
-    def impose(self, inputs, encoded_condition):
+    def impose(self, inputs, encoded_condition, dim=None):
         """ Concat condition at specified dimension (default 1) """
-        return torch.cat([inputs, encoded_condition], dim=self.dim)
+        if dim is None:
+            dim = self.dim
+        return torch.cat([inputs, encoded_condition], dim=dim)
 
 
 class ConditionalBiasing(ConditionBase):

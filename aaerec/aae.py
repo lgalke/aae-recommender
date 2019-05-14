@@ -437,13 +437,6 @@ class AutoEncoder():
                 if use_condition:
                     z = self.conditions.encode_impose(z, c_batch)
                 # reconstruct
-                # Encoder is set in fit() method
-                # TODO: find why it throws. seems to be dims mismatch
-                # File "/home/gerstenkorn/anaconda3/envs/citation/lib/python3.6/site-packages/torch/nn/functional.py", line 1024, in linear
-                # return torch.addmm(bias, input, weight.t())
-                #            RuntimeError: size mismatch, m1: [100 x 376], m2: [1628 x 100] at /pytorch/aten/src/TH/generic/THTensorMath.cpp:2070
-                # other iteration:  RuntimeError: size mismatch, m1: [100 x 387], m2: [1627 x 100] at /pytorch/aten/src/TH/generic/THTensorMath.cpp:940
-
                 X_reconstuction = self.dec(z)
                 # shift
                 X_reconstuction = X_reconstuction.data.cpu().numpy()
