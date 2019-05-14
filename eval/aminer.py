@@ -15,7 +15,11 @@ from aaerec.baselines import Countbased
 from aaerec.datasets import Bags
 from aaerec.evaluation import Evaluation
 from aaerec.svd import SVDRecommender
+from aaerec.vae import VAERecommender
+from aaerec.dae import DAERecommender
 from eval.mpd.mpd import log
+
+from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, CategoricalCondition
 
 # Should work on kdsrv03
 DATA_PATH = "/data22/ivagliano/aminer/"
@@ -57,17 +61,17 @@ RECOMMENDERS = [
     DAERecommender(conditions=None, **ae_params)
 ]
 
-TITLE_ENHANCED = [
-    SVDRecommender(1000, use_title=True),
-    DecodingRecommender(n_epochs=100, batch_size=100, optimizer='adam',
-                        n_hidden=100, embedding=VECTORS,
-                        lr=0.001, verbose=True),
-    AAERecommender(adversarial=False, use_title=True, lr=0.001,
-                   **ae_params),
-    AAERecommender(adversarial=True, use_title=True,
-                   prior='gauss', gen_lr=0.001, reg_lr=0.001,
-                   **ae_params),
-]
+# TITLE_ENHANCED = [
+#     SVDRecommender(1000, use_title=True),
+#     DecodingRecommender(n_epochs=100, batch_size=100, optimizer='adam',
+#                         n_hidden=100, embedding=VECTORS,
+#                         lr=0.001, verbose=True),
+#     AAERecommender(adversarial=False, use_title=True, lr=0.001,
+#                    **ae_params),
+#     AAERecommender(adversarial=True, use_title=True,
+#                    prior='gauss', gen_lr=0.001, reg_lr=0.001,
+#                    **ae_params),
+# ]
 
 CONDITIONS = ConditionList([
     ('title', PretrainedWordEmbeddingCondition(VECTORS))
@@ -87,7 +91,7 @@ CONDITIONED_MODELS = [
 #    DecodingRecommender(CONDITIONS,
 #                        n_epochs=ARGS.epochs, batch_size=100, optimizer='adam',
 #                        n_hidden=100, lr=ARGS.lr, verbose=True),
-     VAERecommender(conditions=CONDITIONS, **vae_params),
+     VAERecommender(conditions=CONDITIONS, **ae_params),
      DAERecommender(conditions=CONDITIONS, **ae_params)
 ]
 
@@ -229,12 +233,12 @@ def main(year, dataset, min_count=None, outfile=None):
     with open(outfile, 'a') as fh:
         print("~ Partial List", "~" * 42, file=fh)
     # evaluation(BASELINES + RECOMMENDERS)
-    evaluation(RECOMMENDERS)
+    evaluation(RECOMMENDERS, batch_size=1000)
 
     with open(outfile, 'a') as fh:
         print("~ Partial List + Titles", "~" * 42, file=fh)
     # evaluation(TITLE_ENHANCED)
-    evaluation(CONDITIONED_MODELS)
+    evaluation(CONDITIONED_MODELS, batch_size=1000)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
