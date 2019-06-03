@@ -41,27 +41,46 @@ TRACK_INFO = ['artist_name', 'track_name', 'album_name']
 # TODO: find the side info fields
 PLAYLIST_INFO = ['name']
 
-# TFIDF_PARAMS = { 'max_features': N_WORDS }
+#TFIDF_PARAMS = { 'max_features': N_WORDS }
 
-W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
-W2V_IS_BINARY = True
-VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
-DATA_PATH = "/data21/lgalke/datasets/MPD/data/"
+SERVER = True
 
-CONDITIONS = ConditionList([
-    ('name', PretrainedWordEmbeddingCondition(VECTORS)),
-    ('artist_name', CategoricalCondition(embedding_dim=32)),
-    ('track_name', PretrainedWordEmbeddingCondition(VECTORS)),
-    ('album_name', PretrainedWordEmbeddingCondition(VECTORS))
-])
+if SERVER:
+    W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
+    W2V_IS_BINARY = True
+    VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
+    DATA_PATH = "/data21/lgalke/datasets/MPD/data/"
+    # DATA_PATH = "/data22/ggerstenkorn/citation_test_data/"
+    CONDITIONS = ConditionList([
+        ('name', PretrainedWordEmbeddingCondition(VECTORS))
+    ])
+else:
+
+    print("load WE from file")
+    W2V_PATH = "/workData/generalUseData/GoogleNews-vectors-negative300.bin.gz"
+    W2V_IS_BINARY = True
+    VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
+    print("finished loading")
+
+    DATA_PATH = "/workData/zbw/citation/local_data"
+    #CONDITIONS = None
+    CONDITIONS = ConditionList([
+        ('name', PretrainedWordEmbeddingCondition(VECTORS)), # first element is name of attribute in  the dataset
+        ('track_name', PretrainedWordEmbeddingCondition(VECTORS)),
+        ('artist_name', PretrainedWordEmbeddingCondition(VECTORS))
+    ])
+
+
+
+
+
 
 # These need to be implemented in evaluation.py
 METRICS = ['mrr']
 
+
 MODELS = [
-    AAERecommender(adversarial=False, conditions=CONDITIONS, n_epochs=55),
-    AAERecommender(adversarial=True, conditions=CONDITIONS, n_epochs=55),
-    DecodingRecommender(conditions=CONDITIONS, n_epochs=55)
+    AAERecommender(adversarial=False, conditions=CONDITIONS,n_epochs=2),
     # Only item sets
     #Countbased(),
     #SVDRecommender(1000, use_title=False),
@@ -181,6 +200,7 @@ def unpack_playlists(playlists, aggregate=None):
     return bags_of_tracks, pids, {"title": side_info}
 
 
+
 def unpack_playlists_for_models_concatenated(playlists):
     """
     Unpacks list of playlists in a way that makes them ready for the models .train step.
@@ -203,6 +223,8 @@ def unpack_playlists_for_models_concatenated(playlists):
         bags_of_tracks.append([t["track_uri"] for t in playlist["tracks"]])
         # Use dict here such that we can also deal with unsorted pids
 
+
+
         for condition in condition_names:
             if condition in PLAYLIST_INFO:
                 # stored: self.owner_attributes = side_info
@@ -220,6 +242,8 @@ def unpack_playlists_for_models_concatenated(playlists):
 
             side_infos[condition][playlist["pid"]] = extracted_condition
 
+
+
     # for attr in side_infos:
     #     print(attr)
     #     for pid in list(side_infos[attr].keys())[:3]:
@@ -229,6 +253,7 @@ def unpack_playlists_for_models_concatenated(playlists):
     # In side info the pid is the key
     # Re-use 'title' property here because methods rely on it
     return bags_of_tracks, pids, side_infos
+
 
 
 def prepare_evaluation(bags, test_size=0.1, n_items=None, min_count=None):
@@ -318,7 +343,7 @@ def main(outfile=None, min_count=None):
 
         print("evaluate:")
         # Evaluate metrics
-        results = evaluate(y_test, y_pred, METRICS, batch_size=100)
+        results = evaluate(y_test, y_pred, METRICS, batch_size=200)
 
         print("metrics: ")
         log("-" * 78, logfile=outfile)
@@ -330,6 +355,7 @@ def main(outfile=None, min_count=None):
 
 if __name__ == '__main__':
 
+    # python3 eval/mpd/mpd.py -m 55 -o /data22/ggerstenkorn/citation_test_data/mpd-55-250batch_5epoch_titles.txt
     parser = argparse.ArgumentParser()
     parser.add_argument('-o', '--outfile',
                         help="File to store the results.")

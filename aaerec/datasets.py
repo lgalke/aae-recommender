@@ -252,7 +252,13 @@ class Bags(object):
             print("Found", len(sets), 'rows')
 
             def iterate_metadata(meta_data, mtdt_transform_table):
-
+                """
+                    accumulates lists for specified attributes per "owner"
+                    Warning: not working if dependent on other additional keys
+                :param meta_data:
+                :param mtdt_transform_table:
+                :return:
+                """
                 print("create dict from df")
                 owner_attributes = {}
                 for attr in mtdt_transform_table["fields"]:
