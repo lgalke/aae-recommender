@@ -229,37 +229,76 @@ class Bags(object):
 
 
     @classmethod
-    def load_tabcomma_format(self, path, unique=False):
+    def load_tabcomma_format(self, path, meta_data_dic = False, unique=False, owner_str="owner"):
         """
         Arguments
         =========
 
         """
         # loading
-        # TODO FIXME make the year and the month column int? c0
+
         df = pd.read_csv(path, sep="\t", dtype=str, error_bad_lines=False)
         df = df.fillna("")
 
-        header = list(df.columns.values)
         owner_attributes = dict()
-        sets = df["set"].values
-        set_owners = df["owner"].values
-        print("Found", len(sets), 'rows')
-
-        meta_vals = []
-        for meta_header in header[2:]:
-            meta_vals.append(df[meta_header].values)
-        print("with", len(header) - 2, "metadata columns.")
 
 
-        # for i, owner in enumerate(set_owners):
-        #     for j in range(2, len(header)):
-        #         owner_attributes[header[j]][owner] = meta_vals[j - 2][i]
+        if meta_data_dic:
 
-        for i in range(2, len(header)):
-            owner_attributes[header[i]] = {}
-            for j, owner in enumerate(set_owners):
-                owner_attributes[header[i]][owner] = meta_vals[i - 2][j]
+            set_owners = df["pmId"].values  # owner
+            sets = df["cited"].values  # set
+            sets = list(map(lambda x: x.split(","), sets))
+            owner_attributes = dict()
+            print("Found", len(sets), 'rows')
+
+            def iterate_metadata(meta_data, mtdt_transform_table):
+
+                print("create dict from df")
+                owner_attributes = {}
+                for attr in mtdt_transform_table["fields"]:
+                    owner_attributes[attr] = defaultdict(list)
+
+                for index, row in meta_data.iterrows():
+                    # owner_attributes[<attr_name>][<documentID>].append(<attribute(s)>)
+                    for attr in mtdt_transform_table["fields"]:
+                        owner_attributes[attr][row[mtdt_transform_table["join_cit"]]].append(row[attr])
+                print("creating dict finished")
+                return owner_attributes
+
+
+            for key in meta_data_dic.keys():
+                mtdt_transform_table = meta_data_dic[key]
+                # loading meta data and select the relevant
+                auth_path = mtdt_transform_table["path"]
+                meta_data = pd.read_csv(auth_path, error_bad_lines=False, dtype=str)
+
+                targets = mtdt_transform_table["fields"] + [mtdt_transform_table["join_mtdt"]]
+                meta_data = meta_data[targets]
+
+                # add the additional attributes
+
+                owner_attributes.update(iterate_metadata(meta_data, mtdt_transform_table))
+
+
+
+
+        else:
+        #TODO FIXME make the year and the month column int? c0
+
+            header = list(df.columns.values)
+            sets = df["set"].values
+            set_owners = df[owner_str].values
+            print("Found", len(sets), 'rows')
+
+            meta_vals = []
+            for meta_header in header[2:]:
+                meta_vals.append(df[meta_header].values)
+            print("with", len(header) - 2, "metadata columns.")
+
+            for i in range(2, len(header)):
+                owner_attributes[header[i]] = {}
+                for j, owner in enumerate(set_owners):
+                    owner_attributes[header[i]][owner] = meta_vals[i - 2][j]
 
         sets = list(map(lambda x: x.split(","), sets))
         if unique:
