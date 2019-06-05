@@ -11,17 +11,23 @@ import torch
 # own recommender stuff
 from aaerec.base import Recommender
 from aaerec.datasets import Bags
-from aaerec.evaluation import Evaluation
+from aaerec.evaluation import Evaluation, maybe_open, maybe_close
 from aaerec.ub import GensimEmbeddedVectorizer
 from gensim.models.keyedvectors import KeyedVectors
 
 from aaerec.condition import ConditionList, _check_conditions, PretrainedWordEmbeddingCondition
 
+from timeit import default_timer as timer
+from datetime import timedelta
+
+
 # workdir = 'ml-100k/'
 DIS_TRAIN_FILE = 'dis-train.txt'
+IRGAN_TRAIN_LOG = 'irgan-train-time-profile.txt'
 
 W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
 W2V_IS_BINARY = True
+
 
 class IRGAN():
 
@@ -39,7 +45,8 @@ class IRGAN():
                  # TODO normalize input
                  # normalize_inputs=True,
                  conditions=None,
-                 verbose=True):
+                 verbose=True,
+                 logfile=IRGAN_TRAIN_LOG):
 
         # self.normalize_inputs = normalize_inputs
         self.verbose = verbose
@@ -55,6 +62,7 @@ class IRGAN():
         self.user_num = user_num
         self.item_num = item_num
         self.all_items = set(range(item_num))
+        self.logfile = logfile
 
         self.generator = Generator(item_num, user_num, emb_dim, lamda=0.0 / batch_size, param=gen_param,
                                    initdelta=init_delta, learning_rate=lr, conditions=conditions)
@@ -121,7 +129,10 @@ class IRGAN():
 
         self.user_pos_train = X
 
+        log_fh = maybe_open(self.logfile)
+
         # minimax training
+        t_0 = timer()
         for epoch in range(self.n_epochs):
             if self.verbose:
                 print("Epoch", epoch + 1)
@@ -129,9 +140,13 @@ class IRGAN():
             if epoch >= 0:
                 for d_epoch in range(self.d_epochs): #100
                     if d_epoch % 5 == 0:
+                        t_1 = timer()
                         self.generate_for_d(DIS_TRAIN_FILE, condition_data)
+                        print("generate_for_d took %d seconds in epoch %d." %
+                              (timedelta(seconds=timer() - t_1), d_epoch), file=log_fh)
                         train_size = ut.file_len(DIS_TRAIN_FILE)
                     index = 1
+                    t_2 = timer()
                     while True:
                         if index > train_size:
                             break
@@ -160,11 +175,18 @@ class IRGAN():
                             D_loss = self.discriminator(input_user, input_item, input_label)
                         self.discriminator.step(D_loss)
                         index += self.batch_size
+                    print("Rest of code took %d seconds in epoch %d." %
+                          (timedelta(seconds=timer() - t_2), d_epoch), file=log_fh)
 
                     if self.verbose:
                         print("\r[D Epoch %d/%d] [loss: %f]" % (d_epoch, self.d_epochs, D_loss.item()))
 
+                print("Training discriminator took {} seconds."
+                      .format(timedelta(seconds=timer() - t_0)), file=log_fh)
+
                 # Train G
+                t_3 = timer()
+
                 for g_epoch in range(self.g_epochs):  # 50
                     for u in self.user_pos_train:
                         sample_lambda = 0.2
@@ -211,6 +233,10 @@ class IRGAN():
                     if self.verbose:
                         print("\r[G Epoch %d/%d] [loss: %f]" % (g_epoch, self.g_epochs, G_loss.item()))
 
+        print("Training generator took {} seconds."
+              .format(timedelta(seconds=timer() - t_3)), file=log_fh)
+
+        maybe_close(log_fh)
         return self
 
     def predict(self, X, condition_data=None):
