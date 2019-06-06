@@ -169,10 +169,10 @@ class IRGAN():
                             user_cnt = collections.OrderedDict([(u, input_user.count(u)) for u in set(input_user)])
                             c_batch = []
                             for c in condition_data:
-                                raw_c_bacth = []
+                                raw_c_batch = []
                                 for u in set(input_user):
-                                    raw_c_bacth.append(c[u])
-                                c_batch.append(np.asarray(raw_c_bacth).repeat(list(user_cnt.values()), axis=0))
+                                    raw_c_batch.append(c[u])
+                                c_batch.append(np.asarray(raw_c_batch).repeat(list(user_cnt.values()), axis=0))
                             D_loss = self.discriminator(input_user, input_item, input_label, c_batch)
                         else:
                             D_loss = self.discriminator(input_user, input_item, input_label)
@@ -260,9 +260,6 @@ class IRGAN():
             index += batch_size
 
             user_batch_rating = self.generator.all_rating(user_batch, c_batch, impose_dim=1)
-
-            if use_condition:
-                c_batch = [c[index:index + batch_size] for c in condition_data]
 
             user_batch_rating = user_batch_rating.detach_().cpu().numpy()
             for user_batch_rating_uid in zip(user_batch_rating, user_batch):
