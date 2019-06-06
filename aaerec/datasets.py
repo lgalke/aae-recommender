@@ -229,7 +229,7 @@ class Bags(object):
 
 
     @classmethod
-    def load_tabcomma_format(self, path, meta_data_dic = False, unique=False, owner_str="owner"):
+    def load_tabcomma_format(self, path, meta_data_dic = False, unique=False, owner_str="owner", set_str="set"):
         """
         Arguments
         =========
@@ -240,16 +240,22 @@ class Bags(object):
         df = pd.read_csv(path, sep="\t", dtype=str, error_bad_lines=False)
         df = df.fillna("")
 
+        set_owners = df[owner_str].values
+        sets = df[set_str].values
+        sets = list(map(lambda x: x.split(","), sets))
+        if unique:
+            print("Making items unique within user.")
+            sets = [list(set(s)) for s in sets]
+
+
         owner_attributes = dict()
+        print("Found", len(sets), 'rows')
+
+        header = list(df.columns.values)
 
 
         if meta_data_dic:
 
-            set_owners = df["pmId"].values  # owner
-            sets = df["cited"].values  # set
-            sets = list(map(lambda x: x.split(","), sets))
-            owner_attributes = dict()
-            print("Found", len(sets), 'rows')
 
             def iterate_metadata(meta_data, mtdt_transform_table):
                 """
@@ -291,11 +297,6 @@ class Bags(object):
         else:
         #TODO FIXME make the year and the month column int? c0
 
-            header = list(df.columns.values)
-            sets = df["set"].values
-            set_owners = df[owner_str].values
-            print("Found", len(sets), 'rows')
-
             meta_vals = []
             for meta_header in header[2:]:
                 meta_vals.append(df[meta_header].values)
@@ -306,10 +307,7 @@ class Bags(object):
                 for j, owner in enumerate(set_owners):
                     owner_attributes[header[i]][owner] = meta_vals[i - 2][j]
 
-        sets = list(map(lambda x: x.split(","), sets))
-        if unique:
-            print("Making items unique within user.")
-            sets = [list(set(s)) for s in sets]
+
 
 
         bags = Bags(sets, set_owners, owner_attributes=owner_attributes)
