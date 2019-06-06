@@ -95,6 +95,7 @@ class IRGAN():
     def generate_for_d(self, filename, condition_data=None):
         data = []
 
+        # ~30 sec
         for u in self.user_pos_train:
             pos = self.user_pos_train[u]
             if self.conditions:
@@ -132,6 +133,7 @@ class IRGAN():
         log_fh = maybe_open(self.logfile)
 
         # minimax training
+        # ~10 min 25 sec per epoch (1 g_epoch and 1 d_epoch)
         t_0 = timer()
         for epoch in range(self.n_epochs):
             if self.verbose:
@@ -147,6 +149,7 @@ class IRGAN():
                         train_size = ut.file_len(DIS_TRAIN_FILE)
                     index = 1
                     t_2 = timer()
+                    # ~2 min 15 sec
                     while True:
                         if index > train_size:
                             break
@@ -185,6 +188,7 @@ class IRGAN():
                       .format(timedelta(seconds=timer() - t_0)), file=log_fh)
 
                 # Train G
+                # ~7 min 26 sec
                 t_3 = timer()
 
                 for g_epoch in range(self.g_epochs):  # 50
@@ -241,9 +245,6 @@ class IRGAN():
 
     def predict(self, X, condition_data=None):
         use_condition = _check_conditions(self.conditions, condition_data)
-        #if use_condition:
-        #    for c in self.conditions:
-        #        self.conditions[c].dim = 1
 
         batch_size = 128
         test_users = list(X.keys())
@@ -267,15 +268,10 @@ class IRGAN():
             for user_batch_rating_uid in zip(user_batch_rating, user_batch):
                 pred.append(self.simple_test_one_user(user_batch_rating_uid))
 
-        #if use_condition:
-        #    for c in self.conditions:
-        #        self.conditions[c].dim = 0
-
         return pred
 
 
 class IRGANRecommender(Recommender):
-    ### DONE Adapt to generic condition ###
     """
     IRGAN Recommender
     =====================================
@@ -314,7 +310,6 @@ class IRGANRecommender(Recommender):
        return desc
 
     def train(self, training_set):
-        ### DONE Adapt to generic condition ###
         """
         1. get basic representation
         2. ? add potential side_info in ??? representation
@@ -340,7 +335,6 @@ class IRGANRecommender(Recommender):
         self.model.fit(X, condition_data=condition_data)
 
     def predict(self, test_set):
-        ### DONE Adapt to generic condition ###
         X = test_set.to_dict()
         if self.conditions:
             condition_data_raw = test_set.get_attributes(self.conditions.keys())
