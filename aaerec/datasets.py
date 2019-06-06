@@ -253,6 +253,16 @@ class Bags(object):
 
         header = list(df.columns.values)
 
+        meta_vals = []
+        for meta_header in header[2:]:
+            meta_vals.append(df[meta_header].values)
+        #print("with", len(header) - 2, "metadata columns.")
+
+        for i in range(2, len(header)):
+            owner_attributes[header[i]] = {}
+            for j, owner in enumerate(set_owners):
+                owner_attributes[header[i]][owner] = meta_vals[i - 2][j]
+
 
         if meta_data_dic:
 
@@ -290,21 +300,6 @@ class Bags(object):
                 # add the additional attributes
 
                 owner_attributes.update(iterate_metadata(meta_data, mtdt_transform_table))
-
-        else:
-        #TODO FIXME make the year and the month column int? c0
-
-            meta_vals = []
-            for meta_header in header[2:]:
-                meta_vals.append(df[meta_header].values)
-            print("with", len(header) - 2, "metadata columns.")
-
-            for i in range(2, len(header)):
-                owner_attributes[header[i]] = {}
-                for j, owner in enumerate(set_owners):
-                    owner_attributes[header[i]][owner] = meta_vals[i - 2][j]
-
-
 
 
         bags = Bags(sets, set_owners, owner_attributes=owner_attributes)
