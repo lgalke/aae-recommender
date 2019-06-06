@@ -151,10 +151,10 @@ class IRGAN():
                             user_cnt = collections.OrderedDict([(u, input_user.count(u)) for u in set(input_user)])
                             c_batch = []
                             for c in condition_data:
-                                raw_c_bacth = []
+                                raw_c_batch = []
                                 for u in set(input_user):
-                                    raw_c_bacth.append(c[u])
-                                c_batch.append(np.asarray(raw_c_bacth).repeat(list(user_cnt.values()), axis=0))
+                                    raw_c_batch.append(c[u])
+                                c_batch.append(np.asarray(raw_c_batch).repeat(list(user_cnt.values()), axis=0))
                             D_loss = self.discriminator(input_user, input_item, input_label, c_batch)
                         else:
                             D_loss = self.discriminator(input_user, input_item, input_label)
@@ -215,9 +215,6 @@ class IRGAN():
 
     def predict(self, X, condition_data=None):
         use_condition = _check_conditions(self.conditions, condition_data)
-        #if use_condition:
-        #    for c in self.conditions:
-        #        self.conditions[c].dim = 1
 
         batch_size = 128
         test_users = list(X.keys())
@@ -234,22 +231,14 @@ class IRGAN():
 
             user_batch_rating = self.generator.all_rating(user_batch, c_batch, impose_dim=1)
 
-            if use_condition:
-                c_batch = [c[index:index + batch_size] for c in condition_data]
-
             user_batch_rating = user_batch_rating.detach_().cpu().numpy()
             for user_batch_rating_uid in zip(user_batch_rating, user_batch):
                 pred.append(self.simple_test_one_user(user_batch_rating_uid))
-
-        #if use_condition:
-        #    for c in self.conditions:
-        #        self.conditions[c].dim = 0
 
         return pred
 
 
 class IRGANRecommender(Recommender):
-    ### DONE Adapt to generic condition ###
     """
     IRGAN Recommender
     =====================================
@@ -288,7 +277,6 @@ class IRGANRecommender(Recommender):
        return desc
 
     def train(self, training_set):
-        ### DONE Adapt to generic condition ###
         """
         1. get basic representation
         2. ? add potential side_info in ??? representation
@@ -314,7 +302,6 @@ class IRGANRecommender(Recommender):
         self.model.fit(X, condition_data=condition_data)
 
     def predict(self, test_set):
-        ### DONE Adapt to generic condition ###
         X = test_set.to_dict()
         if self.conditions:
             condition_data_raw = test_set.get_attributes(self.conditions.keys())
