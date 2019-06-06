@@ -294,6 +294,7 @@ class AutoEncoder():
         recon_loss.backward()
         self.enc_optim.step()
         self.dec_optim.step()
+
         if self.conditions:
             self.conditions.step()
         return recon_loss.item()
@@ -308,6 +309,7 @@ class AutoEncoder():
         """
         ### DONE Adapt to generic condition ###
         _check_conditions(self.conditions, condition_data)
+
 
         if y is not None:
             raise ValueError("(Semi-)supervised usage not supported")
@@ -693,6 +695,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         self.dec_optim.step()
         if use_condition:
             self.conditions.step()
+
         return recon_loss.data.item()
 
     def disc_step(self, batch):
@@ -713,6 +716,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         self.disc_optim.zero_grad()
         disc_loss.backward()
         self.disc_optim.step()
+
         return disc_loss.data.item()
 
     def gen_step(self, batch):
@@ -723,6 +727,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         self.gen_optim.zero_grad()
         gen_loss.backward()
         self.gen_optim.step()
+
         return gen_loss.data.item()
 
     def partial_fit(self, X, y=None, condition_data=None):

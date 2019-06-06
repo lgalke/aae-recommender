@@ -47,16 +47,16 @@ ae_params = {
 MODELS = [
     Countbased(),  # Only item sets
     SVDRecommender(10, use_title=False),
-    AAERecommender(adversarial=False, use_title=False, lr=0.0001,
+    AAERecommender(adversarial=False, use_title=False, lr=0.001,
                    **ae_params),
-    AAERecommender(adversarial=True, use_title=False, prior='gauss', gen_lr=0.0001,
-                   reg_lr=0.0001, **ae_params),
+    AAERecommender(adversarial=True, use_title=False, prior='gauss', gen_lr=0.001,
+                   reg_lr=0.001, **ae_params),
     # Title-enhanced
     SVDRecommender(10, use_title=True),
     AAERecommender(adversarial=False, use_title=True, lr=0.001,
                    **ae_params),
-    AAERecommender(adversarial=True, use_title=True, prior='gauss', gen_lr=0.0001,
-                   reg_lr=0.0001, **ae_params),
+    AAERecommender(adversarial=True, use_title=True, prior='gauss', gen_lr=0.001,
+                   reg_lr=0.001, **ae_params),
     DecodingRecommender(n_epochs=100, batch_size=100, optimizer='adam',
                         n_hidden=100, embedding=VECTORS,
                         lr=0.001, verbose=True)  # Only Title
