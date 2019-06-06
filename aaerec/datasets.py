@@ -291,9 +291,6 @@ class Bags(object):
 
                 owner_attributes.update(iterate_metadata(meta_data, mtdt_transform_table))
 
-
-
-
         else:
         #TODO FIXME make the year and the month column int? c0
 
