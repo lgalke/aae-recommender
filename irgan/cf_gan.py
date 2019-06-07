@@ -192,7 +192,7 @@ class IRGAN():
                         ###########################################################################
                         # Get reward and adapt it with importance sampling
                         ###########################################################################
-                        reward = self.discriminator.get_reward(u, sample)
+                        reward = self.discriminator.get_reward(self.user_pos_train[u], sample)
                         reward = reward.detach_().cpu().numpy() * prob[sample] / pn[sample]
                         ###########################################################################
                         # Update G

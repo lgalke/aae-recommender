@@ -47,7 +47,7 @@ class Discriminator(nn.Module):
 
     def pre_logits(self, user_pos, input_item, condition_data=None):
         # u_embedding = self.D_user_embeddings[input_user, :]
-        u_embedding = torch.zeros(self.emb_dim, dtype=torch.float32)
+        u_embedding = torch.zeros([len(user_pos), self.emb_dim], dtype=torch.float32)
         if torch.cuda.is_available():
             u_embedding = u_embedding.cuda()
         for u in user_pos:
@@ -72,8 +72,14 @@ class Discriminator(nn.Module):
             + self.lamda * (self.l2l(self.D_user_embeddings) + self.l2l(self.D_item_embeddings) + self.l2l(self.D_item_bias))
         return loss
 
-    def get_reward(self, user_index, sample):
-        u_embedding = self.D_user_embeddings[user_index, :]
+    def get_reward(self, user_pos, sample):
+        # u_embedding = self.D_user_embeddings[user_index, :]
+        u_embedding = torch.zeros(self.emb_dim, dtype=torch.float32)
+        if torch.cuda.is_available():
+            u_embedding = u_embedding.cuda()
+        for i in user_pos:
+            u_embedding.add(self.D_item_embeddings[i])
+        u_embedding /= len(user_pos)
         item_embeddings = self.D_item_embeddings[sample, :]
         D_item_bias = self.D_item_bias[sample]
 
