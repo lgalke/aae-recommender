@@ -142,8 +142,8 @@ class IRGAN():
                     if d_epoch % 5 == 0:
                         t_1 = timer()
                         self.generate_for_d(DIS_TRAIN_FILE, condition_data)
-                        print("generate_for_d took %d seconds in epoch %d." %
-                              (timedelta(seconds=timer() - t_1), d_epoch), file=log_fh)
+                        print("generate_for_d took {0} seconds in epoch {1}."
+                             .format(timedelta(seconds=timer() - t_1), d_epoch), file=log_fh)
                         train_size = ut.file_len(DIS_TRAIN_FILE)
                     index = 1
                     t_2 = timer()
@@ -175,8 +175,8 @@ class IRGAN():
                             D_loss = self.discriminator(input_user, input_item, input_label)
                         self.discriminator.step(D_loss)
                         index += self.batch_size
-                    print("Rest of code took %d seconds in epoch %d." %
-                          (timedelta(seconds=timer() - t_2), d_epoch), file=log_fh)
+                    print("Rest of code took {0} seconds in epoch {1}."
+                          .format(timedelta(seconds=timer() - t_2), d_epoch), file=log_fh)
 
                     if self.verbose:
                         print("\r[D Epoch %d/%d] [loss: %f]" % (d_epoch, self.d_epochs, D_loss.item()))
@@ -382,7 +382,7 @@ def main():
                                                  min_elements=2)
     user_num = evaluate.train_set.size()[0] + evaluate.test_set.size()[0]
     item_num = evaluate.train_set.size()[1]
-    models = [IRGANRecommender(user_num, item_num, g_epochs=1, d_epochs=1, n_epochs=1, conditions=CONDITIONS)]
+    models = [IRGANRecommender(user_num, item_num, g_epochs=5, d_epochs=10, n_epochs=2, conditions=CONDITIONS)]
     evaluate(models)
 
 
