@@ -91,9 +91,9 @@ class IRGAN():
             pos = self.user_pos_train[u]
             if self.conditions:
                 c_batch = [c[u, :] for c in condition_data]
-                rating = self.generator.all_rating(u, c_batch)
+                rating = self.generator.all_rating(self.user_pos_train[u], c_batch)
             else:
-                rating = self.generator.all_rating(u)
+                rating = self.generator.all_rating(self.user_pos_train[u])
             rating = rating.detach_().cpu().numpy()
             rating = np.array(rating[0]) / 0.2  # Temperature
             exp_rating = np.exp(rating)
@@ -155,9 +155,9 @@ class IRGAN():
                                 for u in set(input_user):
                                     raw_c_batch.append(c[u])
                                 c_batch.append(np.asarray(raw_c_batch).repeat(list(user_cnt.values()), axis=0))
-                            D_loss = self.discriminator(input_user, input_item, input_label, c_batch)
+                            D_loss = self.discriminator(self.user_pos_train[input_user], input_item, input_label, c_batch)
                         else:
-                            D_loss = self.discriminator(input_user, input_item, input_label)
+                            D_loss = self.discriminator(self.user_pos_train[input_user], input_item, input_label)
                         self.discriminator.step(D_loss)
                         index += self.batch_size
 
@@ -172,9 +172,9 @@ class IRGAN():
 
                         if use_condition:
                             c_batch = [c[u] for c in condition_data]
-                            rating = self.generator.all_logits(u, c_batch)
+                            rating = self.generator.all_logits(self.user_pos_train[u], c_batch)
                         else:
-                            rating = self.generator.all_logits(u)
+                            rating = self.generator.all_logits(self.user_pos_train[u])
                         rating = rating.detach_().cpu().numpy()
                         exp_rating = np.exp(rating)
                         prob = exp_rating / np.sum(exp_rating)  # prob is generator distribution p_\theta
@@ -229,7 +229,7 @@ class IRGAN():
                 c_batch = [c[index:index + batch_size] for c in condition_data]
             index += batch_size
 
-            user_batch_rating = self.generator.all_rating(user_batch, c_batch, impose_dim=1)
+            user_batch_rating = self.generator.all_rating(X[user_batch], c_batch, impose_dim=1)
 
             user_batch_rating = user_batch_rating.detach_().cpu().numpy()
             for user_batch_rating_uid in zip(user_batch_rating, user_batch):

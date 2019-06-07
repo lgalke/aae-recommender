@@ -43,8 +43,19 @@ class Generator(nn.Module):
             self.G_item_embeddings = self.G_item_embeddings.cuda()
             self.G_item_bias = self.G_item_bias.cuda()
 
-    def all_rating(self, user_index, condition_data=None, impose_dim=None):
-        u_embedding = self.G_user_embeddings[user_index, :]
+    def all_rating(self, user_pos, condition_data=None, impose_dim=None):
+        # u_embedding = self.G_user_embeddings[user_index, :]
+        if impose_dim or impose_dim == 0:
+            u_embedding = torch.zeros(self.emb_dim, dtype=torch.float32)
+            for i in user_pos:
+                u_embedding.add(self.G_item_embeddings[i])
+            u_embedding /= len(user_pos)
+        else:
+            u_embedding = torch.zeros([len(user_pos), self.emb_dim], dtype=torch.float32)
+            for u in user_pos:
+                for i in u:
+                    u_embedding[u].add(self.G_item_embeddings[i])
+                u_embedding[u] /= len(user_pos)
         item_embeddings = self.G_item_embeddings
 
         if self.conditions:
@@ -54,8 +65,12 @@ class Generator(nn.Module):
         all_rating = torch.mm(u_embedding.view(-1, 5), item_embeddings.t()) + self.G_item_bias
         return all_rating
 
-    def all_logits(self, user_index, condition_data=None):
-        u_embedding = self.G_user_embeddings[user_index]
+    def all_logits(self, user_pos, condition_data=None):
+        # u_embedding = self.G_user_embeddings[user_index]
+        u_embedding = torch.zeros(self.emb_dim, dtype=torch.float32)
+        for i in user_pos:
+            u_embedding.add(self.G_item_embeddings[i])
+        u_embedding /= len(user_pos)
 
         if self.conditions:
             u_embedding = self.conditions.encode_impose(u_embedding, condition_data)

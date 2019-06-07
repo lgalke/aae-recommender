@@ -45,8 +45,13 @@ class Discriminator(nn.Module):
             self.D_item_bias = self.D_item_bias.cuda()
             self.l2l = self.l2l.cuda()
 
-    def pre_logits(self, input_user, input_item, condition_data=None):
-        u_embedding = self.D_user_embeddings[input_user, :]
+    def pre_logits(self, user_pos, input_item, condition_data=None):
+        # u_embedding = self.D_user_embeddings[input_user, :]
+        u_embedding = torch.zeros(self.emb_dim, dtype=torch.float32)
+        for u in user_pos:
+            for i in u:
+                u_embedding[u].add(self.G_item_embeddings[i])
+            u_embedding[u] /= len(user_pos)
         if self.conditions:
             # In generator need to use dimension 0 in discriminator 1 so by default 0 (given in condition creation)
             # and here we use one through the dim parameter
