@@ -45,7 +45,7 @@ class Generator(nn.Module):
 
     def all_rating(self, user_pos, condition_data=None, impose_dim=None):
         # u_embedding = self.G_user_embeddings[user_index, :]
-        if impose_dim or impose_dim == 0:
+        if impose_dim == None or impose_dim == 0:
             u_embedding = torch.zeros(self.emb_dim, dtype=torch.float32)
             for i in user_pos:
                 u_embedding.add(self.G_item_embeddings[i])
