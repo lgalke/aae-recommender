@@ -47,11 +47,15 @@ class Generator(nn.Module):
         # u_embedding = self.G_user_embeddings[user_index, :]
         if impose_dim == None or impose_dim == 0:
             u_embedding = torch.zeros(self.emb_dim, dtype=torch.float32)
+            if torch.cuda.is_available():
+                u_embedding = u_embedding.cuda()
             for i in user_pos:
                 u_embedding.add(self.G_item_embeddings[i])
             u_embedding /= len(user_pos)
         else:
             u_embedding = torch.zeros([len(user_pos), self.emb_dim], dtype=torch.float32)
+            if torch.cuda.is_available():
+                u_embedding = u_embedding.cuda()
             for u in user_pos:
                 for i in u:
                     u_embedding[u].add(self.G_item_embeddings[i])
@@ -68,6 +72,8 @@ class Generator(nn.Module):
     def all_logits(self, user_pos, condition_data=None):
         # u_embedding = self.G_user_embeddings[user_index]
         u_embedding = torch.zeros(self.emb_dim, dtype=torch.float32)
+        if torch.cuda.is_available():
+            u_embedding = u_embedding.cuda()
         for i in user_pos:
             u_embedding.add(self.G_item_embeddings[i])
         u_embedding /= len(user_pos)

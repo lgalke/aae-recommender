@@ -48,6 +48,8 @@ class Discriminator(nn.Module):
     def pre_logits(self, user_pos, input_item, condition_data=None):
         # u_embedding = self.D_user_embeddings[input_user, :]
         u_embedding = torch.zeros(self.emb_dim, dtype=torch.float32)
+        if torch.cuda.is_available():
+            u_embedding = u_embedding.cuda()
         for u in user_pos:
             for i in u:
                 u_embedding[u].add(self.G_item_embeddings[i])
