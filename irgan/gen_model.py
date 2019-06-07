@@ -59,7 +59,7 @@ class Generator(nn.Module):
             for u in user_pos:
                 for i in u:
                     u_embedding[u].add(self.G_item_embeddings[i])
-                u_embedding[u] /= len(user_pos)
+                u_embedding[u] /= len(u)
         item_embeddings = self.G_item_embeddings
 
         if self.conditions:

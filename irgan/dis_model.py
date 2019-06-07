@@ -52,8 +52,8 @@ class Discriminator(nn.Module):
             u_embedding = u_embedding.cuda()
         for u in user_pos:
             for i in u:
-                u_embedding[u].add(self.G_item_embeddings[i])
-            u_embedding[u] /= len(user_pos)
+                u_embedding[u].add(self.D_item_embeddings[i])
+            u_embedding[u] /= len(u)
         if self.conditions:
             # In generator need to use dimension 0 in discriminator 1 so by default 0 (given in condition creation)
             # and here we use one through the dim parameter
