@@ -155,9 +155,11 @@ class IRGAN():
                                 for u in set(input_user):
                                     raw_c_batch.append(c[u])
                                 c_batch.append(np.asarray(raw_c_batch).repeat(list(user_cnt.values()), axis=0))
-                            D_loss = self.discriminator(self.user_pos_train[input_user], input_item, input_label, c_batch)
+                            D_loss = self.discriminator([self.user_pos_train[u] for u in input_user],
+                                                        input_item, input_label, c_batch)
                         else:
-                            D_loss = self.discriminator(self.user_pos_train[input_user], input_item, input_label)
+                            D_loss = self.discriminator([self.user_pos_train[u] for u in input_user],
+                                                        input_item, input_label)
                         self.discriminator.step(D_loss)
                         index += self.batch_size
 
