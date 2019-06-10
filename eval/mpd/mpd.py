@@ -318,7 +318,7 @@ def main(outfile=None, min_count=None):
 
         print("evaluate:")
         # Evaluate metrics
-        results = evaluate(y_test, y_pred, METRICS, batch_size=100)
+        results = evaluate(y_test, y_pred, METRICS, batch_size=50)
 
         print("metrics: ")
         log("-" * 78, logfile=outfile)
