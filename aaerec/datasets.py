@@ -201,6 +201,7 @@ class Bags(object):
         return sum(map(len, self.data))
 
     def get_single_attribute(self, attribute):
+        # TODO: rename to get_attribute() again? at least check for all other calls
         # TODO: find representation in owner_attributes for doctex
         """
         Retrieves the attribute 'attribute' of each bag owner and returns them as a list

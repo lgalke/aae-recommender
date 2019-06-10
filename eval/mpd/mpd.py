@@ -27,48 +27,46 @@ from aaerec.evaluation import remove_non_missing, evaluate
 from aaerec.baselines import Countbased
 from aaerec.svd import SVDRecommender
 from aaerec.aae import AAERecommender, DecodingRecommender
+from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, CategoricalCondition
 
 
 DEBUG_LIMIT = None
 # Use only this many most frequent items
 N_ITEMS = None
 # Use only items that appear this many times
-MIN_COUNT = 50
+MIN_COUNT = 55
 # Use command line arg '-m' instead
 
 TRACK_INFO = ['artist_name', 'track_name', 'album_name']
 # TODO: find the side info fields
 PLAYLIST_INFO = ['name']
-N_WORDS = 50000
-#TFIDF_PARAMS = { 'max_features': N_WORDS }
 
-SERVER = False
+# TFIDF_PARAMS = { 'max_features': N_WORDS }
 
-if SERVER:
-    W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
-    W2V_IS_BINARY = True
-    VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
-    DATA_PATH = "/data21/lgalke/datasets/MPD/data/"
-    # DATA_PATH = "/data22/ggerstenkorn/citation_test_data/"
-else:
-    VECTORS = None
-    DATA_PATH = "/workData/zbw/citation/local_data"
+W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
+W2V_IS_BINARY = True
+VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
+DATA_PATH = "/data21/lgalke/datasets/MPD/data/"
 
-
-
-
-
+CONDITIONS = ConditionList([
+    ('name', PretrainedWordEmbeddingCondition(VECTORS)),
+    ('artist_name', CategoricalCondition(embedding_dim=32)),
+    ('track_name', PretrainedWordEmbeddingCondition(VECTORS)),
+    ('album_name', PretrainedWordEmbeddingCondition(VECTORS))
+])
 
 # These need to be implemented in evaluation.py
 METRICS = ['mrr']
 
-
 MODELS = [
+    AAERecommender(adversarial=False, conditions=CONDITIONS, n_epochs=55),
+    AAERecommender(adversarial=True, conditions=CONDITIONS, n_epochs=55),
+    DecodingRecommender(conditions=CONDITIONS, n_epochs=55)
     # Only item sets
     #Countbased(),
     #SVDRecommender(1000, use_title=False),
     #AAERecommender(adversarial=True, use_title=False, n_epochs=55, embedding=VECTORS),
-    AAERecommender(adversarial=False, use_side_info=["name"], n_epochs=1, embedding=VECTORS),
+    #AAERecommender(adversarial=False, n_epochs=1),
     # Title-enhanced
     #SVDRecommender(1000, use_title=True),
     #AAERecommender(adversarial=True, use_side_info=True, n_epochs=55, embedding=VECTORS),
@@ -183,8 +181,7 @@ def unpack_playlists(playlists, aggregate=None):
     return bags_of_tracks, pids, {"title": side_info}
 
 
-
-def unpack_playlists_for_models_concatenated(playlists,condition_names = ["name"], aggregate=None):
+def unpack_playlists_for_models_concatenated(playlists):
     """
     Unpacks list of playlists in a way that makes them ready for the models .train step.
     It is not mandatory that playlists are sorted.
@@ -194,14 +191,9 @@ def unpack_playlists_for_models_concatenated(playlists,condition_names = ["name"
     :return:
     """
     # Assume track_uri is primary key for track
-    if aggregate is not None:
-        for attr in aggregate:
-            assert attr in TRACK_INFO
-    for condition in condition_names:
-        print(condition)
-        assert condition in PLAYLIST_INFO
 
-
+    condition_names = PLAYLIST_INFO + TRACK_INFO
+    print(condition_names)
     bags_of_tracks, pids = [], []
     side_infos = {condition:{} for condition in condition_names}
     for playlist in playlists:
@@ -211,49 +203,32 @@ def unpack_playlists_for_models_concatenated(playlists,condition_names = ["name"
         bags_of_tracks.append([t["track_uri"] for t in playlist["tracks"]])
         # Use dict here such that we can also deal with unsorted pids
 
-
-        try:
-            # TODO: find how it is used (in Bags class) to fit interface
-
-            # self.owner_attributes = side_info
-            # self.owner_attributes[attribute][owner]
-            # before: side_info[playlist["pid"]] = playlist["name"]
-            # ordering doesn't matter as it's always called with pid together
-            # TODO: think about more efficient handling via numpy/pandas in Bag class through slicing availability
-
-
-            for condition in condition_names:
-                side_infos[condition][playlist["pid"]] = playlist[condition] # whats coming out of playlist here? a string
-
-        except KeyError:
-            pass
-
-        try:
-
-            # TODO: check intuitiveness: different attribute names are added to side_info, but returned as "titles"
-            # TODO: check if just title is used, or information can be called seperately
-            # at the moment: just title used
-            if aggregate is not None:
-                # TODO: use the the track info separately as side info
+        for condition in condition_names:
+            if condition in PLAYLIST_INFO:
+                # stored: self.owner_attributes = side_info
+                # called: self.owner_attributes[attribute][owner] # owner == pid
+                # before: side_info[playlist["pid"]] = playlist["name"]
+                # ordering doesn't matter as it's always called with pid together
+                extracted_condition = playlist[condition] # whats coming out of playlist here? a string
+                # TODO: think about more efficient handling via numpy/pandas in Bag class through slicing availability
+            else:
                 # TODO: add it in doctex
-                # TODO: probably implement new aggregation method | is it necessary ?
-                # TODO: check if it complies upstream (calling "aggregate"/ what it's going to be)
-                # TODO: rename aggregate
-                for info in aggregate:
-                    aggregated = []
-                    for track in side_infos["tracks"]:
-                        if info in track:
-                            aggregated.append(track[info])
-                    side_infos[info][playlist["pid"]] = " ".join(aggregated)
+                enlisted_track_info = []
+                for track in playlist["tracks"]:
+                    enlisted_track_info.append(track[condition])
+                extracted_condition = " ".join(enlisted_track_info)
 
-        except KeyError:
-            side_infos["no_side_info"] = {playlist["pid"]: ""}
+            side_infos[condition][playlist["pid"]] = extracted_condition
+
+    # for attr in side_infos:
+    #     print(attr)
+    #     for pid in list(side_infos[attr].keys())[:3]:
+    #         print(pid,side_infos[attr][pid])
 
     # bag_of_tracks and pids should have corresponding indices
     # In side info the pid is the key
     # Re-use 'title' property here because methods rely on it
     return bags_of_tracks, pids, side_infos
-
 
 
 def prepare_evaluation(bags, test_size=0.1, n_items=None, min_count=None):
@@ -291,15 +266,12 @@ def log(*print_args, logfile=None):
     print(*print_args)
 
 
-def main(outfile=None, min_count=None, condition= None):
+def main(outfile=None, min_count=None):
     """ Main function for training and evaluating AAE methods on MDP data """
     print("Loading data from", DATA_PATH)
     playlists = playlists_from_slices(DATA_PATH, n_jobs=4)
     print("Unpacking json data...")
-    if condition is not None:
-        bags_of_tracks, pids, side_info = unpack_playlists_for_models_concatenated(playlists,condition_names=condition)
-    else:
-        bags_of_tracks, pids, side_info = unpack_playlists(playlists)
+    bags_of_tracks, pids, side_info = unpack_playlists_for_models_concatenated(playlists)
     del playlists
     bags = Bags(data=bags_of_tracks, owners=pids, owner_attributes=side_info)
     log("Whole dataset:", logfile=outfile)
@@ -323,25 +295,32 @@ def main(outfile=None, min_count=None, condition= None):
     for model in MODELS:
         log('=' * 78, logfile=outfile)
         log(model, logfile=outfile)
+        log(model.model_params, logfile=outfile)
 
         # Training
         model.train(train_set)
+        print("training finished")
 
         # Prediction
         y_pred = model.predict(dev_set)
+        print("prediction finished")
 
+        print(" prediction sparse?:", sp.issparse(y_pred))
         # Sanity-fix #1, make sparse stuff dense, expect array
         if sp.issparse(y_pred):
             y_pred = y_pred.toarray()
         else:
             y_pred = np.asarray(y_pred)
 
+        print("remove non-missing:")
         # Sanity-fix, remove predictions for already present items
         y_pred = remove_non_missing(y_pred, x_test, copy=False)
 
+        print("evaluate:")
         # Evaluate metrics
-        results = evaluate(y_test, y_pred, METRICS, batch_size=1000)
+        results = evaluate(y_test, y_pred, METRICS, batch_size=50)
 
+        print("metrics: ")
         log("-" * 78, logfile=outfile)
         for metric, stats in zip(METRICS, results):
             log("* {}: {} ({})".format(metric, *stats), logfile=outfile)
@@ -350,6 +329,7 @@ def main(outfile=None, min_count=None, condition= None):
 
 
 if __name__ == '__main__':
+
     parser = argparse.ArgumentParser()
     parser.add_argument('-o', '--outfile',
                         help="File to store the results.")
@@ -357,8 +337,10 @@ if __name__ == '__main__':
                         default=None,
                         help="Minimum count of items")
     parser.add_argument('-s', '--side_information', type=str,
+                        # TODO: handle more than one argument
                         default="name",
+                        nargs='+',
                         help="list of incorporated additional attributes")
     args = parser.parse_args()
     print(args)
-    main(outfile=args.outfile, min_count=args.min_count, condition= PLAYLIST_INFO)
+    main(outfile=args.outfile, min_count=args.min_count)

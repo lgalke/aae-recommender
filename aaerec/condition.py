@@ -6,8 +6,11 @@ from torch import optim
 
 from abc import ABC, abstractmethod
 from collections import OrderedDict, Counter
+import itertools as it
 import torch
 import scipy.sparse as sp
+import numpy as np
+
 
 
 from .ub import GensimEmbeddedVectorizer
@@ -85,6 +88,7 @@ class ConditionList(OrderedDict):
     def encode_impose(self, x, condition_inputs, dim=None):
         """ Subsequently conduct encode & impose with all conditions
         in order.
+        : param x: ???, suspect its the normal data not the condition ones
         """
         assert len(condition_inputs) == len(self)
         for condition, condition_input in zip(self.values(), condition_inputs):
@@ -358,50 +362,96 @@ class EmbeddingBagCondition(ConcatenationBasedConditioning):
 
 
 class CategoricalCondition(ConcatenationBasedConditioning):
-    """ A condition with a *trainable* embedding bag.
-    It is suited for conditioning on categorical variables.
+    """ A *trainable* condition for categorical attributes.
     """
+    padding_idx = 0
 
     def __init__(self, embedding_dim, vocab_size=None,
-                 use_cuda=torch.cuda.is_available(), **embedding_params):
+                 sparse=True,
+                 use_cuda=torch.cuda.is_available(),
+                 embedding_on_gpu=False,
+                 lr=1e-3,
+                 reduce=None,
+                 **embedding_params):
         """
         Arguments
         ---------
         - embedding_dim: int - Size of the embedding
         - vocab_size: int - Vocabulary size limit (if given)
-
+        - ignore_oov: bool - If given, set oov embedding to zero
+        - lr: float - initial learning rate for Adam / SparseAdam
+        - sparse: bool - If given, use sparse embedding & optimizer
+        - reduce: None or str - if given, expect list-of-list like inputs
+                  and aggregate according to `reduce` in 'mean', 'sum', 'max'
         """
         # register this module's parameters with the optimizer
         self.vocab_size = vocab_size
         self.embedding_dim = embedding_dim
         self.vocab = None
-        self.embedding_bag = None
+        self.embedding = None
         self.optimizer = None
-        self.embedding_params = embedding_params
+        self.lr = lr
+
+        # Optimization and memory storay
+        self.sparse = sparse
         self.use_cuda = use_cuda
+        self.embedding_on_gpu = embedding_on_gpu
+
+        # We take care of vocab handling & padding ourselves
+        assert "padding_idx" not in embedding_params
+        self.embedding_params = embedding_params
+
+
+        assert reduce is None or reduce in ['mean','sum','max'], "Reduce neither None nor in 'mean','sum','max'"
+        self.reduce = reduce
 
     def fit(self, raw_inputs):
         """ Learn a vocabulary """
-        items = Counter(raw_inputs).most_common(self.vocab_size)
+        flat_items = raw_inputs if self.reduce is None else it.chain.from_iterable(raw_inputs)
+        item_cnt = Counter(flat_items).most_common(self.vocab_size)
         # index 0 is reserved for unk idx
-        self.vocab = {value: idx + 1 for idx, (value, __) in enumerate(items)}
+        self.vocab = {value: idx + 1 for idx, (value, __) in enumerate(item_cnt)}
         num_embeddings = len(self.vocab) + 1
-        self.embedding_bag = nn.EmbeddingBag(num_embeddings,
-                                             self.embedding_dim,
-                                             **self.embedding_params)
-        if self.use_cuda:
-            self.embedding_bag = self.embedding_bag.cuda()
-        self.optimizer = optim.Adam(self.embedding_bag.parameters())
+        self.embedding = nn.Embedding(num_embeddings,
+                                      self.embedding_dim,
+                                      padding_idx=self.padding_idx,
+                                      **self.embedding_params,
+                                      sparse=self.sparse)
+        if self.use_cuda and self.embedding_on_gpu:
+            # Put the embedding on GPU only when wanted
+            self.embedding = self.embedding.cuda()
+        if self.sparse:
+            self.optimizer= optim.SparseAdam(self.embedding.parameters(), lr=self.lr)
+        else:
+            self.optimizer = optim.Adam(self.embedding.parameters(), lr=self.lr)
         return self
 
     def transform(self, raw_inputs):
-        return torch.LongTensor([self.vocab.get(x, 0) for x in raw_inputs])\
-            .view(-1, 1)
+        # Actually np.array is not needed,
+        # else we would need to do the padding globally
+        if self.reduce is None:
+            return [self.vocab.get(x, 0) for x in raw_inputs]
+        else:
+            return [[self.vocab.get(x, 0) for x in l] for l in raw_inputs]
+
+    def _pad_batch(self, batch_inputs):
+        maxlen = max(len(l) for l in batch_inputs)
+        return [l + [self.padding_idx] * (maxlen - len(l)) for l in batch_inputs]
 
     def encode(self, inputs):
-        if self.use_cuda:
+        if self.reduce is not None:
+            # inputs may have variable lengths, pad them
+            inputs = self._pad_batch(inputs)
+        inputs = torch.LongTensor(inputs)
+        if self.embedding_on_gpu and self.use_cuda:
             inputs = inputs.cuda()
-        return self.embedding_bag(inputs)
+        h = self.embedding(inputs)
+        if self.reduce is not None:
+            # self.reduce in ['mean','sum','max']
+            h = getattr(h, self.reduce)(1)
+        if self.use_cuda:
+            h = h.cuda()
+        return h
 
     def zero_grad(self):
         self.optimizer.zero_grad()

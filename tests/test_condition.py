@@ -1,6 +1,9 @@
 """ Tests various functionalities wrt conditions """
+import pytest
 import torch
+import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.utils import shuffle
 from aaerec.condition import EmbeddingBagCondition,\
     PretrainedWordEmbeddingCondition,\
     ConditionBase,\
@@ -112,7 +115,7 @@ def test_word_emb_condition():
         [s.split() for s in sentences],
         min_count=1, window=2, size=emb_dim
     )
-    condition = PretrainedWordEmbeddingCondition(model.wv)
+    condition = PretrainedWordEmbeddingCondition(model.wv, use_cuda=False)
     sentences_trf = condition.fit_transform(sentences)
 
     code = torch.rand(len(sentences), 5)
@@ -142,8 +145,8 @@ def test_full_pipeline():
         [s.split() for s in data['titles']],
         min_count=1, window=2, size=emb_dim
     )
-    cond1 = PretrainedWordEmbeddingCondition(model.wv)
-    cond2 = CategoricalCondition(3, emb_dim)
+    cond1 = PretrainedWordEmbeddingCondition(model.wv, use_cuda=False)
+    cond2 = CategoricalCondition(emb_dim, vocab_size=3, use_cuda=False)
 
     clist = ConditionList([('titles', cond1),
                            ('authors', cond2)])
@@ -182,6 +185,118 @@ def test_full_pipeline():
             optimizer.step()
 
 
+def test_categorical_condition():
+
+    authors = ["Mr X", "Falafel", "Pizza", "Am I hungry?", "Mr X"]
+    catcond = CategoricalCondition(20, vocab_size=10, use_cuda=False)
+    author_ids = catcond.fit_transform(authors)
+    some_code = torch.rand(len(authors), 10)
+
+    encoded_authors = catcond.encode(author_ids)
+    assert encoded_authors.size(0) == len(authors) and encoded_authors.size(1) == 20
+
+    # Mr X is Mr X
+    assert ((encoded_authors[0] - encoded_authors[-1]).abs() < 1e-8).all()
+
+    cond_code = catcond.impose(some_code, encoded_authors)
+    # 20 + 10 should turn out to be 30
+    assert cond_code.size(0) == len(authors) and cond_code.size(1) == 30
+
+
+def test_categorical_condition_unk_treatment():
+    authors = ["A", "A", "B", "B", "C"]
+
+
+    ## OOV SHOULD BE IGNORE
+    catcond = CategoricalCondition(20, vocab_size=2, use_cuda=False)
+    # Vocab should only hold A and B
+    author_ids = catcond.fit_transform(authors)
+    assert author_ids[-1] == 0
+
+    enc_authors = catcond.encode(author_ids)
+    # C token should be zero
+    assert ((enc_authors[-1] - torch.zeros(20)).abs() < 1e-8).all()
+
+    with pytest.raises(AssertionError):
+        catcond = CategoricalCondition(12, use_cuda=False, padding_idx=1231)
+
+
+
+def test_categorical_condition_sparse():
+    authors = ["A", "A", "B", "B", "C"]
+    catcond = CategoricalCondition(20, use_cuda=False,
+                                   sparse=True)
+
+    author_ids = catcond.fit_transform(authors)
+
+    enc_authors_1 = catcond.encode(author_ids)
+
+    loss = torch.nn.functional.mse_loss(enc_authors_1, torch.zeros(5,20))
+
+    catcond.zero_grad()
+    loss.backward()
+    catcond.step()
+
+    # Encoded authors should now be closer to zero
+    enc_authors_2 = catcond.encode(author_ids)
+
+    assert (enc_authors_2.abs().sum() < enc_authors_1.abs().sum()).all()
+
+def test_categorical_condition_listoflists():
+    authors = [["A","B"],
+               ["A", "C"],
+               ["B", "C"],
+               ["A"],
+               ["B"],
+               ["A", "B", "C"]]
+    catcond = CategoricalCondition(20, use_cuda=False,
+                                   sparse=True, reduce='mean')
+
+    author_ids = catcond.fit_transform(authors)
+
+    enc_authors_1 = catcond.encode(author_ids)
+
+    loss = torch.nn.functional.mse_loss(enc_authors_1, torch.zeros(len(authors),20))
+
+    catcond.zero_grad()
+    loss.backward()
+    catcond.step()
+
+    # Encoded authors should now be closer to zero
+    enc_authors_2 = catcond.encode(author_ids)
+
+    assert (enc_authors_2.abs().sum() < enc_authors_1.abs().sum()).all()
+
+def test_categorical_condition_with_sklearn_shuffle():
+    authors = [["A","B"],
+               ["A", "C"],
+               ["B", "C"],
+               ["A"],  # 3
+               ["B"],  # 4
+               ["A", "B", "C"]]
+    catcond = CategoricalCondition(20, use_cuda=False,
+                                   sparse=True, reduce='mean')
+
+    author_ids = catcond.fit_transform(authors)
+
+    labels = np.arange(len(authors))
+    
+    labels_shf, authors_shf, author_ids_shf = shuffle(labels, authors, author_ids)
+
+    for l, a, i in zip(labels_shf, authors_shf, author_ids_shf):
+        if l == 0:
+            assert a[0] == "A" and a[1] == "B"
+            assert i[0] == catcond.vocab[a[0]]
+            assert i[1] == catcond.vocab[a[1]]
+        if l == 3:
+            assert a[0] == "A"
+            assert i[0] == catcond.vocab[a[0]]
+        if l == 4:
+            assert a[0] == "B"
+            assert i[0] == catcond.vocab[a[0]]
+
+
+
 def test_assemble_condition():
     documents = [
         "Spam Spam Spam",
@@ -212,7 +327,4 @@ def test_assemble_condition():
         loss = criterion(x_enc, labels)
         loss.backward()
         condition.step()
-
-
-
 
