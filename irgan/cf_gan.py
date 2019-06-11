@@ -205,9 +205,9 @@ class IRGAN():
                             reward = torch.tensor(reward)
                         if use_condition:
                             c_batch = [c[u] for c in condition_data]
-                            G_loss = self.generator(u, sample, reward, c_batch)
+                            G_loss = self.generator(self.user_pos_train[u], sample, reward, c_batch)
                         else:
-                            G_loss = self.generator(u, sample, reward)
+                            G_loss = self.generator(self.user_pos_train[u], sample, reward)
                         self.generator.step(G_loss)
 
                     if self.verbose:
@@ -229,9 +229,11 @@ class IRGAN():
             user_batch = test_users[index:index + batch_size]
             if use_condition:
                 c_batch = [c[index:index + batch_size] for c in condition_data]
-            index += batch_size
+                user_batch_rating = self.generator.all_rating([X[u] for u in user_batch], c_batch, impose_dim=1)
+            else:
+                user_batch_rating = self.generator.all_rating([X[u] for u in user_batch], impose_dim=1)
 
-            user_batch_rating = self.generator.all_rating(X[user_batch], c_batch, impose_dim=1)
+            index += batch_size
 
             user_batch_rating = user_batch_rating.detach_().cpu().numpy()
             for user_batch_rating_uid in zip(user_batch_rating, user_batch):
@@ -346,6 +348,7 @@ def main():
     user_num = evaluate.train_set.size()[0] + evaluate.test_set.size()[0]
     item_num = evaluate.train_set.size()[1]
     models = [IRGANRecommender(user_num, item_num, g_epochs=1, d_epochs=1, n_epochs=1, conditions=CONDITIONS)]
+    # models = [IRGANRecommender(user_num, item_num, g_epochs=1, d_epochs=1, n_epochs=1, conditions=None)]
     evaluate(models)
 
 
