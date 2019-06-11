@@ -28,7 +28,8 @@ from aaerec.baselines import Countbased
 from aaerec.svd import SVDRecommender
 from aaerec.aae import AAERecommender, DecodingRecommender
 from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, CategoricalCondition
-
+from aaerec.vae import VAERecommender
+from aaerec.dae import DAERecommender
 
 DEBUG_LIMIT = None
 # Use only this many most frequent items
