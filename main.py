@@ -22,8 +22,19 @@ PARSER.add_argument('-o', '--outfile', type=str, default=None)
 
 ARGS = PARSER.parse_args()
 
+import os
+from collections import OrderedDict
+mtdt_dic = OrderedDict()
+# tables["document"] = {"join_cit": "pmId", "join_mtdt": "pmId", "fields":["title","year", "month", "journal"]} # afterwards pmId of document is usable
+mtdt_dic["author"] = {"join_cit": "pmId", "join_mtdt": "pmId", "fields": ["id"],
+                    "path": os.path.join("/data22/ggerstenkorn/citation_data_preprocessing/zbw_citation_preprocessing/",
+                                         "author.csv")}
+mtdt_dic["mesh"] = {"join_cit": "pmId", "join_mtdt": "document", "fields": ["id"],
+                    "path": os.path.join("/data22/ggerstenkorn/citation_data_preprocessing/zbw_citation_preprocessing/",
+                                         "mesh.csv")}
 
-DATASET = Bags.load_tabcomma_format(ARGS.dataset, unique=True)
+
+DATASET = Bags.load_tabcomma_format(ARGS.dataset, unique=True,owner_str="pmId",set_str="cited", meta_data_dic=mtdt_dic)
 
 
 EVAL = Evaluation(DATASET, ARGS.year, logfile=ARGS.outfile)
@@ -36,15 +47,15 @@ BASELINES = [
     # RandomBaseline(),
     # MostPopular(),
     Countbased(),
-    SVDRecommender(1000, use_title=False),
+    SVDRecommender(100, use_title=False),
 ]
 
 ae_params = {
-    'n_code': 55,
-    'n_epochs': 55,
+    'n_code': 5,
+    'n_epochs': 5,
     # 'embedding': VECTORS, # This belongs to condition now
-    'batch_size': 200,
-    'n_hidden': 100,
+    'batch_size': 100,
+    'n_hidden': 50,
     'normalize_inputs': True,
 }
 
@@ -66,10 +77,10 @@ CONDITIONED_MODELS = [
 
 
 TITLE_ENHANCED = [
-    SVDRecommender(1000, use_title=True),
-    DecodingRecommender(n_epochs=100, batch_size=100, optimizer='adam',
-                        n_hidden=100, embedding=VECTORS,
-                        lr=0.001, verbose=True),
+    SVDRecommender(100, use_title=True),
+    # DecodingRecommender(n_epochs=100, batch_size=100, optimizer='adam',
+    #                     n_hidden=100, embedding=VECTORS,
+    #                     lr=0.001, verbose=True),
     AAERecommender(adversarial=False, use_title=True, lr=0.001,
                    **ae_params),
     AAERecommender(adversarial=True, use_title=True,

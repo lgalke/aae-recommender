@@ -226,7 +226,6 @@ class AutoEncoder():
                  conditions=None,
                  verbose=True):
 
-        ### TODO Adapt to generic condition ###
         self.enc, self.dec = None, None
         self.n_hidden = n_hidden
         self.n_code = n_code
