@@ -231,6 +231,8 @@ class Bags(object):
     @classmethod
     def load_tabcomma_format(self, path, meta_data_dic = False, unique=False, owner_str="owner", set_str="set"):
         """
+
+        Returns ordered lists for Owner, Set of Owner and a
         Arguments
         =========
 
@@ -273,7 +275,7 @@ class Bags(object):
                     Warning: not working if dependent on other additional keys
                 :param meta_data:
                 :param mtdt_transform_table:
-                :return:
+                :return: dict owner_attributes[<attr_name>][<documentID>].append(<attribute(s)>)
                 """
                 print("create dict from df")
                 owner_attributes = {}
@@ -282,8 +284,14 @@ class Bags(object):
 
                 for index, row in meta_data.iterrows():
                     # owner_attributes[<attr_name>][<documentID>].append(<attribute(s)>)
-                    for attr in mtdt_transform_table["fields"]:
-                        owner_attributes[attr][row[mtdt_transform_table["join_cit"]]].append(row[attr])
+                    for i, attr in enumerate(mtdt_transform_table["fields"]):
+                        if index < 3:
+                            print("planing extracting {} attribute".format(attr))
+                            print("row content:\n {}".format(row))
+                            print("is {} attribute in table: {}".format(attr,mtdt_transform_table["owner_id"] in row))
+                        owner_id = row[mtdt_transform_table["owner_id"]]
+                        attr_value = row[attr]
+                        owner_attributes[attr][owner_id].append(attr_value)
                 print("creating dict finished")
                 return owner_attributes
 
@@ -294,7 +302,7 @@ class Bags(object):
                 auth_path = mtdt_transform_table["path"]
                 meta_data = pd.read_csv(auth_path, error_bad_lines=False, dtype=str)
 
-                targets = mtdt_transform_table["fields"] + [mtdt_transform_table["join_mtdt"]]
+                targets = mtdt_transform_table["fields"] + [mtdt_transform_table["owner_id"]]
                 meta_data = meta_data[targets]
 
                 # add the additional attributes

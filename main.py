@@ -26,10 +26,10 @@ import os
 from collections import OrderedDict
 mtdt_dic = OrderedDict()
 # tables["document"] = {"join_cit": "pmId", "join_mtdt": "pmId", "fields":["title","year", "month", "journal"]} # afterwards pmId of document is usable
-mtdt_dic["author"] = {"join_cit": "pmId", "join_mtdt": "pmId", "fields": ["id"],
+mtdt_dic["author"] = {"owner_id": "pmId", "fields": ["id"],
                     "path": os.path.join("/data22/ggerstenkorn/citation_data_preprocessing/zbw_citation_preprocessing/",
                                          "author.csv")}
-mtdt_dic["mesh"] = {"join_cit": "pmId", "join_mtdt": "document", "fields": ["id"],
+mtdt_dic["mesh"] = {"owner_id": "document", "fields": ["id"],
                     "path": os.path.join("/data22/ggerstenkorn/citation_data_preprocessing/zbw_citation_preprocessing/",
                                          "mesh.csv")}
 
@@ -69,6 +69,12 @@ CONDITIONS = ConditionList([
     ('title', PretrainedWordEmbeddingCondition(VECTORS))
 ])
 
+CONDITIONS_COMPLEX = ConditionList([
+    ('title', PretrainedWordEmbeddingCondition(VECTORS))
+    ('journal', CategoricalCondition(VECTORS,reduce=None))
+    ('author', CategoricalCondition(VECTORS,reduce="sum"))
+    ('mesh', CategoricalCondition(VECTORS,reduce="sum"))
+])
 
 CONDITIONED_MODELS = [
     AAERecommender(adversarial=False, conditions=CONDITIONS),
