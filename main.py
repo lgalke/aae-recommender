@@ -26,10 +26,10 @@ import os
 from collections import OrderedDict
 mtdt_dic = OrderedDict()
 # tables["document"] = {"join_cit": "pmId", "join_mtdt": "pmId", "fields":["title","year", "month", "journal"]} # afterwards pmId of document is usable
-mtdt_dic["author"] = {"owner_id": "pmId", "fields": ["id"],
+mtdt_dic["author"] = {"owner_id": "pmId", "fields": ["id"],"target_names":["author"],
                     "path": os.path.join("/data22/ggerstenkorn/citation_data_preprocessing/zbw_citation_preprocessing/",
                                          "author.csv")}
-mtdt_dic["mesh"] = {"owner_id": "document", "fields": ["id"],
+mtdt_dic["mesh"] = {"owner_id": "document", "fields": ["id"], "target_names":["mesh"],
                     "path": os.path.join("/data22/ggerstenkorn/citation_data_preprocessing/zbw_citation_preprocessing/",
                                          "mesh.csv")}
 
@@ -43,12 +43,12 @@ EVAL.setup(min_count=ARGS.min_count, min_elements=2)
 print("Loading pre-trained embedding", W2V_PATH)
 VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 
-BASELINES = [
-    # RandomBaseline(),
-    # MostPopular(),
-    Countbased(),
-    SVDRecommender(100, use_title=False),
-]
+# BASELINES = [
+#     # RandomBaseline(),
+#     # MostPopular(),
+#     Countbased(),
+#     SVDRecommender(100, use_title=False),
+# ]
 
 ae_params = {
     'n_code': 5,
@@ -59,20 +59,16 @@ ae_params = {
     'normalize_inputs': True,
 }
 
-RECOMMENDERS = [
-    AAERecommender(adversarial=False, lr=0.0001, **ae_params),
-    AAERecommender(prior='gauss', gen_lr=0.0001, reg_lr=0.0001, **ae_params),
-]
+# RECOMMENDERS = [
+#     AAERecommender(adversarial=False, lr=0.0001, **ae_params),
+#     AAERecommender(prior='gauss', gen_lr=0.0001, reg_lr=0.0001, **ae_params),
+# ]
 
 
 CONDITIONS = ConditionList([
-    ('title', PretrainedWordEmbeddingCondition(VECTORS))
-])
-
-CONDITIONS_COMPLEX = ConditionList([
-    ('title', PretrainedWordEmbeddingCondition(VECTORS))
-    ('journal', CategoricalCondition(VECTORS,reduce=None))
-    ('author', CategoricalCondition(VECTORS,reduce="sum"))
+    ('title', PretrainedWordEmbeddingCondition(VECTORS)),
+    ('journal', CategoricalCondition(VECTORS,reduce=None)),
+    ('author', CategoricalCondition(VECTORS,reduce="sum")),
     ('mesh', CategoricalCondition(VECTORS,reduce="sum"))
 ])
 
@@ -82,21 +78,22 @@ CONDITIONED_MODELS = [
 ]
 
 
-TITLE_ENHANCED = [
-    SVDRecommender(100, use_title=True),
-    # DecodingRecommender(n_epochs=100, batch_size=100, optimizer='adam',
-    #                     n_hidden=100, embedding=VECTORS,
-    #                     lr=0.001, verbose=True),
-    AAERecommender(adversarial=False, use_title=True, lr=0.001,
-                   **ae_params),
-    AAERecommender(adversarial=True, use_title=True,
-                   prior='gauss', gen_lr=0.001, reg_lr=0.001,
-                   **ae_params),
-]
+# TITLE_ENHANCED = [
+#     SVDRecommender(100, use_title=True),
+#     # DecodingRecommender(n_epochs=100, batch_size=100, optimizer='adam',
+#     #                     n_hidden=100, embedding=VECTORS,
+#     #                     lr=0.001, verbose=True),
+#     AAERecommender(adversarial=False, use_title=True, lr=0.001,
+#                    **ae_params),
+#     AAERecommender(adversarial=True, use_title=True,
+#                    prior='gauss', gen_lr=0.001, reg_lr=0.001,
+#                    **ae_params),
+# ]
 
 with open(ARGS.outfile, 'a') as fh:
     print("~ Partial List", "~" * 42, file=fh)
-EVAL(BASELINES + RECOMMENDERS + CONDITIONED_MODELS)
+EVAL(CONDITIONED_MODELS)
+#EVAL(BASELINES + RECOMMENDERS + CONDITIONED_MODELS)
 with open(ARGS.outfile, 'a') as fh:
     print("~ Partial List + Titles", "~" * 42, file=fh)
-EVAL(TITLE_ENHANCED)
+#EVAL(TITLE_ENHANCED)

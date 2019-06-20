@@ -218,6 +218,9 @@ class Bags(object):
         # find how attributes are used --> starting at top level to see what is needed
         # Answer: vectorizable
         # use it like before, it worked there
+
+
+
         attribute_l = []
         for owner in self.bag_owners:
             attribute_l.append(self.owner_attributes[attribute][owner])
@@ -279,19 +282,16 @@ class Bags(object):
                 """
                 print("create dict from df")
                 owner_attributes = {}
-                for attr in mtdt_transform_table["fields"]:
-                    owner_attributes[attr] = defaultdict(list)
+                for target_attr_name in mtdt_transform_table["target_names"]:
+                    owner_attributes[target_attr_name] = defaultdict(list)
 
                 for index, row in meta_data.iterrows():
                     # owner_attributes[<attr_name>][<documentID>].append(<attribute(s)>)
-                    for i, attr in enumerate(mtdt_transform_table["fields"]):
-                        if index < 3:
-                            print("planing extracting {} attribute".format(attr))
-                            print("row content:\n {}".format(row))
-                            print("is {} attribute in table: {}".format(attr,mtdt_transform_table["owner_id"] in row))
+                    for attr, target_name in zip(mtdt_transform_table["fields"],mtdt_transform_table["target_names"]):
                         owner_id = row[mtdt_transform_table["owner_id"]]
                         attr_value = row[attr]
-                        owner_attributes[attr][owner_id].append(attr_value)
+                        owner_attributes[target_name][owner_id].append(attr_value)
+
                 print("creating dict finished")
                 return owner_attributes
 
@@ -308,7 +308,6 @@ class Bags(object):
                 # add the additional attributes
 
                 owner_attributes.update(iterate_metadata(meta_data, mtdt_transform_table))
-
 
         bags = Bags(sets, set_owners, owner_attributes=owner_attributes)
 
