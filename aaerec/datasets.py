@@ -276,8 +276,13 @@ class Bags(object):
                 """
                     accumulates lists for specified attributes per "owner"
                     Warning: not working if dependent on other additional keys
-                :param meta_data:
-                :param mtdt_transform_table:
+                :param meta_data: pandas DataFrame with the columns for each attribute
+                :param mtdt_transform_table: a dictionary with information which attributes are relevant
+                    # key: name of a table
+                    # owner_id: ID of citing paper
+                    # fields: list of column names in table
+                    # target names: key for these data in the owner_attributes dictionary
+                    # path: absolute path to the csv file
                 :return: dict owner_attributes[<attr_name>][<documentID>].append(<attribute(s)>)
                 """
                 print("create dict from df")
@@ -297,7 +302,7 @@ class Bags(object):
                 print("creating dict finished")
                 return owner_attributes
 
-
+            # loads each table from file, selects the relevant attributes and adds them to the owner_attributes
             for key in meta_data_dic.keys():
                 mtdt_transform_table = meta_data_dic[key]
                 # loading meta data and select the relevant
