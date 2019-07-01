@@ -215,9 +215,6 @@ class Bags(object):
         # find how attributes are used --> starting at top level to see what is needed
         # Answer: vectorizable
         # use it like before, it worked there
-
-
-
         attribute_l = []
         for owner in self.bag_owners:
             attribute_l.append(self.owner_attributes[attribute][owner])
@@ -231,88 +228,41 @@ class Bags(object):
         return dict(enumerate(self.data))
 
     @classmethod
-    def load_tabcomma_format(self, path, meta_data_dic = False, unique=False, owner_str="owner", set_str="set"):
+    def load_tabcomma_format(self, path, unique=False):
         """
-
-        Returns ordered lists for Owner, Set of Owner and a
         Arguments
         =========
 
         """
         # loading
-
+        # TODO FIXME make the year and the month column int? c0
         df = pd.read_csv(path, sep="\t", dtype=str, error_bad_lines=False)
         df = df.fillna("")
 
-        set_owners = df[owner_str].values
-        sets = df[set_str].values
-        sets = list(map(lambda x: x.split(","), sets))
-        if unique:
-            print("Making items unique within user.")
-            sets = [list(set(s)) for s in sets]
-
-
-        owner_attributes = dict()
-        print("Found", len(sets), 'rows')
-
         header = list(df.columns.values)
+        owner_attributes = dict()
+        sets = df["set"].values
+        set_owners = df["owner"].values
+        print("Found", len(sets), 'rows')
 
         meta_vals = []
         for meta_header in header[2:]:
             meta_vals.append(df[meta_header].values)
-        #print("with", len(header) - 2, "metadata columns.")
+        print("with", len(header) - 2, "metadata columns.")
+
+        # for i, owner in enumerate(set_owners):
+        #     for j in range(2, len(header)):
+        #         owner_attributes[header[j]][owner] = meta_vals[j - 2][i]
 
         for i in range(2, len(header)):
             owner_attributes[header[i]] = {}
             for j, owner in enumerate(set_owners):
                 owner_attributes[header[i]][owner] = meta_vals[i - 2][j]
 
-
-        if meta_data_dic:
-
-
-            def iterate_metadata(meta_data, mtdt_transform_table):
-                """
-                    accumulates lists for specified attributes per "owner"
-                    Warning: not working if dependent on other additional keys
-                :param meta_data: pandas DataFrame with the columns for each attribute
-                :param mtdt_transform_table: a dictionary with information which attributes are relevant
-                    # key: name of a table
-                    # owner_id: ID of citing paper
-                    # fields: list of column names in table
-                    # target names: key for these data in the owner_attributes dictionary
-                    # path: absolute path to the csv file
-                :return: dict owner_attributes[<attr_name>][<documentID>].append(<attribute(s)>)
-                """
-                print("create dict from df")
-                owner_attributes = {}
-                for target_attr_name in mtdt_transform_table["target_names"]:
-                    owner_attributes[target_attr_name] = defaultdict(list)
-
-                for index, row in meta_data.iterrows():
-                    # owner_attributes[<attr_name>][<documentID>].append(<attribute(s)>)
-                    for attr, target_name in zip(mtdt_transform_table["fields"],mtdt_transform_table["target_names"]):
-                        owner_id = row[mtdt_transform_table["owner_id"]]
-                        attr_value = row[attr]
-                        owner_attributes[target_name][owner_id].append(attr_value)
-
-
-
-                print("creating dict finished")
-                return owner_attributes
-
-            # loads each table from file, selects the relevant attributes and adds them to the owner_attributes
-            for key in meta_data_dic.keys():
-                mtdt_transform_table = meta_data_dic[key]
-                # loading meta data and select the relevant
-                auth_path = mtdt_transform_table["path"]
-                meta_data = pd.read_csv(auth_path, error_bad_lines=False, dtype=str)
-
-                targets = [mtdt_transform_table["owner_id"]] + mtdt_transform_table["fields"]
-                meta_data = meta_data[targets]
-                # add the additional attributes
-
-                owner_attributes.update(iterate_metadata(meta_data, mtdt_transform_table))
+        sets = list(map(lambda x: x.split(","), sets))
+        if unique:
+            print("Making items unique within user.")
+            sets = [list(set(s)) for s in sets]
 
         bags = Bags(sets, set_owners, owner_attributes=owner_attributes)
 
