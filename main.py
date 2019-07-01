@@ -21,13 +21,27 @@ PARSER.add_argument('year', type=int,
 PARSER.add_argument('-m', '--min-count', type=int,
                     help='Pruning parameter', default=50)
 PARSER.add_argument('-o', '--outfile', type=str, default=None)
-PARSER.add_argument('-e', '--epochs', type=int, default=50)
-PARSER.add_argument('--lr', type=float, default=0.001)
 
 ARGS = PARSER.parse_args()
 
+import os
+from collections import OrderedDict
+mtdt_dic = OrderedDict()
 
-DATASET = Bags.load_tabcomma_format(ARGS.dataset, unique=True)
+
+# key: name of a table
+# owner_id: ID of citing paper
+# fields: list of column names in table
+# target names: key for these data in the owner_attributes dictionary
+# path: absolute path to the csv file
+mtdt_dic["author"] = {"owner_id": "pmId", "fields": ["name"],"target_names":["author"],
+                     "path": os.path.join("/data22/ggerstenkorn/citation_data_preprocessing/final_data/","author.csv")}
+mtdt_dic["mesh"] = {"owner_id": "document", "fields": ["descriptor"], "target_names":["mesh"],
+                    "path": os.path.join("/data22/ggerstenkorn/citation_data_preprocessing/final_data/",
+                                         "mesh.csv")}
+
+
+DATASET = Bags.load_tabcomma_format(ARGS.dataset, unique=True,owner_str="pmId",set_str="cited", meta_data_dic=mtdt_dic)
 
 
 EVAL = Evaluation(DATASET, ARGS.year, logfile=ARGS.outfile)
@@ -36,12 +50,12 @@ EVAL.setup(min_count=ARGS.min_count, min_elements=2)
 print("Loading pre-trained embedding", W2V_PATH)
 VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 
-BASELINES = [
-    # RandomBaseline(),
-    # MostPopular(),
-    Countbased(),
-    SVDRecommender(1000, use_title=False),
-]
+# BASELINES = [
+#     # RandomBaseline(),
+#     # MostPopular(),
+#     Countbased(),
+#     SVDRecommender(100, use_title=False),
+# ]
 
 ae_params = {
     'n_code': 50,
@@ -57,9 +71,10 @@ vae_params = {
     #(Pumed with threshold 50)
     'n_epochs': 50,
     'batch_size': 100,
-    'n_hidden': 100,
+    'n_hidden': 50,
     'normalize_inputs': True,
 }
+
 
 RECOMMENDERS = [
     # AAERecommender(adversarial=False, lr=ARGS.lr, **ae_params),
@@ -70,11 +85,14 @@ RECOMMENDERS = [
 
 
 CONDITIONS = ConditionList([
-    ('title', PretrainedWordEmbeddingCondition(VECTORS))
+    ('title', PretrainedWordEmbeddingCondition(VECTORS)),
+    ('journal', PretrainedWordEmbeddingCondition (VECTORS)),
+    ('author', CategoricalCondition(embedding_dim=32,reduce="sum")),
+    ('mesh', CategoricalCondition(embedding_dim=32,reduce="sum"))
 ])
 
-
 CONDITIONED_MODELS = [
+
 #    AAERecommender(adversarial=False,
 #                   conditions=CONDITIONS,
 #                   lr=ARGS.lr,
@@ -108,8 +126,9 @@ with open(ARGS.outfile, 'a') as fh:
     print("~ Conditioned Models", "~" * 42, file=fh)
 EVAL(RECOMMENDERS)
 with open(ARGS.outfile, 'a') as fh:
-    print("~ Conditioned Models", "~" * 42, file=fh)
+    print("~ Partial List", "~" * 42, file=fh)
 EVAL(CONDITIONED_MODELS)
-# with open(ARGS.outfile, 'a') as fh:
-#     print("~ Partial List + Titles", "~" * 42, file=fh)
-# EVAL(TITLE_ENHANCED)
+#EVAL(BASELINES + RECOMMENDERS + CONDITIONED_MODELS)
+with open(ARGS.outfile, 'a') as fh:
+    print("~ Partial List + Titles", "~" * 42, file=fh)
+#EVAL(TITLE_ENHANCED)
