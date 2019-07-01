@@ -25,12 +25,17 @@ ARGS = PARSER.parse_args()
 import os
 from collections import OrderedDict
 mtdt_dic = OrderedDict()
-# tables["document"] = {"join_cit": "pmId", "join_mtdt": "pmId", "fields":["title","year", "month", "journal"]} # afterwards pmId of document is usable
-mtdt_dic["author"] = {"owner_id": "pmId", "fields": ["id"],"target_names":["author"],
-                    "path": os.path.join("/data22/ggerstenkorn/citation_data_preprocessing/zbw_citation_preprocessing/",
-                                         "author.csv")}
-mtdt_dic["mesh"] = {"owner_id": "document", "fields": ["id"], "target_names":["mesh"],
-                    "path": os.path.join("/data22/ggerstenkorn/citation_data_preprocessing/zbw_citation_preprocessing/",
+
+
+# key: name of a table
+# owner_id: ID of citing paper
+# fields: list of column names in table
+# target names: key for these data in the owner_attributes dictionary
+# path: absolute path to the csv file
+mtdt_dic["author"] = {"owner_id": "pmId", "fields": ["name"],"target_names":["author"],
+                     "path": os.path.join("/data22/ggerstenkorn/citation_data_preprocessing/final_data/","author.csv")}
+mtdt_dic["mesh"] = {"owner_id": "document", "fields": ["descriptor"], "target_names":["mesh"],
+                    "path": os.path.join("/data22/ggerstenkorn/citation_data_preprocessing/final_data/",
                                          "mesh.csv")}
 
 
@@ -67,9 +72,9 @@ ae_params = {
 
 CONDITIONS = ConditionList([
     ('title', PretrainedWordEmbeddingCondition(VECTORS)),
-    ('journal', CategoricalCondition(VECTORS,reduce=None)),
-    ('author', CategoricalCondition(VECTORS,reduce="sum")),
-    ('mesh', CategoricalCondition(VECTORS,reduce="sum"))
+    ('journal', PretrainedWordEmbeddingCondition (VECTORS)),
+    ('author', CategoricalCondition(embedding_dim=32,reduce="sum")),
+    ('mesh', CategoricalCondition(embedding_dim=32,reduce="sum"))
 ])
 
 CONDITIONED_MODELS = [

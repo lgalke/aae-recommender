@@ -292,6 +292,8 @@ class Bags(object):
                         attr_value = row[attr]
                         owner_attributes[target_name][owner_id].append(attr_value)
 
+
+
                 print("creating dict finished")
                 return owner_attributes
 
@@ -302,9 +304,8 @@ class Bags(object):
                 auth_path = mtdt_transform_table["path"]
                 meta_data = pd.read_csv(auth_path, error_bad_lines=False, dtype=str)
 
-                targets = mtdt_transform_table["fields"] + [mtdt_transform_table["owner_id"]]
+                targets = [mtdt_transform_table["owner_id"]] + mtdt_transform_table["fields"]
                 meta_data = meta_data[targets]
-
                 # add the additional attributes
 
                 owner_attributes.update(iterate_metadata(meta_data, mtdt_transform_table))
