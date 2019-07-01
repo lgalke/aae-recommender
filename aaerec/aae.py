@@ -33,14 +33,13 @@ W2V_IS_BINARY = True
 STATUS_FORMAT = "[ R: {:.4f} | D: {:.4f} | G: {:.4f} ]"
 
 
-
-
 def assert_condition_callabilities(conditions):
     raise DeprecationWarning("Use _check_conditions(conditions, condition_data) instead")
     if type(conditions) == type(True):
         pass
     else:
         assert type(conditions) != type("") and hasattr(conditions,'__iter__'), "Conditions needs to be a list of different conditions. It is a {} now.".format(type(conditions))
+
 
 # TODO: pull this out, so its generally available
 # TODO: put it into use at other points in class
@@ -64,8 +63,10 @@ def concat_side_info(vectorizer,training_set,side_info_subset):
             attr_vect = np.concatenate((attr_vect, vectorizer.fit_transform(attr_data)), axis=1)
     return attr_vect
 
+
 def log_losses(*losses):
     print('\r'+STATUS_FORMAT.format(*losses), end='', flush=True)
+
 
 def sample_categorical(size):
     batch_size, n_classes = size
@@ -73,6 +74,7 @@ def sample_categorical(size):
     cat = np.eye(n_classes)[cat].astype('float32')
     cat = torch.from_numpy(cat)
     return cat
+
 
 def sample_bernoulli(size):
     ber = np.random.randint(0, 1, size).astype('float32')
@@ -90,8 +92,6 @@ PRIOR_ACTIVATIONS = {
     'bernoulli': 'sigmoid',
     'gauss': 'linear'
 }
-
-
 
 
 class Encoder(nn.Module):
@@ -436,13 +436,6 @@ class AutoEncoder():
                 if use_condition:
                     z = self.conditions.encode_impose(z, c_batch)
                 # reconstruct
-                # Encoder is set in fit() method
-                # TODO: find why it throws. seems to be dims mismatch
-                # File "/home/gerstenkorn/anaconda3/envs/citation/lib/python3.6/site-packages/torch/nn/functional.py", line 1024, in linear
-                # return torch.addmm(bias, input, weight.t())
-                #            RuntimeError: size mismatch, m1: [100 x 376], m2: [1628 x 100] at /pytorch/aten/src/TH/generic/THTensorMath.cpp:2070
-                # other iteration:  RuntimeError: size mismatch, m1: [100 x 387], m2: [1627 x 100] at /pytorch/aten/src/TH/generic/THTensorMath.cpp:940
-
                 X_reconstuction = self.dec(z)
                 # shift
                 X_reconstuction = X_reconstuction.data.cpu().numpy()
@@ -850,8 +843,6 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
                 X_reconstuction = X_reconstuction.data.cpu().numpy()
                 pred.append(X_reconstuction)
         return np.vstack(pred)
-
-
 
 
 class AAERecommender(Recommender):

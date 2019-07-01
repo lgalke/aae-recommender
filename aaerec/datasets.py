@@ -173,7 +173,6 @@ class Bags(object):
         # consumes performance
         # self.index2token = invert_mapping(vocab)
 
-
     def clone(self):
         """ Creates a really deep copy """
         data = [[t for t in b] for b in self.data]
@@ -200,8 +199,6 @@ class Bags(object):
     def numel(self):
         """ Computes the number of (non-zero) elements """
         return sum(map(len, self.data))
-
-
 
     def get_single_attribute(self, attribute):
         # TODO: rename to get_attribute() again? at least check for all other calls
@@ -230,6 +227,8 @@ class Bags(object):
     def get_attributes(self, attribute_list):
         return [self.get_single_attribute(a) for a in attribute_list]
 
+    def to_dict(self):
+        return dict(enumerate(self.data))
 
     @classmethod
     def load_tabcomma_format(self, path, meta_data_dic = False, unique=False, owner_str="owner", set_str="set"):

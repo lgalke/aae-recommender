@@ -21,7 +21,10 @@ from aaerec.evaluation import remove_non_missing, evaluate
 from aaerec.baselines import Countbased
 from aaerec.svd import SVDRecommender
 from aaerec.aae import AAERecommender, DecodingRecommender
+from aaerec.vae import VAERecommender
+from aaerec.dae import DAERecommender
 from gensim.models.keyedvectors import KeyedVectors
+from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, CategoricalCondition
 
 # Should work on kdsrv03
 DATA_PATH = "/data22/ivagliano/Reuters/rcv1.tsv"
@@ -38,28 +41,46 @@ VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 ae_params = {
     'n_code': 50,
     'n_epochs': 100,
-    'embedding': VECTORS,
+    # 'embedding': VECTORS,
     'batch_size': 100,
     'n_hidden': 100,
     'normalize_inputs': True,
 }
 
+vae_params = {
+    'n_code': 50,
+    # VAE results get worse with more epochs in preliminary optimization 
+    #(Pumed with threshold 50)
+    'n_epochs': 50,
+    'batch_size': 100,
+    'n_hidden': 100,
+    'normalize_inputs': True,
+}
+
+CONDITIONS = ConditionList([
+    ('title', PretrainedWordEmbeddingCondition(VECTORS))
+])
+
 MODELS = [
-    Countbased(),  # Only item sets
-    SVDRecommender(10, use_title=False),
-    AAERecommender(adversarial=False, use_title=False, lr=0.001,
-                   **ae_params),
-    AAERecommender(adversarial=True, use_title=False, prior='gauss', gen_lr=0.001,
-                   reg_lr=0.001, **ae_params),
+    # Countbased(),  # Only item sets
+    # SVDRecommender(10, use_title=False),
+    # AAERecommender(adversarial=False, use_title=False, lr=0.001,
+    #                **ae_params),
+    # AAERecommender(adversarial=True, use_title=False, prior='gauss', gen_lr=0.001,
+    #                reg_lr=0.001, **ae_params),
+    VAERecommender(conditions=None, **vae_params),
+    DAERecommender(conditions=None, **ae_params),
     # Title-enhanced
-    SVDRecommender(10, use_title=True),
-    AAERecommender(adversarial=False, use_title=True, lr=0.001,
-                   **ae_params),
-    AAERecommender(adversarial=True, use_title=True, prior='gauss', gen_lr=0.001,
-                   reg_lr=0.001, **ae_params),
-    DecodingRecommender(n_epochs=100, batch_size=100, optimizer='adam',
-                        n_hidden=100, embedding=VECTORS,
-                        lr=0.001, verbose=True)  # Only Title
+    # SVDRecommender(10, use_title=True),
+    # AAERecommender(adversarial=False, use_title=True, lr=0.001,
+    #                **ae_params),
+    # AAERecommender(adversarial=True, use_title=True, prior='gauss', gen_lr=0.001,
+    #                reg_lr=0.001, **ae_params),
+    # DecodingRecommender(n_epochs=100, batch_size=100, optimizer='adam',
+    #                     n_hidden=100, embedding=VECTORS,
+    #                     lr=0.001, verbose=True)  # Only Title
+    VAERecommender(conditions=CONDITIONS, **vae_params),
+    DAERecommender(conditions=CONDITIONS, **ae_params)
     # Put more here...
 ]
 

@@ -12,7 +12,11 @@ from aaerec.baselines import Countbased
 from aaerec.datasets import Bags
 from aaerec.evaluation import Evaluation
 from aaerec.svd import SVDRecommender
+from aaerec.vae import VAERecommender
+from aaerec.dae import DAERecommender
 from eval.mpd.mpd import log
+
+from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, CategoricalCondition
 
 # Should work on kdsrv03
 DATA_PATH = "/data22/ivagliano/SWP/FivMetadata.json"
@@ -28,7 +32,17 @@ VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 ae_params = {
     'n_code': 50,
     'n_epochs': 20,
-    'embedding': VECTORS,
+    # 'embedding': VECTORS,
+    'batch_size': 100,
+    'n_hidden': 100,
+    'normalize_inputs': True,
+}
+
+vae_params = {
+    'n_code': 50,
+    # VAE results get worse with more epochs in preliminary optimization 
+    #(Pumed with threshold 50)
+    'n_epochs': 50,
     'batch_size': 100,
     'n_hidden': 100,
     'normalize_inputs': True,
@@ -42,22 +56,45 @@ BASELINES = [
 ]
 
 RECOMMENDERS = [
-    AAERecommender(use_title=False, adversarial=False, lr=0.001,
-                   **ae_params),
-    AAERecommender(use_title=False, prior='gauss', gen_lr=0.001,
-                   reg_lr=0.001, **ae_params),
+    # AAERecommender(use_title=False, adversarial=False, lr=0.001,
+    #                **ae_params),
+    # AAERecommender(use_title=False, prior='gauss', gen_lr=0.001,
+    #                reg_lr=0.001, **ae_params),
+    VAERecommender(conditions=None, **vae_params),
+    DAERecommender(conditions=None, **ae_params)
+]
+
+CONDITIONS = ConditionList([
+    ('title', PretrainedWordEmbeddingCondition(VECTORS))
+])
+
+CONDITIONED_MODELS = [
+#    AAERecommender(adversarial=False,
+#                   conditions=CONDITIONS,
+#                   lr=0.001,
+#                   **ae_params),
+#    AAERecommender(adversarial=True,
+#                   conditions=CONDITIONS,
+#                   gen_lr=0.001,
+#                   reg_lr=0.001,
+#                   **ae_params),
+#    DecodingRecommender(CONDITIONS,
+#                        n_epochs=ARGS.epochs, batch_size=100, optimizer='adam',
+#                        n_hidden=100, lr=0.001, verbose=True),
+     VAERecommender(conditions=CONDITIONS, **vae_params),
+     DAERecommender(conditions=CONDITIONS, **ae_params)
 ]
 
 TITLE_ENHANCED = [
     SVDRecommender(1000, use_title=True),
-    DecodingRecommender(n_epochs=100, batch_size=100, optimizer='adam',
-                        n_hidden=100, embedding=VECTORS,
-                        lr=0.001, verbose=True),
-    AAERecommender(adversarial=False, use_title=True, lr=0.001,
-                   **ae_params),
-    AAERecommender(adversarial=True, use_title=True,
-                   prior='gauss', gen_lr=0.001, reg_lr=0.001,
-                   **ae_params),
+    # DecodingRecommender(n_epochs=100, batch_size=100, optimizer='adam',
+    #                     n_hidden=100, embedding=VECTORS,
+    #                     lr=0.001, verbose=True),
+    # AAERecommender(adversarial=False, use_title=True, lr=0.001,
+    #                **ae_params),
+    # AAERecommender(adversarial=True, use_title=True,
+    #                prior='gauss', gen_lr=0.001, reg_lr=0.001,
+    #                **ae_params),
 ]
 
 
@@ -165,11 +202,16 @@ def main(year, min_count=None, outfile=None):
 
     with open(outfile, 'a') as fh:
         print("~ Partial List", "~" * 42, file=fh)
-    evaluation(BASELINES + RECOMMENDERS)
+    #evaluation(BASELINES + RECOMMENDERS)
+    evaluation(RECOMMENDERS)
 
     with open(outfile, 'a') as fh:
-        print("~ Partial List + Titles", "~" * 42, file=fh)
-    evaluation(TITLE_ENHANCED)
+        print("~ Conditioned Models", "~" * 42, file=fh)
+    evaluation(CONDITIONED_MODELS)
+
+    # with open(outfile, 'a') as fh:
+    #     print("~ Partial List + Titles", "~" * 42, file=fh)
+    # evaluation(TITLE_ENHANCED)
 
 
 if __name__ == '__main__':

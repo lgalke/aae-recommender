@@ -28,7 +28,8 @@ from aaerec.baselines import Countbased
 from aaerec.svd import SVDRecommender
 from aaerec.aae import AAERecommender, DecodingRecommender
 from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, CategoricalCondition
-
+from aaerec.vae import VAERecommender
+from aaerec.dae import DAERecommender
 
 DEBUG_LIMIT = None
 # Use only this many most frequent items
@@ -74,23 +75,36 @@ else:
 
 
 
+CONDITIONS = ConditionList([
+    ('name', PretrainedWordEmbeddingCondition(VECTORS)),
+    #('artist_name', CategoricalCondition(embedding_dim=32)),
+    #('track_name', PretrainedWordEmbeddingCondition(VECTORS)),
+    #('album_name', PretrainedWordEmbeddingCondition(VECTORS))
+])
 
 # These need to be implemented in evaluation.py
 METRICS = ['mrr']
 
 
 MODELS = [
-    AAERecommender(adversarial=False, conditions=CONDITIONS,n_epochs=2),
     # Only item sets
     #Countbased(),
     #SVDRecommender(1000, use_title=False),
     #AAERecommender(adversarial=True, use_title=False, n_epochs=55, embedding=VECTORS),
     #AAERecommender(adversarial=False, n_epochs=1),
+    VAERecommender(conditions=None, n_epochs=55),
+    DAERecommender(conditions=None, n_epochs=55),
     # Title-enhanced
     #SVDRecommender(1000, use_title=True),
     #AAERecommender(adversarial=True, use_side_info=True, n_epochs=55, embedding=VECTORS),
     #AAERecommender(adversarial=False, use_side_info=["name"], n_epochs=5, embedding=VECTORS),
     #DecodingRecommender(n_epochs=55, embedding=VECTORS)
+    VAERecommender(conditions=CONDITIONS, n_epochs=55),
+    DAERecommender(conditions=CONDITIONS, n_epochs=55),
+    # Generic condition all
+    #AAERecommender(adversarial=False, conditions=CONDITIONS, n_epochs=55),
+    #AAERecommender(adversarial=True, conditions=CONDITIONS, n_epochs=55),
+    #DecodingRecommender(conditions=CONDITIONS, n_epochs=55)
     # Put more here...
 ]
 
@@ -344,7 +358,7 @@ def main(outfile=None, min_count=None, aggregate=None):
 
         print("evaluate:")
         # Evaluate metrics
-        results = evaluate(y_test, y_pred, METRICS, batch_size=200)
+        results = evaluate(y_test, y_pred, METRICS, batch_size=50)
 
         print("metrics: ")
         log("-" * 78, logfile=outfile)

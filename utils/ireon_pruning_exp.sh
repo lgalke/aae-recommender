@@ -1,6 +1,6 @@
 DATASET_YEAR=2016
-OUTPUT_PREFIX=/data22/ivagliano/cit2vec-journal-results/ireon/titles-only
-RUN=1
+OUTPUT_PREFIX=/data22/ivagliano/cit2vec-journal-results/ireon-vae-dae/titles-only
+RUN=3
 mkdir -p $OUTPUT_PREFIX
 # epochs 20
 for THRESHOLD in 20 15 10 5 4 3 2 1
