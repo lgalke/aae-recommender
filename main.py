@@ -71,47 +71,37 @@ vae_params = {
     #(Pumed with threshold 50)
     'n_epochs': 50,
     'batch_size': 100,
-    'n_hidden': 50,
+    'n_hidden': 100,
     'normalize_inputs': True,
 }
 
 
-RECOMMENDERS = [
+# RECOMMENDERS = [
     # AAERecommender(adversarial=False, lr=ARGS.lr, **ae_params),
     # AAERecommender(gen_lr=ARGS.lr, reg_lr=ARGS.lr, **ae_params),
-    VAERecommender(conditions=None, **vae_params),
-    DAERecommender(conditions=None, **ae_params)
-]
+    # VAERecommender(conditions=None, **vae_params),
+    # DAERecommender(conditions=None, **ae_params)
+# ]
 
 
 CONDITIONS = ConditionList([
     ('title', PretrainedWordEmbeddingCondition(VECTORS)),
-    ('journal', PretrainedWordEmbeddingCondition (VECTORS)),
+    ('journal', CategoricalCondition(embedding_dim=32, reduce=None)),
     ('author', CategoricalCondition(embedding_dim=32,reduce="sum")),
     ('mesh', CategoricalCondition(embedding_dim=32,reduce="sum"))
 ])
 
 CONDITIONED_MODELS = [
-
-#    AAERecommender(adversarial=False,
-#                   conditions=CONDITIONS,
-#                   lr=ARGS.lr,
-#                   **ae_params),
-#    AAERecommender(adversarial=True,
-#                   conditions=CONDITIONS,
-#                   gen_lr=ARGS.lr,
-#                   reg_lr=ARGS.lr,
-#                   **ae_params),
-#    DecodingRecommender(CONDITIONS,
-#                        n_epochs=ARGS.epochs, batch_size=100, optimizer='adam',
-#                        n_hidden=100, lr=ARGS.lr, verbose=True),
-     VAERecommender(conditions=CONDITIONS, **vae_params),
-     DAERecommender(conditions=CONDITIONS, **ae_params)
+    AAERecommender(adversarial=False, conditions=CONDITIONS, **ae_params),
+    AAERecommender(adversarial=True, conditions=CONDITIONS, **ae_params),
+    DecodingRecommender(conditions=CONDITIONS, n_epochs=100, batch_size=100,
+                           optimizer='adam',n_hidden=100, lr=0.001, verbose=True),
+    VAERecommender(conditions=CONDITIONS, **vae_params),
+    DAERecommender(conditions=CONDITIONS, **ae_params)
 ]
 
-
-TITLE_ENHANCED = [
-    SVDRecommender(1000, use_title=True),
+# TITLE_ENHANCED = [
+    # SVDRecommender(1000, use_title=True),
     # DecodingRecommender(n_epochs=100, batch_size=100, optimizer='adam',
     #                     n_hidden=100, embedding=VECTORS,
     #                     lr=0.001, verbose=True),
@@ -120,15 +110,15 @@ TITLE_ENHANCED = [
     # AAERecommender(adversarial=True, use_title=True,
     #                prior='gauss', gen_lr=0.001, reg_lr=0.001,
     #                **ae_params),
-]
+# ]
 
 with open(ARGS.outfile, 'a') as fh:
     print("~ Conditioned Models", "~" * 42, file=fh)
-EVAL(RECOMMENDERS)
-with open(ARGS.outfile, 'a') as fh:
-    print("~ Partial List", "~" * 42, file=fh)
 EVAL(CONDITIONED_MODELS)
-#EVAL(BASELINES + RECOMMENDERS + CONDITIONED_MODELS)
-with open(ARGS.outfile, 'a') as fh:
-    print("~ Partial List + Titles", "~" * 42, file=fh)
-#EVAL(TITLE_ENHANCED)
+# with open(ARGS.outfile, 'a') as fh:
+#     print("~ Partial List", "~" * 42, file=fh)
+# EVAL(BASELINES + RECOMMENDERS + CONDITIONED_MODELS)
+# EVAL(RECOMENDERS)
+# with open(ARGS.outfile, 'a') as fh:
+#     print("~ Partial List + Titles", "~" * 42, file=fh)
+# EVAL(TITLE_ENHANCED)
