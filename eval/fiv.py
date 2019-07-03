@@ -21,7 +21,7 @@ from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, Ca
 # Should work on kdsrv03
 DATA_PATH = "/data22/ivagliano/SWP/FivMetadata.json"
 CLEAN_DATA_PATH = "/data22/ivagliano/SWP/FivMetadata_clean.json"
-CLEAN = False
+CLEAN = True
 DEBUG_LIMIT = None
 METRICS = ['mrr', 'map']
 
@@ -65,7 +65,8 @@ RECOMMENDERS = [
 ]
 
 CONDITIONS = ConditionList([
-    ('title', PretrainedWordEmbeddingCondition(VECTORS))
+    ('title', PretrainedWordEmbeddingCondition(VECTORS)),
+    ('author', CategoricalCondition(embedding_dim=32, reduce="sum"))
 ])
 
 CONDITIONED_MODELS = [
@@ -113,6 +114,7 @@ def clean(path, papers):
             except KeyError:
                 continue
             p["subjects"] = parse_en_labels(p.pop("subject"))
+            p["authors"] = parse_authors(p)
             if len(p["year"]) < 4:
                 continue
             if len(p["year"]) >= 4:
@@ -143,8 +145,61 @@ def parse_en_labels(subjects):
 
     return labels
 
+def parse_authors(p):
+    """
+    From Marc21-IDs in the json formats to a list of authors
+    """
+    authors = []
+    for creator in p.pop("creator_personal"):
+        authors.append(creator.pop("name"))
+
+    for obj in p.pop("Marc21-IDs"):
+        try:
+            author = obj.pop("700").pop("entry")
+        except KeyError:
+            continue
+        if "Author aut" in author:
+           authors.append(author.replace(", Author aut", ""))
+
+    return authors
+
 
 def unpack_papers(papers):
+    """
+    Unpacks list of papers in a way that is compatible with our Bags dataset
+    format. It is not mandatory that papers are sorted.
+    """
+
+    bags_of_labels, ids, side_info, years, authors = [], [], {}, {}, {}
+    for paper in papers:
+        # Extract ids
+        ids.append(paper["id"])
+        # Put all subjects assigned to the paper in here
+        try:
+            # Subject may be missing
+            bags_of_labels.append(paper["subjects"])
+        except KeyError:
+            bags_of_labels.append([])
+
+        # Use dict here such that we can also deal with unsorted ids
+        try:
+            side_info[paper["id"]] = paper["title"]
+        except KeyError:
+            side_info[paper["id"]] = ""
+        try:
+            years[paper["id"]] = paper["year"]
+        except KeyError:
+            years[paper["id"]] = -1
+
+        authors[paper["id"]] = paper["authors"]
+
+    # bag_of_labels and ids should have corresponding indices
+    # In side_info the id is the key
+    # Re-use 'title' and year here because methods rely on it
+    return bags_of_labels, ids, {"title": side_info, "year": years, "author": authors}
+
+
+def unpack_papers_conditions(papers):
     """
     Unpacks list of papers in a way that is compatible with our Bags dataset
     format. It is not mandatory that papers are sorted.
@@ -189,7 +244,8 @@ def main(year, min_count=None, outfile=None):
     print("Loading data from", CLEAN_DATA_PATH)
     papers = load(CLEAN_DATA_PATH)
     print("Unpacking IREON data...")
-    bags_of_papers, ids, side_info = unpack_papers(papers)
+    # bags_of_papers, ids, side_info = unpack_papers(papers)
+    bags_of_papers, ids, side_info = unpack_papers_conditions(papers)
     del papers
     bags = Bags(bags_of_papers, ids, side_info)
 

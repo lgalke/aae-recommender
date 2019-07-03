@@ -87,8 +87,8 @@ vae_params = {
 CONDITIONS = ConditionList([
     ('title', PretrainedWordEmbeddingCondition(VECTORS)),
     ('journal', CategoricalCondition(embedding_dim=32, reduce=None)),
-    ('author', CategoricalCondition(embedding_dim=32,reduce="sum")),
-    ('mesh', CategoricalCondition(embedding_dim=32,reduce="sum"))
+    ('author', CategoricalCondition(embedding_dim=32, reduce="sum")),
+    ('mesh', CategoricalCondition(embedding_dim=32, reduce="sum"))
 ])
 
 CONDITIONED_MODELS = [
