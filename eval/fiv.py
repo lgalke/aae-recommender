@@ -21,7 +21,7 @@ from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, Ca
 # Should work on kdsrv03
 DATA_PATH = "/data22/ivagliano/SWP/FivMetadata.json"
 CLEAN_DATA_PATH = "/data22/ivagliano/SWP/FivMetadata_clean.json"
-CLEAN = True
+CLEAN = False
 DEBUG_LIMIT = None
 METRICS = ['mrr', 'map']
 
@@ -70,18 +70,18 @@ CONDITIONS = ConditionList([
 ])
 
 CONDITIONED_MODELS = [
-#    AAERecommender(adversarial=False,
-#                   conditions=CONDITIONS,
-#                   lr=0.001,
-#                   **ae_params),
-#    AAERecommender(adversarial=True,
-#                   conditions=CONDITIONS,
-#                   gen_lr=0.001,
-#                   reg_lr=0.001,
-#                   **ae_params),
-#    DecodingRecommender(CONDITIONS,
-#                        n_epochs=ARGS.epochs, batch_size=100, optimizer='adam',
-#                        n_hidden=100, lr=0.001, verbose=True),
+   AAERecommender(adversarial=False,
+                  conditions=CONDITIONS,
+                  lr=0.001,
+                  **ae_params),
+   AAERecommender(adversarial=True,
+                  conditions=CONDITIONS,
+                  gen_lr=0.001,
+                  reg_lr=0.001,
+                  **ae_params),
+   DecodingRecommender(CONDITIONS,
+                       n_epochs=20, batch_size=100, optimizer='adam',
+                       n_hidden=100, lr=0.001, verbose=True),
      VAERecommender(conditions=CONDITIONS, **vae_params),
      DAERecommender(conditions=CONDITIONS, **ae_params)
 ]
@@ -167,7 +167,7 @@ def parse_authors(p):
     return authors
 
 
-def unpack_papers(papers):
+def unpack_papers_conditions(papers):
     """
     Unpacks list of papers in a way that is compatible with our Bags dataset
     format. It is not mandatory that papers are sorted.
@@ -202,7 +202,7 @@ def unpack_papers(papers):
     return bags_of_labels, ids, {"title": side_info, "year": years, "author": authors}
 
 
-def unpack_papers_conditions(papers):
+def unpack_papers(papers):
     """
     Unpacks list of papers in a way that is compatible with our Bags dataset
     format. It is not mandatory that papers are sorted.
@@ -259,10 +259,10 @@ def main(year, min_count=None, outfile=None):
     evaluation.setup(min_count=min_count, min_elements=2)
     print("Loading pre-trained embedding", W2V_PATH)
 
-    with open(outfile, 'a') as fh:
-        print("~ Partial List", "~" * 42, file=fh)
-    #evaluation(BASELINES + RECOMMENDERS)
-    evaluation(RECOMMENDERS)
+    # with open(outfile, 'a') as fh:
+    #     print("~ Partial List", "~" * 42, file=fh)
+    # evaluation(BASELINES + RECOMMENDERS)
+    # evaluation(RECOMMENDERS)
 
     with open(outfile, 'a') as fh:
         print("~ Conditioned Models", "~" * 42, file=fh)
