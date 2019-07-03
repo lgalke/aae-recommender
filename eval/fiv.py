@@ -150,8 +150,11 @@ def parse_authors(p):
     From Marc21-IDs in the json formats to a list of authors
     """
     authors = []
-    for creator in p.pop("creator_personal"):
-        authors.append(creator.pop("name"))
+    try:
+        for creator in p.pop("creator_personal"):
+            authors.append(creator.pop("name"))
+    except KeyError:
+        pass
 
     for obj in p.pop("Marc21-IDs"):
         try:
