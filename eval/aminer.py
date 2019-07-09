@@ -74,7 +74,9 @@ RECOMMENDERS = [
 # ]
 
 CONDITIONS = ConditionList([
-    ('title', PretrainedWordEmbeddingCondition(VECTORS))
+    ('title', PretrainedWordEmbeddingCondition(VECTORS)),
+    ('venue', PretrainedWordEmbeddingCondition(VECTORS)),
+    ('author', CategoricalCondition(embedding_dim=32, reduce="sum"))
 ])
 
 
@@ -182,7 +184,7 @@ def unpack_papers(papers, aggregate=None):
         for attr in aggregate:
             assert attr in PAPER_INFO
 
-    bags_of_refs, ids, side_info, years = [], [], {}, {}
+    bags_of_refs, ids, side_info, years, authors, venue = [], [], {}, {}, {}, {}
     for paper in papers:
         # Extract ids
         ids.append(paper["id"])
@@ -201,6 +203,14 @@ def unpack_papers(papers, aggregate=None):
             years[paper["id"]] = paper["year"]
         except KeyError:
             years[paper["id"]] = -1
+        try:
+            authors[paper["id"]] = paper["authors"]
+        except KeyError:
+            authors[paper["id"]] = []
+        try:
+            venue[paper["id"]] = paper["venue"]
+        except KeyError:
+            venue[paper["id"]] = ""
 
         # We could assemble even more side info here from the track names
         if aggregate is not None:
@@ -210,7 +220,7 @@ def unpack_papers(papers, aggregate=None):
     # bag_of_refs and ids should have corresponding indices
     # In side info the id is the key
     # Re-use 'title' and year here because methods rely on it
-    return bags_of_refs, ids, {"title": side_info, "year": years}
+    return bags_of_refs, ids, {"title": side_info, "year": years, "author": authors, "venue": venue}
 
 
 def main(year, dataset, min_count=None, outfile=None):
