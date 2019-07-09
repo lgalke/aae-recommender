@@ -29,7 +29,7 @@ N_ITEMS = 50000
 # Use all present items
 # N_ITEMS = None
 # authors is an array of strings, n_citation is an integer: do they make sense used in this way?
-PAPER_INFO = ['title', 'venue', 'abstract']
+PAPER_INFO = ['title', 'venue', 'author']
 METRICS = ['mrr', 'map']
 
 W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
@@ -81,20 +81,20 @@ CONDITIONS = ConditionList([
 
 
 CONDITIONED_MODELS = [
-#    AAERecommender(adversarial=False,
-#                   conditions=CONDITIONS,
-#                   lr=ARGS.lr,
-#                   **ae_params),
-#    AAERecommender(adversarial=True,
-#                   conditions=CONDITIONS,
-#                   gen_lr=ARGS.lr,
-#                   reg_lr=ARGS.lr,
-#                   **ae_params),
-#    DecodingRecommender(CONDITIONS,
-#                        n_epochs=ARGS.epochs, batch_size=100, optimizer='adam',
-#                        n_hidden=100, lr=ARGS.lr, verbose=True),
-     VAERecommender(conditions=CONDITIONS, **ae_params),
-     DAERecommender(conditions=CONDITIONS, **ae_params)
+    AAERecommender(adversarial=False,
+                   conditions=CONDITIONS,
+                   lr=0.001,
+                   **ae_params),
+    AAERecommender(adversarial=True,
+                   conditions=CONDITIONS,
+                   gen_lr=0.001,
+                   reg_lr=0.001,
+                   **ae_params),
+    DecodingRecommender(CONDITIONS,
+                        n_epochs=100, batch_size=100, optimizer='adam',
+                        n_hidden=100, lr=0.001, verbose=True),
+    VAERecommender(conditions=CONDITIONS, **ae_params),
+    DAERecommender(conditions=CONDITIONS, **ae_params)
 ]
 
 
@@ -240,13 +240,13 @@ def main(year, dataset, min_count=None, outfile=None):
     evaluation.setup(min_count=min_count, min_elements=2)
     print("Loading pre-trained embedding", W2V_PATH)
 
-    with open(outfile, 'a') as fh:
-        print("~ Partial List", "~" * 42, file=fh)
+    # with open(outfile, 'a') as fh:
+    #     print("~ Partial List", "~" * 42, file=fh)
     # evaluation(BASELINES + RECOMMENDERS)
-    evaluation(RECOMMENDERS, batch_size=1000)
+    # evaluation(RECOMMENDERS, batch_size=1000)
 
     with open(outfile, 'a') as fh:
-        print("~ Partial List + Titles", "~" * 42, file=fh)
+        print("~ Partial List + Titles + Author + Venue", "~" * 42, file=fh)
     # evaluation(TITLE_ENHANCED)
     evaluation(CONDITIONED_MODELS, batch_size=1000)
 
