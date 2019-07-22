@@ -22,7 +22,7 @@ def plot(objects, dataset, title, x=None):
     # plt.xticks(y_pos, objects.keys(), rotation='vertical')
     if dataset == "mpd":
         label = "Tracks"
-    elif dataset =="swp" or "rcv" or "econis":
+    elif dataset == "swp" or dataset == "rcv" or dataset == "econbiz":
         label = 'Labels'
     else:
         label = 'Papers'
@@ -147,9 +147,19 @@ def generate_citations(df):
     return citations
 
 
+def set_count(df):
+    set_cnts = {}
+
+    for index, paper in df.iterrows():
+        set_cnts[paper["owner"]] = len(paper["set"].split(","))
+
+    return set_cnts
+
+
 # path = '/data21/lgalke/datasets/econbiz62k.tsv'
 # path = '/data21/lgalke/datasets/PMC/citations_pmc.tsv'
 path = '/data22/ivagliano/Reuters/rcv1.tsv'
+# Possible values: pubmed, dblp, acm, swp, rcv, econbiz, mpd
 dataset = "rcv"
 
 if dataset == "dblp" or dataset == "acm" or dataset == "swp" or dataset == "mpd":
@@ -233,7 +243,16 @@ else:
     citations = collections.OrderedDict(sorted(citations.items()))
     x_dim = "Citations" if dataset == "pubmed" else "Occurrences"
 
-    print("Plotting paper distribution by number of {} on file".format(x_dim.lower()))
+    print("Plotting {} distribution by number of {} on file"
+          .format("papers'" if x_dim == "Citations" else "labels'", x_dim.lower()))
+    # show the y-value for the bar at x=50 in the plot
+    # plot(citations, dataset, x_dim, 100)
+    # show no y-value for any bar
+    plot(citations, dataset, x_dim)
+
+    set_cnts = set_count(df)
+    x_dim = "References" if dataset == "pubmed" else "Labels"
+    print("Plotting papers' distribution by number of their {} on file".format(x_dim.lower()))
     # show the y-value for the bar at x=50 in the plot
     # plot(citations, dataset, x_dim, 100)
     # show no y-value for any bar
