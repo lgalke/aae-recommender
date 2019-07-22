@@ -11,6 +11,7 @@ from eval.fiv import load, unpack_papers as unpack_papers_fiv
 from eval.mpd.mpd import playlists_from_slices, unpack_playlists
 import pandas as pd
 
+
 def compute_stats(A):
     return A.shape[1], A.min(), A.max(), np.median(A, axis=1)[0,0], A.mean(), A.std()
 
@@ -79,12 +80,79 @@ def from_to_key(objects, min_key, max_key=None):
     return {x : objects[x] for x in objects if x >= min_key}
 
 
+def generate_years_citations(papers, dataset):
+    '''
+    Return the distribution of papers by years and by citations
+    '''
+    years, citations = {}, {}
+
+    for paper in papers:
+        try:
+             years[paper["year"]] += 1
+        except KeyError:
+            # MPD has no time information (no year)
+            if "year" not in paper.keys() and dataset != "mpd":
+                # skip papers without a year
+                # unless dataset is MPD, which has no year
+                continue
+            if dataset != "mpd":
+                years[paper["year"]] = 0
+        if dataset == "dblp":
+            # DBLP has the citations for each paper
+            try:
+                citations[paper["n_citation"]] += 1
+            except KeyError:
+                citations[paper["n_citation"]] = 1
+        elif dataset == "acm":
+            # For ACM we need to compute the citations for each paper
+            if "references" not in paper.keys():
+                continue
+            for ref in paper["references"]:
+                try:
+                    citations[ref] += 1
+                except KeyError:
+                    citations[ref] = 1
+        elif dataset == "swp":
+            # For SWP we need to compute the occurrences for each subject
+            if "subjects" not in paper.keys():
+                continue
+            for subject in paper["subjects"]:
+                try:
+                    citations[subject] += 1
+                except KeyError:
+                    citations[subject] = 1
+        else:
+            # For MPD we need to compute the occurrences for each track
+            for track in paper["tracks"]:
+                try:
+                    citations[track["track_uri"]] += 1
+                except KeyError:
+                    citations[track["track_uri"]] = 1
+
+    return years, citations
+
+
+def generate_citations(df):
+    citations = {}
+
+    for index, paper in df.iterrows():
+        for ref in paper["set"].split(","):
+            if ref == "":
+                continue
+            try:
+                citations[ref] += 1
+            except KeyError:
+                citations[ref] = 1
+
+    return citations
+
+
 # path = '/data21/lgalke/datasets/econbiz62k.tsv'
 # path = '/data21/lgalke/datasets/PMC/citations_pmc.tsv'
 path = '/data22/ivagliano/Reuters/rcv1.tsv'
 dataset = "rcv"
 
-if dataset == "dblp" or dataset == "acm" or dataset == "swp" or  dataset == "mpd":
+if dataset == "dblp" or dataset == "acm" or dataset == "swp" or dataset == "mpd":
     if dataset != "swp" and dataset != "mpd":
         path = '/data22/ivagliano/aminer/'
         path += ("dblp-ref/" if dataset == "dblp" else "acm.txt")
@@ -98,44 +166,7 @@ if dataset == "dblp" or dataset == "acm" or dataset == "swp" or  dataset == "mpd
         # actually not papers but playlists
         papers = playlists_from_slices("/data21/lgalke/datasets/MPD/data/", n_jobs=4)
 
-    years, citations = {}, {}
-    for paper in papers:
-        try:
-             years[paper["year"]] += 1 
-        except KeyError:
-            if "year" not in paper.keys() and dataset != "mpd":
-                # skip papers without a year
-                # unless dataset is MPD, which has no year
-                continue
-            if dataset != "mpd":
-                years[paper["year"]] = 0
-        if dataset == "dblp":
-            try:
-                citations[paper["n_citation"]] += 1
-            except KeyError:
-                citations[paper["n_citation"]] = 1
-        elif dataset == "acm":
-            if "references" not in paper.keys():
-                continue
-            for ref in paper["references"]:
-                try:
-                    citations[ref] += 1
-                except KeyError:
-                    citations[ref] = 1
-        elif dataset == "swp":
-            if "subjects" not in paper.keys():
-                continue
-            for subject in paper["subjects"]:
-                try:
-                    citations[subject] += 1
-                except KeyError:
-                    citations[subject] = 1
-        else:
-            for track in paper["tracks"]:
-                try:
-                    citations[track["track_uri"]] += 1
-                except KeyError:
-                    citations[track["track_uri"]] = 1
+    years, citations = generate_years_citations(papers, dataset)
 
     if dataset != "mpd":
         # only papers from 1970 
@@ -163,17 +194,20 @@ if dataset == "dblp" or dataset == "acm" or dataset == "swp" or  dataset == "mpd
             text = "tracks"
         print("Generating {} distribution".format(text))
         citations = paper_by_n_citations(citations)
+
     # only papers with at least 100 citations
     # citations = from_to_key(citations, 100)
     # only papers with max 200 citations
     citations = from_to_key(citations, 10, 800)
     citations = collections.OrderedDict(sorted(citations.items()))
     x_dim = "Citations" if dataset != "swp" and dataset != "mpd" else "Occurrences"
+
     print("Plotting paper distribution by number of {} on file".format(x_dim.lower()))
     # show the y-value for the bar at x=200 in the plot
     plot(citations, dataset, x_dim, 200)
     # show no y-value for any bar
     # plot(citations, dataset, x_dim)
+
     print("Unpacking {} data...".format(dataset))
     if dataset == "acm" or dataset == "dblp":
         bags_of_papers, ids, side_info = unpack_papers(papers)
@@ -189,25 +223,16 @@ else:
     df = pd.read_csv(path, sep="\t", dtype=str, error_bad_lines=False)
     # replace nan with empty string
     df = df.replace(np.nan, "", regex=True)
-    citations = {}
-    for index, paper in df.iterrows():
-        for ref in paper["set"].split(","):
-            if ref == "":
-                continue
-            try:
-                citations[ref] += 1
-            except KeyError:
-                citations[ref] = 1
 
-    print(citations)
+    citations = generate_citations(df)
     citations = paper_by_n_citations(citations)
-    print(citations)
     # only papers with at least 10 citations
     citations = from_to_key(citations, 0)
     # only papers with min 10 and max 100 citations
     # citations = from_to_key(citations, 1, 500)
     citations = collections.OrderedDict(sorted(citations.items()))
     x_dim = "Citations" if dataset == "pubmed" else "Occurrences"
+
     print("Plotting paper distribution by number of {} on file".format(x_dim.lower()))
     # show the y-value for the bar at x=50 in the plot
     # plot(citations, dataset, x_dim, 100)
