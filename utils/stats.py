@@ -45,19 +45,13 @@ def compute_stats(A):
     return A.shape[1], A.min(), A.max(), np.median(A, axis=1)[0,0], A.mean(), A.std()
 
 
-def plot(objects, dataset, title, x=None):
+def plot(objects, dataset, x_dim, y_dim, x=None):
     # y_pos = np.arange(len(objects.keys()))
     plt.bar(objects.keys(), objects.values(), align='center', alpha=0.5)
     # plt.xticks(y_pos, objects.keys(), rotation='vertical')
-    if dataset == "mpd":
-        label = "Tracks"
-    elif dataset == "swp" or dataset == "rcv" or dataset == "econbiz":
-        label = 'Labels'
-    else:
-        label = 'Papers'
-    plt.ylabel(label)
+    plt.ylabel(y_dim)
     # plt.title('Papers by {}'.format(title))
-    plt.xlabel(title)
+    plt.xlabel(x_dim)
 
     # print the y value of bar at a given x
     if x != None:
@@ -253,19 +247,6 @@ if dataset == "dblp" or dataset == "acm" or dataset == "swp" or dataset == "mpd"
         print("Generating {} distribution".format(text))
         citations = paper_by_n_citations(citations)
 
-    # # only papers with at least 100 citations
-    # # citations = from_to_key(citations, 100)
-    # # only papers with min min_x_cit citations and max_x_cit citations
-    # citations = from_to_key(citations, min_x_cit, max_x_cit)
-    # citations = collections.OrderedDict(sorted(citations.items()))
-    # x_dim = "Citations" if dataset != "swp" and dataset != "mpd" else "Occurrences"
-    #
-    # print("Plotting paper distribution by number of {} on file".format(x_dim.lower()))
-    # # show the y-value for the bar at x=mark_x_cit in the plot
-    # plot(citations, dataset, x_dim, mark_x_cit)
-    # # show no y-value for any bar
-    # # plot(citations, dataset, x_dim)
-
     print("Unpacking {} data...".format(dataset))
     if dataset == "acm" or dataset == "dblp":
         bags_of_papers, ids, side_info = unpack_papers(papers)
@@ -302,11 +283,17 @@ if dataset == "pubmed" or dataset == "acm" or dataset == "dblp":
     x_dim = "Citations"
 else:
     x_dim = "Occurrences"
-
+if dataset == "mpd":
+    y_dim = "Tracks"
+elif dataset == "swp" or dataset == "rcv" or dataset == "econbiz":
+    y_dim = 'Labels'
+else:
+    y_dim = 'Papers'
+    
 print("Plotting {} distribution by number of {} on file"
       .format("papers'" if x_dim == "Citations" else "labels'", x_dim.lower()))
 # show the y-value for the bar at x=mark_x_cit in the plot
-plot(citations, dataset, x_dim, mark_x_cit)
+plot(citations, dataset, x_dim, y_dim, mark_x_cit)
 # show no y-value for any bar
 # plot(citations, dataset, x_dim)
 
@@ -316,12 +303,18 @@ set_cnts = paper_by_n_citations(set_cnts)
 set_cnts = from_to_key(set_cnts, min_x_set, max_x_set)
 set_cnts = collections.OrderedDict(sorted(set_cnts.items()))
 
-x_dim = "References" if dataset == "pubmed" else "Labels"
+if dataset == "pubmed" or dataset == "acm" or dataset == "dblp":
+    x_dim = "References"
+elif dataset == "mpd":
+    x_dim = "Tracks"
+else:
+    x_dim = "Labels"
+
 print("Plotting papers' distribution by number of their {} on file".format(x_dim.lower()))
 # show the y-value for the bar at x=50 in the plot
 # plot(citations, dataset, x_dim, 100)
 # show no y-value for any bar
-plot(set_cnts, dataset, x_dim, mark_x_set)
+plot(set_cnts, dataset, x_dim, "Papers", mark_x_set)
 
 bags = bags.build_vocab(apply=True)
 
