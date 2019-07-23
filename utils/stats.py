@@ -126,7 +126,10 @@ def generate_years_citations_set_cnts(papers, dataset):
                 citations[paper["n_citation"]] += 1
             except KeyError:
                 citations[paper["n_citation"]] = 1
-            set_cnts[paper["id"]] = len(paper["references"])
+            try:
+                set_cnts[paper["id"]] = len(paper["references"])
+            except KeyError:
+                set_cnts[paper["id"]] = 0
         elif dataset == "acm":
             # For ACM we need to compute the citations for each paper
             if "references" not in paper.keys():
