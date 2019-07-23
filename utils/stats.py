@@ -235,7 +235,7 @@ if dataset == "dblp" or dataset == "acm" or dataset == "swp" or dataset == "mpd"
                 break
 
         print("Plotting paper distribution by year on file")
-        plot(years, dataset, "year")
+        plot(years, dataset, "Year", "Papers")
 
     if dataset == "acm" or dataset == "swp" or dataset == "mpd":
         if dataset == "acm":
