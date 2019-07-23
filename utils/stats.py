@@ -156,25 +156,58 @@ def set_count(df):
     return set_cnts
 
 
+def set_path(ds):
+
+    if ds == "dblp" or ds == "acm":
+        p = '/data22/ivagliano/aminer/'
+        p += ("dblp-ref/" if ds == "dblp" else "acm.txt")
+    elif ds == "swp":
+        p = "/data22/ivagliano/SWP/FivMetadata_clean.json"
+    elif ds == "mpd":
+        p = "/data21/lgalke/datasets/MPD/data/"
+    elif ds == "pubmed":
+        p = "/data21/lgalke/datasets/PMC/citations_pmc.tsv"
+    elif ds == "econbiz":
+        p = "/data21/lgalke/datasets/econbiz62k.tsv"
+    else:
+        p = "/data22/ivagliano/Reuters/rcv1.tsv"
+
+    return p
+
+
 # path = '/data21/lgalke/datasets/econbiz62k.tsv'
 # path = '/data21/lgalke/datasets/PMC/citations_pmc.tsv'
-path = '/data22/ivagliano/Reuters/rcv1.tsv'
+# path = '/data22/ivagliano/Reuters/rcv1.tsv'
+
 # Possible values: pubmed, dblp, acm, swp, rcv, econbiz, mpd
-dataset = "rcv"
+dataset = "pubmed"
+# only papers/labels with at least min_x_cit citations/occurrences
+# in the plot of the distribution of papers/labels by citations/occurrences
+# Set to 0 if not relevant
+min_x_cit = 10
+# only papers/labels with at most man_x_cit citations/occurrences
+# in the plot of the distribution of papers/labels by citations/occurrences
+# Set to None if not relevant
+max_x_cit = 100
+# Shows the y-value at the given mark_x_cit
+# Set to None if not relevant
+mark_x_cit = 50
+
+path = set_path(dataset)
 
 if dataset == "dblp" or dataset == "acm" or dataset == "swp" or dataset == "mpd":
     if dataset != "swp" and dataset != "mpd":
-        path = '/data22/ivagliano/aminer/'
-        path += ("dblp-ref/" if dataset == "dblp" else "acm.txt")
+        # path = '/data22/ivagliano/aminer/'
+        # path += ("dblp-ref/" if dataset == "dblp" else "acm.txt")
         print("Loading {} dataset".format(dataset.upper()))
         papers = papers_from_files(path, dataset, n_jobs=1)
     elif dataset == "swp":
         print("Loading SWP dataset")
-        papers = load("/data22/ivagliano/SWP/FivMetadata_clean.json")
+        papers = load(path)
     else:
         print("Loading MPD dataset")
         # actually not papers but playlists
-        papers = playlists_from_slices("/data21/lgalke/datasets/MPD/data/", n_jobs=4)
+        papers = playlists_from_slices(path, n_jobs=4)
 
     years, citations = generate_years_citations(papers, dataset)
 
@@ -207,14 +240,14 @@ if dataset == "dblp" or dataset == "acm" or dataset == "swp" or dataset == "mpd"
 
     # only papers with at least 100 citations
     # citations = from_to_key(citations, 100)
-    # only papers with max 200 citations
-    citations = from_to_key(citations, 10, 800)
+    # only papers with min min_x_cit citations and max_x_cit citations
+    citations = from_to_key(citations, min_x_cit, max_x_cit)
     citations = collections.OrderedDict(sorted(citations.items()))
     x_dim = "Citations" if dataset != "swp" and dataset != "mpd" else "Occurrences"
 
     print("Plotting paper distribution by number of {} on file".format(x_dim.lower()))
-    # show the y-value for the bar at x=200 in the plot
-    plot(citations, dataset, x_dim, 200)
+    # show the y-value for the bar at x=mark_x_cit in the plot
+    plot(citations, dataset, x_dim, mark_x_cit)
     # show no y-value for any bar
     # plot(citations, dataset, x_dim)
 
@@ -237,18 +270,18 @@ else:
     citations = generate_citations(df)
     citations = paper_by_n_citations(citations)
     # only papers with at least 10 citations
-    citations = from_to_key(citations, 0)
-    # only papers with min 10 and max 100 citations
-    # citations = from_to_key(citations, 1, 500)
+    # citations = from_to_key(citations, 10)
+    # only papers with min min_x_cit and max max_x_cit citations
+    citations = from_to_key(citations, min_x_cit, max_x_cit)
     citations = collections.OrderedDict(sorted(citations.items()))
     x_dim = "Citations" if dataset == "pubmed" else "Occurrences"
 
     print("Plotting {} distribution by number of {} on file"
           .format("papers'" if x_dim == "Citations" else "labels'", x_dim.lower()))
-    # show the y-value for the bar at x=50 in the plot
-    # plot(citations, dataset, x_dim, 100)
+    # show the y-value for the bar at x=mark_x_cit in the plot
+    plot(citations, dataset, x_dim, mark_x_cit)
     # show no y-value for any bar
-    plot(citations, dataset, x_dim)
+    # plot(citations, dataset, x_dim)
 
     set_cnts = set_count(df)
     x_dim = "References" if dataset == "pubmed" else "Labels"
