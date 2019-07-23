@@ -300,8 +300,7 @@ plot(citations, dataset, x_dim, y_dim, mark_x_cit)
 # show no y-value for any bar
 # plot(citations, dataset, x_dim)
 
-print("Generating {} distribution"
-      .format("references" if dataset == "pubmed" else "label-assignments'"))
+print("Generating reference/label/track distribution")
 set_cnts = paper_by_n_citations(set_cnts)
 set_cnts = from_to_key(set_cnts, min_x_set, max_x_set)
 set_cnts = collections.OrderedDict(sorted(set_cnts.items()))
