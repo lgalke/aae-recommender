@@ -289,7 +289,7 @@ else:
     # show the y-value for the bar at x=50 in the plot
     # plot(citations, dataset, x_dim, 100)
     # show no y-value for any bar
-    plot(citations, dataset, x_dim)
+    plot(set_cnts, dataset, x_dim)
 
     print("Unpacking {} data...".format(dataset))
     bags = Bags.load_tabcomma_format(path, unique=True)
