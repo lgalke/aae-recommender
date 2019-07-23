@@ -2,14 +2,43 @@ import collections
 
 import matplotlib
 
-matplotlib.use('agg')
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
+
 from aaerec.datasets import Bags
 from eval.aminer import unpack_papers, papers_from_files
 from eval.fiv import load, unpack_papers as unpack_papers_fiv
 from eval.mpd.mpd import playlists_from_slices, unpack_playlists
-import pandas as pd
+
+matplotlib.use('agg')
+
+
+# Possible values: pubmed, dblp, acm, swp, rcv, econbiz, mpd
+dataset = "pubmed"
+# only papers/labels with at least min_x_cit citations/occurrences
+# in the plot of the distribution of papers/labels by citations/occurrences
+# Set to 0 if not relevant
+min_x_cit = 10
+# only papers/labels with at most man_x_cit citations/occurrences
+# in the plot of the distribution of papers/labels by citations/occurrences
+# Set to None if not relevant
+max_x_cit = 100
+# Shows the y-value at the given mark_x_cit
+# Set to None if not relevant
+mark_x_cit = 50
+
+# only papers/labels with at least min_x_cit citations/occurrences
+# in the plot of the distribution of papers/labels by citations/occurrences
+# Set to 0 if not relevant
+min_x_set = 0
+# only papers/labels with at most man_x_cit citations/occurrences
+# in the plot of the distribution of papers/labels by citations/occurrences
+# Set to None if not relevant
+max_x_set = 500
+# Shows the y-value at the given mark_x_cit
+# Set to None if not relevant
+mark_x_set = 100
 
 
 def compute_stats(A):
@@ -175,24 +204,6 @@ def set_path(ds):
     return p
 
 
-# path = '/data21/lgalke/datasets/econbiz62k.tsv'
-# path = '/data21/lgalke/datasets/PMC/citations_pmc.tsv'
-# path = '/data22/ivagliano/Reuters/rcv1.tsv'
-
-# Possible values: pubmed, dblp, acm, swp, rcv, econbiz, mpd
-dataset = "pubmed"
-# only papers/labels with at least min_x_cit citations/occurrences
-# in the plot of the distribution of papers/labels by citations/occurrences
-# Set to 0 if not relevant
-min_x_cit = 10
-# only papers/labels with at most man_x_cit citations/occurrences
-# in the plot of the distribution of papers/labels by citations/occurrences
-# Set to None if not relevant
-max_x_cit = 100
-# Shows the y-value at the given mark_x_cit
-# Set to None if not relevant
-mark_x_cit = 50
-
 path = set_path(dataset)
 
 if dataset == "dblp" or dataset == "acm" or dataset == "swp" or dataset == "mpd":
@@ -274,8 +285,8 @@ else:
     # only papers with min min_x_cit and max max_x_cit citations
     citations = from_to_key(citations, min_x_cit, max_x_cit)
     citations = collections.OrderedDict(sorted(citations.items()))
-    x_dim = "Citations" if dataset == "pubmed" else "Occurrences"
 
+    x_dim = "Citations" if dataset == "pubmed" else "Occurrences"
     print("Plotting {} distribution by number of {} on file"
           .format("papers'" if x_dim == "Citations" else "labels'", x_dim.lower()))
     # show the y-value for the bar at x=mark_x_cit in the plot
@@ -285,12 +296,15 @@ else:
 
     set_cnts = set_count(df)
     set_cnts = paper_by_n_citations(set_cnts)
+    set_cnts = from_to_key(set_cnts, min_x_set, max_x_set)
+    set_cnts = collections.OrderedDict(sorted(set_cnts.items()))
+    
     x_dim = "References" if dataset == "pubmed" else "Labels"
     print("Plotting papers' distribution by number of their {} on file".format(x_dim.lower()))
     # show the y-value for the bar at x=50 in the plot
     # plot(citations, dataset, x_dim, 100)
     # show no y-value for any bar
-    plot(set_cnts, dataset, x_dim)
+    plot(set_cnts, dataset, x_dim, mark_x_set)
 
     print("Unpacking {} data...".format(dataset))
     bags = Bags.load_tabcomma_format(path, unique=True)
