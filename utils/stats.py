@@ -109,11 +109,11 @@ def from_to_key(objects, min_key, max_key=None):
     return {x : objects[x] for x in objects if x >= min_key}
 
 
-def generate_years_citations(papers, dataset):
+def generate_years_citations_set_cnts(papers, dataset):
     '''
     Return the distribution of papers by years and by citations
     '''
-    years, citations = {}, {}
+    years, citations, set_cnts = {}, {}, {}
 
     for paper in papers:
         try:
@@ -132,6 +132,7 @@ def generate_years_citations(papers, dataset):
                 citations[paper["n_citation"]] += 1
             except KeyError:
                 citations[paper["n_citation"]] = 1
+            set_cnts[paper["id"]] = len(paper["references"])
         elif dataset == "acm":
             # For ACM we need to compute the citations for each paper
             if "references" not in paper.keys():
@@ -141,6 +142,7 @@ def generate_years_citations(papers, dataset):
                     citations[ref] += 1
                 except KeyError:
                     citations[ref] = 1
+            set_cnts[paper["id"]] = len(paper["references"])
         elif dataset == "swp":
             # For SWP we need to compute the occurrences for each subject
             if "subjects" not in paper.keys():
@@ -150,6 +152,7 @@ def generate_years_citations(papers, dataset):
                     citations[subject] += 1
                 except KeyError:
                     citations[subject] = 1
+            set_cnts[paper["id"]] = len(paper["subjects"])
         else:
             # For MPD we need to compute the occurrences for each track
             for track in paper["tracks"]:
@@ -157,8 +160,9 @@ def generate_years_citations(papers, dataset):
                     citations[track["track_uri"]] += 1
                 except KeyError:
                     citations[track["track_uri"]] = 1
+            set_cnts[paper["pid"]] = len(paper["tracks"])
 
-    return years, citations
+    return years, citations, set_cnts
 
 
 def generate_citations(df):
@@ -220,7 +224,7 @@ if dataset == "dblp" or dataset == "acm" or dataset == "swp" or dataset == "mpd"
         # actually not papers but playlists
         papers = playlists_from_slices(path, n_jobs=4)
 
-    years, citations = generate_years_citations(papers, dataset)
+    years, citations, set_cnts = generate_years_citations_set_cnts(papers, dataset)
 
     if dataset != "mpd":
         # only papers from 1970 
@@ -249,18 +253,18 @@ if dataset == "dblp" or dataset == "acm" or dataset == "swp" or dataset == "mpd"
         print("Generating {} distribution".format(text))
         citations = paper_by_n_citations(citations)
 
-    # only papers with at least 100 citations
-    # citations = from_to_key(citations, 100)
-    # only papers with min min_x_cit citations and max_x_cit citations
-    citations = from_to_key(citations, min_x_cit, max_x_cit)
-    citations = collections.OrderedDict(sorted(citations.items()))
-    x_dim = "Citations" if dataset != "swp" and dataset != "mpd" else "Occurrences"
-
-    print("Plotting paper distribution by number of {} on file".format(x_dim.lower()))
-    # show the y-value for the bar at x=mark_x_cit in the plot
-    plot(citations, dataset, x_dim, mark_x_cit)
-    # show no y-value for any bar
-    # plot(citations, dataset, x_dim)
+    # # only papers with at least 100 citations
+    # # citations = from_to_key(citations, 100)
+    # # only papers with min min_x_cit citations and max_x_cit citations
+    # citations = from_to_key(citations, min_x_cit, max_x_cit)
+    # citations = collections.OrderedDict(sorted(citations.items()))
+    # x_dim = "Citations" if dataset != "swp" and dataset != "mpd" else "Occurrences"
+    #
+    # print("Plotting paper distribution by number of {} on file".format(x_dim.lower()))
+    # # show the y-value for the bar at x=mark_x_cit in the plot
+    # plot(citations, dataset, x_dim, mark_x_cit)
+    # # show no y-value for any bar
+    # # plot(citations, dataset, x_dim)
 
     print("Unpacking {} data...".format(dataset))
     if dataset == "acm" or dataset == "dblp":
@@ -279,35 +283,45 @@ else:
     df = df.replace(np.nan, "", regex=True)
 
     citations = generate_citations(df)
+    print("Generating {} distribution"
+          .format("citations" if dataset == "pubmed" else "occurrences"))
     citations = paper_by_n_citations(citations)
-    # only papers with at least 10 citations
-    # citations = from_to_key(citations, 10)
-    # only papers with min min_x_cit and max max_x_cit citations
-    citations = from_to_key(citations, min_x_cit, max_x_cit)
-    citations = collections.OrderedDict(sorted(citations.items()))
-
-    x_dim = "Citations" if dataset == "pubmed" else "Occurrences"
-    print("Plotting {} distribution by number of {} on file"
-          .format("papers'" if x_dim == "Citations" else "labels'", x_dim.lower()))
-    # show the y-value for the bar at x=mark_x_cit in the plot
-    plot(citations, dataset, x_dim, mark_x_cit)
-    # show no y-value for any bar
-    # plot(citations, dataset, x_dim)
 
     set_cnts = set_count(df)
-    set_cnts = paper_by_n_citations(set_cnts)
-    set_cnts = from_to_key(set_cnts, min_x_set, max_x_set)
-    set_cnts = collections.OrderedDict(sorted(set_cnts.items()))
-    
-    x_dim = "References" if dataset == "pubmed" else "Labels"
-    print("Plotting papers' distribution by number of their {} on file".format(x_dim.lower()))
-    # show the y-value for the bar at x=50 in the plot
-    # plot(citations, dataset, x_dim, 100)
-    # show no y-value for any bar
-    plot(set_cnts, dataset, x_dim, mark_x_set)
 
     print("Unpacking {} data...".format(dataset))
     bags = Bags.load_tabcomma_format(path, unique=True)
+
+# only papers with at least 10 citations
+# citations = from_to_key(citations, 10)
+# only papers with min min_x_cit and max max_x_cit citations
+citations = from_to_key(citations, min_x_cit, max_x_cit)
+citations = collections.OrderedDict(sorted(citations.items()))
+
+if dataset == "pubmed" or dataset == "acm" or dataset == "dblp":
+    x_dim = "Citations"
+else:
+    x_dim = "Occurrences"
+
+print("Plotting {} distribution by number of {} on file"
+      .format("papers'" if x_dim == "Citations" else "labels'", x_dim.lower()))
+# show the y-value for the bar at x=mark_x_cit in the plot
+plot(citations, dataset, x_dim, mark_x_cit)
+# show no y-value for any bar
+# plot(citations, dataset, x_dim)
+
+print("Generating {} distribution"
+      .format("references" if dataset == "pubmed" else "label-assignments'"))
+set_cnts = paper_by_n_citations(set_cnts)
+set_cnts = from_to_key(set_cnts, min_x_set, max_x_set)
+set_cnts = collections.OrderedDict(sorted(set_cnts.items()))
+
+x_dim = "References" if dataset == "pubmed" else "Labels"
+print("Plotting papers' distribution by number of their {} on file".format(x_dim.lower()))
+# show the y-value for the bar at x=50 in the plot
+# plot(citations, dataset, x_dim, 100)
+# show no y-value for any bar
+plot(set_cnts, dataset, x_dim, mark_x_set)
 
 bags = bags.build_vocab(apply=True)
 
