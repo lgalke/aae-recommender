@@ -284,6 +284,7 @@ else:
     # plot(citations, dataset, x_dim)
 
     set_cnts = set_count(df)
+    set_cnts = paper_by_n_citations(set_cnts)
     x_dim = "References" if dataset == "pubmed" else "Labels"
     print("Plotting papers' distribution by number of their {} on file".format(x_dim.lower()))
     # show the y-value for the bar at x=50 in the plot
