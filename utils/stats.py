@@ -60,7 +60,7 @@ def plot(objects, dataset, x_dim, y_dim, x=None):
                 print("For x={} y={}".format(x, y_i))
                 plt.text(x_i, y_i, str(y_i) + "\n", ha='center')
 
-    plt.savefig('papers_by_{}_{}.pdf'.format(title.replace(" ", "_"), dataset))
+    plt.savefig('papers_by_{}_{}.pdf'.format(x_dim.replace(" ", "_"), dataset))
     # plt.show()
     plt.close()
 
@@ -289,7 +289,7 @@ elif dataset == "swp" or dataset == "rcv" or dataset == "econbiz":
     y_dim = 'Labels'
 else:
     y_dim = 'Papers'
-    
+
 print("Plotting {} distribution by number of {} on file"
       .format("papers'" if x_dim == "Citations" else "labels'", x_dim.lower()))
 # show the y-value for the bar at x=mark_x_cit in the plot
