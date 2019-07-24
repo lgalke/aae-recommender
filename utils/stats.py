@@ -52,7 +52,7 @@ def plot(objects, dataset, x_dim, y_dim, x=None):
 
     # print the y value of bar at a given x
     if x != None:
-        for x_i, y_i in enumerate(objects.values()):
+        for x_i, y_i in objects.items():
             if x_i == x:
                 print("For x={} y={}".format(x, y_i))
                 plt.text(x_i, y_i, str(y_i) + "\n", ha='center')
