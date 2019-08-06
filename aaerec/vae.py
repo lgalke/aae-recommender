@@ -37,6 +37,12 @@ TORCH_OPTIMIZERS = {
     'adam': optim.Adam
 }
 
+STATUS_FORMAT = "[ R: {:.4f}]"
+
+
+def log_losses(loss):
+    print('\r'+STATUS_FORMAT.format(loss), end='', flush=True)
+
 
 class VAE(nn.Module):
 
@@ -167,8 +173,7 @@ class VAE(nn.Module):
         train_loss += loss.item()
         self.optimizer.step()
         if self.verbose:
-            print('====> Average loss: {:.4f}'.format(
-                train_loss / len(X)))
+            log_losses(train_loss / len(X))
         return self
 
     def fit(self, X, y=None, condition_data=None):
