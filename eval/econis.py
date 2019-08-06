@@ -20,12 +20,12 @@ from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, Ca
 
 # Should work on kdsrv03
 DATA_PATH = "/data22/ivagliano/econis/econbiz62k-extended.json"
-CLEAN = False
 DEBUG_LIMIT = None
 METRICS = ['mrr', 'map']
 
 W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
 W2V_IS_BINARY = True
+print("Loading pre-trained embedding", W2V_PATH)
 VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 
 ae_params = {
@@ -146,7 +146,7 @@ def unpack_papers_conditions(papers):
     bags_of_labels, ids, side_info, years, authors = [], [], {}, {}, {}
     for paper in papers:
         # Extract ids
-        ids.append(paper["id"])
+        ids.append(paper["econbiz_id"])
         # Put all subjects assigned to the paper in here
         try:
             # Subject may be missing
@@ -156,16 +156,18 @@ def unpack_papers_conditions(papers):
 
         # Use dict here such that we can also deal with unsorted ids
         try:
-            side_info[paper["id"]] = paper["title"]
+            side_info[paper["econbiz_id"]] = paper["title"]
         except KeyError:
-            side_info[paper["id"]] = ""
+            side_info[paper["econbiz_id"]] = ""
         try:
             # Sometimes data in format yyyy.mm.dd (usually only year)
-            years[paper["id"]] = paper["date"][:4]
+            if type(paper["date"]) is str:
+                paper["date"] = int(paper["date"][:4])
+            years[paper["econbiz_id"]] = paper["date"]
         except KeyError:
-            years[paper["id"]] = -1
+            years[paper["econbiz_id"]] = -1
 
-        authors[paper["id"]] = parse_authors(paper)
+        authors[paper["econbiz_id"]] = parse_authors(paper)
 
     # bag_of_labels and ids should have corresponding indices
     # In side_info the id is the key
@@ -188,7 +190,6 @@ def main(year, min_count=None, outfile=None):
 
     evaluation = Evaluation(bags, year, logfile=outfile)
     evaluation.setup(min_count=min_count, min_elements=2)
-    print("Loading pre-trained embedding", W2V_PATH)
 
     # with open(outfile, 'a') as fh:
     #     print("~ Partial List", "~" * 42, file=fh)
