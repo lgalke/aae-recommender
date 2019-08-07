@@ -172,10 +172,10 @@ class VAE(nn.Module):
         if use_condition:
             self.conditions.zero_grad()
         loss.backward()
-        if use_condition:
-            self.conditions.step()
         train_loss += loss.item()
         self.optimizer.step()
+        if use_condition:
+            self.conditions.step()
         if self.verbose:
             log_losses(train_loss / len(X))
         return self
