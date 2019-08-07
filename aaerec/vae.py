@@ -169,7 +169,11 @@ class VAE(nn.Module):
             recon_batch, mu, logvar = self(X)
 
         loss = self.loss_function(recon_batch, X, mu, logvar)
+        if use_condition:
+            self.conditions.zero_grad()
         loss.backward()
+        if use_condition:
+            self.conditions.step()
         train_loss += loss.item()
         self.optimizer.step()
         if self.verbose:
