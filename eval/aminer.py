@@ -23,7 +23,7 @@ from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, Ca
 
 # Should work on kdsrv03
 DATA_PATH = "/data22/ivagliano/aminer/"
-DEBUG_LIMIT = None
+DEBUG_LIMIT = 10000
 # Use only this many most frequent items
 N_ITEMS = 50000
 # Use all present items
@@ -34,13 +34,15 @@ METRICS = ['mrr', 'map']
 
 W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
 W2V_IS_BINARY = True
+print("Loading keyed vectors") 
 VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
+print("Done") 
 
 ae_params = {
     'n_code': 50,
-    'n_epochs': 20,
+    'n_epochs': 10,
 #    'embedding': VECTORS,
-    'batch_size': 100,
+    'batch_size': 2000,
     'n_hidden': 100,
     'normalize_inputs': True,
 }
@@ -57,8 +59,8 @@ RECOMMENDERS = [
     #                **ae_params),
     # AAERecommender(use_title=False, prior='gauss', gen_lr=0.0001,
     #                reg_lr=0.0001, **ae_params),
-    VAERecommender(conditions=None, **ae_params),
-    DAERecommender(conditions=None, **ae_params)
+    # VAERecommender(conditions=None, **ae_params)
+    # DAERecommender(conditions=None, **ae_params)
 ]
 
 # TITLE_ENHANCED = [
@@ -76,25 +78,26 @@ RECOMMENDERS = [
 CONDITIONS = ConditionList([
     ('title', PretrainedWordEmbeddingCondition(VECTORS)),
     ('venue', PretrainedWordEmbeddingCondition(VECTORS)),
-    ('author', CategoricalCondition(embedding_dim=32, reduce="sum"))
+    ('author', CategoricalCondition(embedding_dim=32, reduce="sum", vocab_size=0.01,
+                                    sparse=True, embedding_on_gpu=True))
 ])
 
 
 CONDITIONED_MODELS = [
-    AAERecommender(adversarial=False,
-                   conditions=CONDITIONS,
-                   lr=0.001,
-                   **ae_params),
-    AAERecommender(adversarial=True,
-                   conditions=CONDITIONS,
-                   gen_lr=0.001,
-                   reg_lr=0.001,
-                   **ae_params),
-    DecodingRecommender(CONDITIONS,
-                        n_epochs=100, batch_size=100, optimizer='adam',
-                        n_hidden=100, lr=0.001, verbose=True),
-    VAERecommender(conditions=CONDITIONS, **ae_params),
-    DAERecommender(conditions=CONDITIONS, **ae_params)
+    # AAERecommender(adversarial=False,
+    #                conditions=CONDITIONS,
+    #                lr=0.001,
+    #                **ae_params),
+    # AAERecommender(adversarial=True,
+    #                conditions=CONDITIONS,
+    #                gen_lr=0.001,
+    #                reg_lr=0.001,
+    #                **ae_params),
+    # DecodingRecommender(CONDITIONS,
+    #                     n_epochs=100, batch_size=100, optimizer='adam',
+    #                     n_hidden=100, lr=0.001, verbose=True),
+    VAERecommender(conditions=CONDITIONS, **ae_params)
+    # DAERecommender(conditions=CONDITIONS, **ae_params)
 ]
 
 
@@ -233,12 +236,24 @@ def main(year, dataset, min_count=None, outfile=None):
     del papers
     bags = Bags(bags_of_papers, ids, side_info)
 
+    def peek(dictlike, n=10):
+        for i, (k, v) in enumerate(dictlike.items()):
+            print(k, "->", v)
+            if i >= 10:
+                break
+
+    print("Ten titles")
+    peek(side_info['title'])
+    print("Ten venues")
+    peek(side_info['venue'])
+    print("Ten author lists")
+    peek(side_info['author'])
+
     log("Whole dataset:", logfile=outfile)
     log(bags, logfile=outfile)
 
     evaluation = Evaluation(bags, year, logfile=outfile)
     evaluation.setup(min_count=min_count, min_elements=2)
-    print("Loading pre-trained embedding", W2V_PATH)
 
     # with open(outfile, 'a') as fh:
     #     print("~ Partial List", "~" * 42, file=fh)
@@ -248,7 +263,7 @@ def main(year, dataset, min_count=None, outfile=None):
     with open(outfile, 'a') as fh:
         print("~ Partial List + Titles + Author + Venue", "~" * 42, file=fh)
     # evaluation(TITLE_ENHANCED)
-    evaluation(CONDITIONED_MODELS, batch_size=1000)
+    evaluation(CONDITIONED_MODELS, batch_size=500)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
