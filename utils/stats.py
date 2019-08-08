@@ -13,21 +13,19 @@ from eval.mpd.mpd import playlists_from_slices, unpack_playlists
 
 matplotlib.use('agg')
 
-
 # Possible values: pubmed, dblp, acm, swp, rcv, econbiz, mpd
-dataset = "mpd"
+dataset = "pubmed"
 # only papers/labels with at least min_x_cit citations/occurrences
 # in the plot of the distribution of papers/labels by citations/occurrences
 # Set to 0 if not relevant
-min_x_cit = 1
+min_x_cit = 10
 # only papers/labels with at most man_x_cit citations/occurrences
 # in the plot of the distribution of papers/labels by citations/occurrences
 # Set to None if not relevant
-max_x_cit = 500
+max_x_cit = 100
 # Shows the y-value at the given mark_x_cit
 # Set to None if not relevant
-mark_x_cit = 100
-
+mark_x_cit = 50
 # only papers/labels with at least min_x_cit citations/occurrences
 # in the plot of the distribution of papers/labels by citations/occurrences
 # Set to 0 if not relevant
@@ -35,22 +33,21 @@ min_x_set = 0
 # only papers/labels with at most man_x_cit citations/occurrences
 # in the plot of the distribution of papers/labels by citations/occurrences
 # Set to None if not relevant
-max_x_set = 300
+max_x_set = 500
 # Shows the y-value at the given mark_x_cit
 # Set to None if not relevant
-mark_x_set = 250
+mark_x_set = 100
+# Only papers from min_year
+min_year = 1970
 
 
 def compute_stats(A):
-    return A.shape[1], A.min(), A.max(), np.median(A, axis=1)[0,0], A.mean(), A.std()
+    return A.shape[1], A.min(), A.max(), np.median(A, axis=1)[0, 0], A.mean(), A.std()
 
 
 def plot(objects, dataset, x_dim, y_dim, x=None):
-    # y_pos = np.arange(len(objects.keys()))
     plt.bar(objects.keys(), objects.values(), align='center', alpha=0.5)
-    # plt.xticks(y_pos, objects.keys(), rotation='vertical')
     plt.ylabel(y_dim)
-    # plt.title('Papers by {}'.format(title))
     plt.xlabel(x_dim)
 
     # print the y value of bar at a given x
@@ -92,15 +89,15 @@ def from_to_key(objects, min_key, max_key=None):
         print("Error: max_key has to be greater than min_key. Dictionary unchanged")
         return objects
 
-    if  max_key == None and min_key <= 0:
+    if max_key == None and min_key <= 0:
         print("Warning: min_key lower or equal to 0 and no max_key has no effect."
-            + "Dictionary unchanged")
+              + "Dictionary unchanged")
         return objects
 
     if max_key != None:
-        return {x : objects[x] for x in objects if x >= min_key and x <= max_key}
+        return {x: objects[x] for x in objects if x >= min_key and x <= max_key}
 
-    return {x : objects[x] for x in objects if x >= min_key}
+    return {x: objects[x] for x in objects if x >= min_key}
 
 
 def generate_years_citations_set_cnts(papers, dataset):
@@ -111,7 +108,7 @@ def generate_years_citations_set_cnts(papers, dataset):
 
     for paper in papers:
         try:
-             years[paper["year"]] += 1
+            years[paper["year"]] += 1
         except KeyError:
             # MPD has no time information (no year)
             if "year" not in paper.keys() and dataset != "mpd":
@@ -190,7 +187,6 @@ def set_count(df):
 
 
 def set_path(ds):
-
     if ds == "dblp" or ds == "acm":
         p = '/data22/ivagliano/aminer/'
         p += ("dblp-ref/" if ds == "dblp" else "acm.txt")
@@ -212,8 +208,6 @@ path = set_path(dataset)
 
 if dataset == "dblp" or dataset == "acm" or dataset == "swp" or dataset == "mpd":
     if dataset != "swp" and dataset != "mpd":
-        # path = '/data22/ivagliano/aminer/'
-        # path += ("dblp-ref/" if dataset == "dblp" else "acm.txt")
         print("Loading {} dataset".format(dataset.upper()))
         papers = papers_from_files(path, dataset, n_jobs=1)
     elif dataset == "swp":
@@ -227,8 +221,8 @@ if dataset == "dblp" or dataset == "acm" or dataset == "swp" or dataset == "mpd"
     years, citations, set_cnts = generate_years_citations_set_cnts(papers, dataset)
 
     if dataset != "mpd":
-        # only papers from 1970 
-        years = from_to_key(years, 1970)
+        # only papers from min_year
+        years = from_to_key(years, min_year)
         years = collections.OrderedDict(sorted(years.items()))
         l = list(years.keys())
         print("First year {}, last year {}".format(l[0], l[-1]))
@@ -236,7 +230,7 @@ if dataset == "dblp" or dataset == "acm" or dataset == "swp" or dataset == "mpd"
 
         for key, value in years.items():
             cnt += value
-            if cnt/len(papers) >= 0.9:
+            if cnt / len(papers) >= 0.9:
                 print("90:10 ratio at year {}".format(key))
                 break
 
@@ -279,8 +273,6 @@ else:
     print("Unpacking {} data...".format(dataset))
     bags = Bags.load_tabcomma_format(path, unique=True)
 
-# only papers with at least 10 citations
-# citations = from_to_key(citations, 10)
 # only papers with min min_x_cit and max max_x_cit citations
 citations = from_to_key(citations, min_x_cit, max_x_cit)
 citations = collections.OrderedDict(sorted(citations.items()))
@@ -300,10 +292,8 @@ print("Plotting {} distribution by number of {} on file"
       .format("papers'" if x_dim == "Citations" else "labels'", x_dim.lower()))
 # show the y-value for the bar at x=mark_x_cit in the plot
 plot(citations, dataset, x_dim, y_dim, mark_x_cit)
-# show no y-value for any bar
-# plot(citations, dataset, x_dim)
 
-print("Generating references/labels/tracks distribution")
+print("Generating reference/label/track distribution")
 set_cnts = paper_by_n_citations(set_cnts)
 set_cnts = from_to_key(set_cnts, min_x_set, max_x_set)
 set_cnts = collections.OrderedDict(sorted(set_cnts.items()))
@@ -316,10 +306,8 @@ else:
     x_dim = "Labels"
 
 print("Plotting papers' distribution by number of their {} on file".format(x_dim.lower()))
-# show the y-value for the bar at x=50 in the plot
-# plot(citations, dataset, x_dim, 100)
 y_dim = "Papers" if dataset != "mpd" else "Playlists"
-# show no y-value for any bar
+# show the y-value for the bar at x=mark_x_set in the plot
 plot(set_cnts, dataset, x_dim, y_dim, mark_x_set)
 
 bags = bags.build_vocab(apply=True)
