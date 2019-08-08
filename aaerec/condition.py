@@ -179,15 +179,16 @@ class ConditionBase(ABC):
         return inputs
 
     @abstractmethod
-    def impose(self, inputs, encoded_condition):
+    def impose(self, inputs, encoded_condition, dim=None):
         """ Applies the condition, for instance by concatenation.
         Could also use multiplicative or additive conditioning.
         """
+        raise NotImplementedError
 
     def encode_impose(self, inputs, condition_input, dim=None):
         """ First encodes `condition_input`, then applies condition to `inputs`.
         """
-        return self.impose(inputs, self.encode(condition_input), dim)
+        return self.impose(inputs, self.encode(condition_input), dim=None)
     ###########################################################################
 
     ################################################
@@ -284,7 +285,7 @@ class ConditionalBiasing(ConditionBase):
     """
     A `ConditionBase` subclass to implement conditional biasing
     """
-    def impose(self, inputs, encoded_condition):
+    def impose(self, inputs, encoded_condition, dim=None):
         """ Applies condition by addition """
         return inputs + encoded_condition
 
@@ -297,7 +298,7 @@ class ConditionalScaling(ConditionBase):
     """
     A `ConditionBase` subclass to implement conditional scaling
     """
-    def impose(self, inputs, encoded_condition):
+    def impose(self, inputs, encoded_condition, dim=None):
         """ Applies condition by multiplication """
         return inputs * encoded_condition
 
@@ -312,7 +313,7 @@ class PretrainedWordEmbeddingCondition(ConcatenationBasedConditioning):
     def __init__(self, vectors, dim=1, use_cuda=torch.cuda.is_available(), **tfidf_params):
         self.vect = GensimEmbeddedVectorizer(vectors, **tfidf_params)
         self.dim = dim
-        self.use_cuda = use_cuda
+        self.device = torch.device("cuda") if use_cuda else torch.device("cpu")
 
     def fit(self, raw_inputs):
         self.vect.fit(raw_inputs)
@@ -326,10 +327,7 @@ class PretrainedWordEmbeddingCondition(ConcatenationBasedConditioning):
 
     def encode(self, inputs):
         # GensimEmbeddedVectorizer yields numpy array
-        out = torch.from_numpy(inputs).float()
-        if self.use_cuda:
-            out = out.cuda()
-        return out
+        return torch.as_tensor(inputs, dtype=torch.float32, device=self.device)
 
     def size_increment(self):
         # Return embedding dimension
@@ -398,7 +396,7 @@ class CategoricalCondition(ConcatenationBasedConditioning):
         self.embedding_on_gpu = embedding_on_gpu
 
         # We take care of vocab handling & padding ourselves
-        assert "padding_idx" not in embedding_params
+        assert "padding_idx" not in embedding_params, "Padding is fixed with token 0"
         self.embedding_params = embedding_params
 
 
@@ -407,8 +405,19 @@ class CategoricalCondition(ConcatenationBasedConditioning):
 
     def fit(self, raw_inputs):
         """ Learn a vocabulary """
-        flat_items = raw_inputs if self.reduce is None else it.chain.from_iterable(raw_inputs)
-        item_cnt = Counter(flat_items).most_common(self.vocab_size)
+        flat_items = raw_inputs if self.reduce is None else list(it.chain.from_iterable(raw_inputs))
+        if self.vocab_size is None:
+            # if vocab size is None, use all items
+            cutoff = len(flat_items)
+        if isinstance(self.vocab_size, float):
+            # if vocab size is float, interprete it as percentage of top items (authors)
+            cutoff = int(self.vocab_size * len(flat_items))
+        else:
+            # else use fixed vocab size or None, which is fine aswell
+            cutoff = int(self.vocab_size)
+        print("Using top {:.2f}% authors ({})".format(cutoff / len(flat_items) * 100, cutoff))
+
+        item_cnt = Counter(flat_items).most_common(cutoff)
         # index 0 is reserved for unk idx
         self.vocab = {value: idx + 1 for idx, (value, __) in enumerate(item_cnt)}
         num_embeddings = len(self.vocab) + 1
@@ -430,9 +439,9 @@ class CategoricalCondition(ConcatenationBasedConditioning):
         # Actually np.array is not needed,
         # else we would need to do the padding globally
         if self.reduce is None:
-            return [self.vocab.get(x, 0) for x in raw_inputs]
+            return [self.vocab.get(x, self.padding_idx) for x in raw_inputs]
         else:
-            return [[self.vocab.get(x, 0) for x in l] for l in raw_inputs]
+            return [[self.vocab.get(x, self.padding_idx) for x in l] for l in raw_inputs]
 
     def _pad_batch(self, batch_inputs):
         maxlen = max(len(l) for l in batch_inputs)
@@ -442,9 +451,7 @@ class CategoricalCondition(ConcatenationBasedConditioning):
         if self.reduce is not None:
             # inputs may have variable lengths, pad them
             inputs = self._pad_batch(inputs)
-        inputs = torch.LongTensor(inputs)
-        if self.embedding_on_gpu and self.use_cuda:
-            inputs = inputs.cuda()
+        inputs = torch.tensor(inputs, device=self.embedding.weight.device)
         h = self.embedding(inputs)
         if self.reduce is not None:
             # self.reduce in ['mean','sum','max']
@@ -529,7 +536,7 @@ class Condition(ConditionBase):
             return self.encoder(inputs)
         return inputs
 
-    def impose(self, inputs, encoded_condition):
+    def impose(self, inputs, encoded_condition, dim=None):
         if self.mode_ == "concat":
             out = torch.cat([inputs, encoded_condition], dim=self.dim)
         elif self.mode_ == "bias":

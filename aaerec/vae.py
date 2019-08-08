@@ -62,7 +62,8 @@ class VAE(nn.Module):
                  # dropout=(.2,.2),
                  conditions=None,
                  verbose=True,
-                 log_interval=1):
+                 log_interval=1,
+                 device=None):
 
         super(VAE, self).__init__()
 
@@ -97,17 +98,20 @@ class VAE(nn.Module):
 
         self.log_interval = log_interval
 
+        if device is not None:
+            self.device = device
+        elif torch.cuda.is_available():
+            self.device = torch.device('cude')
+        else:
+            self.device = torch.device('cpu')
+
     def encode(self, x):
         h1 = self.act(self.fc1(x))
         return self.fc21(h1), self.fc22(h1)
 
     def reparametrize(self, mu, logvar):
         std = logvar.mul(0.5).exp_()
-        if torch.cuda.is_available():
-            eps = torch.cuda.FloatTensor(std.size()).normal_()
-        else:
-            eps = torch.FloatTensor(std.size()).normal_()
-        eps = Variable(eps)
+        eps = torch.Tensor(std.size(), dtype=torch.float32, device=self.device).normal_()
         return eps.mul(std).add_(mu)
 
     def decode(self, z):
@@ -153,14 +157,14 @@ class VAE(nn.Module):
 
         if y is not None:
             raise ValueError("(Semi-)supervised usage not supported")
+
         # Transform to Torch (Cuda) Variable, shift batch to GPU
-        X = Variable(torch.FloatTensor(X))
-        if torch.cuda.is_available():
-            X = X.cuda()
+        if sp.issparse(X):
+            X = X.toarray()
+        X = torch.asarray(X, dtype=torch.float32, device=self.device)
 
         # Make sure we are in training mode and zero leftover gradients
         self.train()
-        train_loss = 0
         self.optimizer.zero_grad()
         # Build the model on the concatenated data, compute BCE without concatenation
         if use_condition:
@@ -172,12 +176,12 @@ class VAE(nn.Module):
         if use_condition:
             self.conditions.zero_grad()
         loss.backward()
-        train_loss += loss.item()
         self.optimizer.step()
         if use_condition:
             self.conditions.step()
         if self.verbose:
-            log_losses(train_loss / len(X))
+            # Log batch loss
+            log_losses(loss.item() / len(X))
         return self
 
     def fit(self, X, y=None, condition_data=None):
@@ -208,7 +212,7 @@ class VAE(nn.Module):
 
             for start in range(0, X.shape[0], self.batch_size):
                 end = start + self.batch_size
-                X_batch = X_shuf[start:end].toarray()
+                X_batch = X_shuf[start:end]
                 # condition may be None
                 if use_condition:
                     # c_batch = condition_shuf[start:(start+self.batch_size)]
@@ -235,27 +239,26 @@ class VAE(nn.Module):
         if self.conditions:
             self.conditions.eval()
         pred = []
-        for start in range(0, X.shape[0], self.batch_size):
-            # batched predictions, yet inclusive
-            end = start + self.batch_size
-            X_batch = X[start:end].toarray()
-            if sp.issparse(X_batch):
-                X_batch = X_batch.toarray()
-            X_batch = Variable(torch.FloatTensor(X_batch), volatile=True)
-            if torch.cuda.is_available():
-                X_batch = X_batch.cuda()
-
-            if use_condition:
-                c_batch = [c[start:end] for c in condition_data]
-
+        with torch.no_grad():
             test_loss = 0
+            for start in range(0, X.shape[0], self.batch_size):
+                # batched predictions, yet inclusive
+                end = start + self.batch_size
+                X_batch = X[start:end]
+                if sp.issparse(X_batch):
+                    X_batch = X_batch.toarray()
+                # as_tensor does not make a copy of X_batch
+                X_batch = torch.as_tensor(X_batch, dtype=torch.float32, device=self.device)
 
-            if use_condition:
-                recon_batch, mu, logvar = self(X_batch, c_batch)
-            else:
-                recon_batch, mu, logvar = self(X_batch)
-            test_loss += self.loss_function(recon_batch, X_batch, mu, logvar).item()
-            pred.append(recon_batch.data.cpu().numpy())
+                if use_condition:
+                    c_batch = [c[start:end] for c in condition_data]
+
+                if use_condition:
+                    recon_batch, mu, logvar = self(X_batch, c_batch)
+                else:
+                    recon_batch, mu, logvar = self(X_batch)
+                test_loss += self.loss_function(recon_batch, X_batch, mu, logvar).item()
+                pred.append(recon_batch.data.cpu().numpy())
 
         test_loss /= len(X_batch)
         print('====> Test set loss: {:.4f}'.format(test_loss))
