@@ -15,18 +15,18 @@ matplotlib.use('agg')
 
 
 # Possible values: pubmed, dblp, acm, swp, rcv, econbiz, mpd
-dataset = "pubmed"
+dataset = "mpd"
 # only papers/labels with at least min_x_cit citations/occurrences
 # in the plot of the distribution of papers/labels by citations/occurrences
 # Set to 0 if not relevant
-min_x_cit = 10
+min_x_cit = 1
 # only papers/labels with at most man_x_cit citations/occurrences
 # in the plot of the distribution of papers/labels by citations/occurrences
 # Set to None if not relevant
-max_x_cit = 100
+max_x_cit = 500
 # Shows the y-value at the given mark_x_cit
 # Set to None if not relevant
-mark_x_cit = 50
+mark_x_cit = 100
 
 # only papers/labels with at least min_x_cit citations/occurrences
 # in the plot of the distribution of papers/labels by citations/occurrences
@@ -35,10 +35,10 @@ min_x_set = 0
 # only papers/labels with at most man_x_cit citations/occurrences
 # in the plot of the distribution of papers/labels by citations/occurrences
 # Set to None if not relevant
-max_x_set = 500
+max_x_set = 300
 # Shows the y-value at the given mark_x_cit
 # Set to None if not relevant
-mark_x_set = 100
+mark_x_set = 250
 
 
 def compute_stats(A):
@@ -55,7 +55,7 @@ def plot(objects, dataset, x_dim, y_dim, x=None):
 
     # print the y value of bar at a given x
     if x != None:
-        for x_i, y_i in enumerate(objects.values()):
+        for x_i, y_i in objects.items():
             if x_i == x:
                 print("For x={} y={}".format(x, y_i))
                 plt.text(x_i, y_i, str(y_i) + "\n", ha='center')
@@ -126,7 +126,10 @@ def generate_years_citations_set_cnts(papers, dataset):
                 citations[paper["n_citation"]] += 1
             except KeyError:
                 citations[paper["n_citation"]] = 1
-            set_cnts[paper["id"]] = len(paper["references"])
+            try:
+                set_cnts[paper["id"]] = len(paper["references"])
+            except KeyError:
+                set_cnts[paper["id"]] = 0
         elif dataset == "acm":
             # For ACM we need to compute the citations for each paper
             if "references" not in paper.keys():
@@ -136,7 +139,10 @@ def generate_years_citations_set_cnts(papers, dataset):
                     citations[ref] += 1
                 except KeyError:
                     citations[ref] = 1
-            set_cnts[paper["id"]] = len(paper["references"])
+            try:
+                set_cnts[paper["id"]] = len(paper["references"])
+            except KeyError:
+                set_cnts[paper["id"]] = 0
         elif dataset == "swp":
             # For SWP we need to compute the occurrences for each subject
             if "subjects" not in paper.keys():
@@ -235,7 +241,7 @@ if dataset == "dblp" or dataset == "acm" or dataset == "swp" or dataset == "mpd"
                 break
 
         print("Plotting paper distribution by year on file")
-        plot(years, dataset, "year")
+        plot(years, dataset, "Year", "Papers")
 
     if dataset == "acm" or dataset == "swp" or dataset == "mpd":
         if dataset == "acm":
@@ -297,8 +303,7 @@ plot(citations, dataset, x_dim, y_dim, mark_x_cit)
 # show no y-value for any bar
 # plot(citations, dataset, x_dim)
 
-print("Generating {} distribution"
-      .format("references" if dataset == "pubmed" else "label-assignments'"))
+print("Generating references/labels/tracks distribution")
 set_cnts = paper_by_n_citations(set_cnts)
 set_cnts = from_to_key(set_cnts, min_x_set, max_x_set)
 set_cnts = collections.OrderedDict(sorted(set_cnts.items()))
@@ -313,8 +318,9 @@ else:
 print("Plotting papers' distribution by number of their {} on file".format(x_dim.lower()))
 # show the y-value for the bar at x=50 in the plot
 # plot(citations, dataset, x_dim, 100)
+y_dim = "Papers" if dataset != "mpd" else "Playlists"
 # show no y-value for any bar
-plot(set_cnts, dataset, x_dim, "Papers", mark_x_set)
+plot(set_cnts, dataset, x_dim, y_dim, mark_x_set)
 
 bags = bags.build_vocab(apply=True)
 
