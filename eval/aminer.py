@@ -40,9 +40,9 @@ print("Done")
 
 ae_params = {
     'n_code': 50,
-    'n_epochs': 1,
+    'n_epochs': 10,
 #    'embedding': VECTORS,
-    'batch_size': 500,
+    'batch_size': 2000,
     'n_hidden': 100,
     'normalize_inputs': True,
 }
@@ -78,7 +78,8 @@ RECOMMENDERS = [
 CONDITIONS = ConditionList([
     ('title', PretrainedWordEmbeddingCondition(VECTORS)),
     ('venue', PretrainedWordEmbeddingCondition(VECTORS)),
-    ('author', CategoricalCondition(embedding_dim=32, reduce="sum"))
+    ('author', CategoricalCondition(embedding_dim=32, reduce="sum", vocab_size=0.01,
+                                    sparse=True, embedding_on_gpu=True))
 ])
 
 
@@ -253,7 +254,6 @@ def main(year, dataset, min_count=None, outfile=None):
 
     evaluation = Evaluation(bags, year, logfile=outfile)
     evaluation.setup(min_count=min_count, min_elements=2)
-    print("Loading pre-trained embedding", W2V_PATH)
 
     # with open(outfile, 'a') as fh:
     #     print("~ Partial List", "~" * 42, file=fh)

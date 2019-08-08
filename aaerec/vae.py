@@ -101,7 +101,7 @@ class VAE(nn.Module):
         if device is not None:
             self.device = device
         elif torch.cuda.is_available():
-            self.device = torch.device('cude')
+            self.device = torch.device('cuda')
         else:
             self.device = torch.device('cpu')
 
@@ -111,7 +111,7 @@ class VAE(nn.Module):
 
     def reparametrize(self, mu, logvar):
         std = logvar.mul(0.5).exp_()
-        eps = torch.Tensor(std.size(), dtype=torch.float32, device=self.device).normal_()
+        eps = torch.randn_like(std, dtype=torch.float32, device=self.device)
         return eps.mul(std).add_(mu)
 
     def decode(self, z):
@@ -161,7 +161,7 @@ class VAE(nn.Module):
         # Transform to Torch (Cuda) Variable, shift batch to GPU
         if sp.issparse(X):
             X = X.toarray()
-        X = torch.asarray(X, dtype=torch.float32, device=self.device)
+        X = torch.as_tensor(X, dtype=torch.float32, device=self.device)
 
         # Make sure we are in training mode and zero leftover gradients
         self.train()
