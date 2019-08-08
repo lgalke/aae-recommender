@@ -409,7 +409,7 @@ class CategoricalCondition(ConcatenationBasedConditioning):
         if self.vocab_size is None:
             # if vocab size is None, use all items
             cutoff = len(flat_items)
-        if isinstance(self.vocab_size, float):
+        elif isinstance(self.vocab_size, float):
             # if vocab size is float, interprete it as percentage of top items (authors)
             cutoff = int(self.vocab_size * len(flat_items))
         else:

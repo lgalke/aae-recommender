@@ -260,8 +260,8 @@ class VAE(nn.Module):
                 test_loss += self.loss_function(recon_batch, X_batch, mu, logvar).item()
                 pred.append(recon_batch.data.cpu().numpy())
 
-        test_loss /= len(X_batch)
-        print('====> Test set loss: {:.4f}'.format(test_loss))
+            test_loss /= X.shape[0]
+            print('====> Test set loss: {:.4f}'.format(test_loss))
 
         return np.vstack(pred)
 
