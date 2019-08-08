@@ -23,7 +23,7 @@ from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, Ca
 
 # Should work on kdsrv03
 DATA_PATH = "/data22/ivagliano/aminer/"
-DEBUG_LIMIT = 10000
+DEBUG_LIMIT = None
 # Use only this many most frequent items
 N_ITEMS = 50000
 # Use all present items
@@ -40,7 +40,7 @@ print("Done")
 
 ae_params = {
     'n_code': 50,
-    'n_epochs': 10,
+    'n_epochs': 20,
 #    'embedding': VECTORS,
     'batch_size': 2000,
     'n_hidden': 100,
@@ -78,7 +78,7 @@ RECOMMENDERS = [
 CONDITIONS = ConditionList([
     ('title', PretrainedWordEmbeddingCondition(VECTORS)),
     ('venue', PretrainedWordEmbeddingCondition(VECTORS)),
-    ('author', CategoricalCondition(embedding_dim=32, reduce="sum", vocab_size=0.01,
+    ('author', CategoricalCondition(embedding_dim=32, reduce="sum", # vocab_size=0.01,
                                     sparse=True, embedding_on_gpu=True))
 ])
 
@@ -235,19 +235,6 @@ def main(year, dataset, min_count=None, outfile=None):
     bags_of_papers, ids, side_info = unpack_papers(papers)
     del papers
     bags = Bags(bags_of_papers, ids, side_info)
-
-    def peek(dictlike, n=10):
-        for i, (k, v) in enumerate(dictlike.items()):
-            print(k, "->", v)
-            if i >= 10:
-                break
-
-    print("Ten titles")
-    peek(side_info['title'])
-    print("Ten venues")
-    peek(side_info['venue'])
-    print("Ten author lists")
-    peek(side_info['author'])
 
     log("Whole dataset:", logfile=outfile)
     log(bags, logfile=outfile)
