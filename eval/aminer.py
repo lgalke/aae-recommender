@@ -82,22 +82,21 @@ CONDITIONS = ConditionList([
                                     sparse=True, embedding_on_gpu=True))
 ])
 
-
 CONDITIONED_MODELS = [
-    # AAERecommender(adversarial=False,
-    #                conditions=CONDITIONS,
-    #                lr=0.001,
-    #                **ae_params),
-    # AAERecommender(adversarial=True,
-    #                conditions=CONDITIONS,
-    #                gen_lr=0.001,
-    #                reg_lr=0.001,
-    #                **ae_params),
-    # DecodingRecommender(CONDITIONS,
-    #                     n_epochs=100, batch_size=100, optimizer='adam',
-    #                     n_hidden=100, lr=0.001, verbose=True),
+    AAERecommender(adversarial=False,
+                   conditions=CONDITIONS,
+                   lr=0.001,
+                   **ae_params),
+    AAERecommender(adversarial=True,
+                   conditions=CONDITIONS,
+                   gen_lr=0.001,
+                   reg_lr=0.001,
+                    **ae_params),
+    DecodingRecommender(CONDITIONS,
+                        n_epochs=100, batch_size=100, optimizer='adam',
+                        n_hidden=100, lr=0.001, verbose=True),
     VAERecommender(conditions=CONDITIONS, **ae_params)
-    # DAERecommender(conditions=CONDITIONS, **ae_params)
+    DAERecommender(conditions=CONDITIONS, **ae_params)
 ]
 
 
