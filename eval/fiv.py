@@ -27,7 +27,9 @@ METRICS = ['mrr', 'map']
 
 W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
 W2V_IS_BINARY = True
+print("Loading pre-trained embedding", W2V_PATH)
 VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
+print("Done")
 
 ae_params = {
     'n_code': 50,
@@ -66,24 +68,25 @@ RECOMMENDERS = [
 
 CONDITIONS = ConditionList([
     ('title', PretrainedWordEmbeddingCondition(VECTORS)),
-    ('author', CategoricalCondition(embedding_dim=32, reduce="sum"))
+    ('author', CategoricalCondition(embedding_dim=32, reduce="sum",
+                                    sparse=True, embedding_on_gpu=True))
 ])
 
 CONDITIONED_MODELS = [
-    AAERecommender(adversarial=False,
-                  conditions=CONDITIONS,
-                  lr=0.001,
-                  **ae_params),
-    AAERecommender(adversarial=True,
-                  conditions=CONDITIONS,
-                  gen_lr=0.001,
-                  reg_lr=0.001,
-                  **ae_params),
-    DecodingRecommender(CONDITIONS,
-                       n_epochs=20, batch_size=100, optimizer='adam',
-                       n_hidden=100, lr=0.001, verbose=True),
+    # AAERecommender(adversarial=False,
+    #               conditions=CONDITIONS,
+    #               lr=0.001,
+    #               **ae_params),
+    # AAERecommender(adversarial=True,
+    #               conditions=CONDITIONS,
+    #               gen_lr=0.001,
+    #               reg_lr=0.001,
+    #               **ae_params),
+    # DecodingRecommender(CONDITIONS,
+    #                    n_epochs=20, batch_size=100, optimizer='adam',
+    #                    n_hidden=100, lr=0.001, verbose=True),
     VAERecommender(conditions=CONDITIONS, **vae_params),
-    DAERecommender(conditions=CONDITIONS, **ae_params)
+    # DAERecommender(conditions=CONDITIONS, **ae_params)
 ]
 
 TITLE_ENHANCED = [
@@ -257,7 +260,6 @@ def main(year, min_count=None, outfile=None):
 
     evaluation = Evaluation(bags, year, logfile=outfile)
     evaluation.setup(min_count=min_count, min_elements=2)
-    print("Loading pre-trained embedding", W2V_PATH)
 
     # with open(outfile, 'a') as fh:
     #     print("~ Partial List", "~" * 42, file=fh)
