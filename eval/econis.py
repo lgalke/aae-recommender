@@ -151,7 +151,7 @@ def unpack_papers_conditions(papers):
         # Put all subjects assigned to the paper in here
         try:
             # Subject may be missing
-            bags_of_labels.append(parse_en_labels(paper["subjects"]))
+            bags_of_labels.append(parse_en_labels(paper["subject_stw"]))
         except KeyError:
             bags_of_labels.append([])
 
