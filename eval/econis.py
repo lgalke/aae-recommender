@@ -1,5 +1,5 @@
 """
-Executable to run AAE on the IREON dataset
+Executable to run AAE on the Econis dataset
 """
 import argparse
 import json
@@ -32,7 +32,7 @@ ae_params = {
     'n_code': 50,
     'n_epochs': 100,
     # 'embedding': VECTORS,
-    'batch_size': 100,
+    'batch_size': 1000,
     'n_hidden': 100,
     'normalize_inputs': True,
 }
@@ -42,7 +42,7 @@ vae_params = {
     # VAE results get worse with more epochs in preliminary optimization 
     #(Pumed with threshold 50)
     'n_epochs': 50,
-    'batch_size': 100,
+    'batch_size': 1000,
     'n_hidden': 100,
     'normalize_inputs': True,
 }
@@ -65,7 +65,8 @@ RECOMMENDERS = [
 
 CONDITIONS = ConditionList([
     ('title', PretrainedWordEmbeddingCondition(VECTORS)),
-    ('author', CategoricalCondition(embedding_dim=32, reduce="sum"))
+    ('author', CategoricalCondition(embedding_dim=32, reduce="sum",
+                                    sparse=True, embedding_on_gpu=True))
 ])
 
 CONDITIONED_MODELS = [
@@ -79,7 +80,7 @@ CONDITIONED_MODELS = [
                   reg_lr=0.001,
                   **ae_params),
     DecodingRecommender(CONDITIONS,
-                       n_epochs=100, batch_size=100, optimizer='adam',
+                       n_epochs=100, batch_size=1000, optimizer='adam',
                        n_hidden=100, lr=0.001, verbose=True),
     VAERecommender(conditions=CONDITIONS, **vae_params),
     DAERecommender(conditions=CONDITIONS, **ae_params)
