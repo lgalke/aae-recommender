@@ -24,13 +24,10 @@ from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, Ca
 # Should work on kdsrv03
 DATA_PATH = "/data22/ivagliano/aminer/"
 DEBUG_LIMIT = None
-# Use only this many most frequent items
-N_ITEMS = 50000
-# Use all present items
-# N_ITEMS = None
 # authors is an array of strings, n_citation is an integer: do they make sense used in this way?
 PAPER_INFO = ['title', 'venue', 'author']
-METRICS = ['mrr', 'map']
+# TODO Add it as parameters of evaluate() to make it effective (see mpd.py)
+# METRICS = ['mrr', 'map']
 
 W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
 W2V_IS_BINARY = True
@@ -42,7 +39,7 @@ ae_params = {
     'n_code': 50,
     'n_epochs': 20,
 #    'embedding': VECTORS,
-    'batch_size': 2000,
+    'batch_size': 200,
     'n_hidden': 100,
     'normalize_inputs': True,
 }
