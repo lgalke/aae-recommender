@@ -60,7 +60,7 @@ VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 ae_params = {
     'n_code': 50,
     'n_epochs': 100,
-    'batch_size': 100,
+    'batch_size': 500,
     'n_hidden': 100,
     'normalize_inputs': True,
 }
@@ -70,7 +70,7 @@ vae_params = {
     # VAE results get worse with more epochs in preliminary optimization 
     #(Pumed with threshold 50)
     'n_epochs': 50,
-    'batch_size': 100,
+    'batch_size': 500,
     'n_hidden': 100,
     'normalize_inputs': True,
 }
@@ -87,8 +87,10 @@ vae_params = {
 CONDITIONS = ConditionList([
     ('title', PretrainedWordEmbeddingCondition(VECTORS)),
     ('journal', CategoricalCondition(embedding_dim=32, reduce=None)),
-    ('author', CategoricalCondition(embedding_dim=32, reduce="sum")),
-    ('mesh', CategoricalCondition(embedding_dim=32, reduce="sum"))
+    ('author', CategoricalCondition(embedding_dim=32, reduce="sum",
+                                    sparse=True, embedding_on_gpu=True)),
+    ('mesh', CategoricalCondition(embedding_dim=32, reduce="sum"
+                                  sparse=True, embedding_on_gpu=True))
 ])
 
 CONDITIONED_MODELS = [
