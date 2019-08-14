@@ -89,7 +89,7 @@ CONDITIONS = ConditionList([
     ('journal', CategoricalCondition(embedding_dim=32, reduce=None)),
     ('author', CategoricalCondition(embedding_dim=32, reduce="sum",
                                     sparse=True, embedding_on_gpu=True)),
-    ('mesh', CategoricalCondition(embedding_dim=32, reduce="sum"
+    ('mesh', CategoricalCondition(embedding_dim=32, reduce="sum",
                                   sparse=True, embedding_on_gpu=True))
 ])
 
