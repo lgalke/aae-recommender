@@ -31,6 +31,12 @@ PARSER.add_argument('-dr', '--drop', type=str,
 
 ARGS = PARSER.parse_args()
 
+# Drop could also be a callable according to evaluation.py but not managed as input parameter
+try:
+    drop = int(ARGS.drop)
+except ValueError:
+    drop = float(ARGS.drop)
+
 mtdt_dic = OrderedDict()
 
 
@@ -48,11 +54,6 @@ mtdt_dic["mesh"] = {"owner_id": "document", "fields": ["descriptor"], "target_na
 
 DATASET = Bags.load_tabcomma_format(ARGS.dataset, unique=True, owner_str="pmId",
                                     set_str="cited", meta_data_dic=mtdt_dic)
-# Drop could also be a callable according to evaluation.py but not managed as input parameter
-try:
-    drop = int(ARGS.drop)
-except ValueError:
-    drop = float(ARGS.drop)
 
 EVAL = Evaluation(DATASET, ARGS.year, logfile=ARGS.outfile)
 EVAL.setup(min_count=ARGS.min_count, min_elements=2, drop=drop)
