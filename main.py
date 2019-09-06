@@ -25,7 +25,6 @@ PARSER.add_argument('year', type=int,
 PARSER.add_argument('-m', '--min-count', type=int,
                     help='Pruning parameter', default=50)
 PARSER.add_argument('-o', '--outfile', type=str, default=None)
-
 PARSER.add_argument('-dr', '--drop', type=str,
                     help='Drop parameter', default="1")
 

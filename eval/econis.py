@@ -176,7 +176,7 @@ def unpack_papers_conditions(papers):
     return bags_of_labels, ids, {"title": side_info, "year": years, "author": authors}
 
 
-def main(year, min_count=None, outfile=None):
+def main(year, min_count=None, outfile=None, drop=1):
     """ Main function for training and evaluating AAE methods on IREON data """
     print("Loading data from", DATA_PATH)
     papers = load(DATA_PATH)
@@ -190,7 +190,7 @@ def main(year, min_count=None, outfile=None):
     log(bags, logfile=outfile)
 
     evaluation = Evaluation(bags, year, logfile=outfile)
-    evaluation.setup(min_count=min_count, min_elements=2)
+    evaluation.setup(min_count=min_count, min_elements=2, drop=drop)
 
     # with open(outfile, 'a') as fh:
     #     print("~ Partial List", "~" * 42, file=fh)
@@ -215,5 +215,14 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--outfile',
                         help="File to store the results.",
                         type=str, default=None)
+    parser.add_argument('-dr', '--drop', type=str,
+                        help='Drop parameter', default="1")
     args = parser.parse_args()
-    main(year=args.year, min_count=args.min_count, outfile=args.outfile)
+
+    # Drop could also be a callable according to evaluation.py but not managed as input parameter
+    try:
+        drop = int(args.drop)
+    except ValueError:
+        drop = float(args.drop)
+
+    main(year=args.year, min_count=args.min_count, outfile=args.outfile, drop=drop)
