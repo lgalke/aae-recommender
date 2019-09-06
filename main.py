@@ -1,4 +1,8 @@
 import argparse
+import numbers
+import os
+from collections import OrderedDict
+
 from aaerec.datasets import Bags
 from aaerec.evaluation import Evaluation
 from aaerec.aae import AAERecommender, DecodingRecommender
@@ -22,10 +26,11 @@ PARSER.add_argument('-m', '--min-count', type=int,
                     help='Pruning parameter', default=50)
 PARSER.add_argument('-o', '--outfile', type=str, default=None)
 
+PARSER.add_argument('-dr', '--drop', type=str,
+                    help='Drop parameter', default="1")
+
 ARGS = PARSER.parse_args()
 
-import os
-from collections import OrderedDict
 mtdt_dic = OrderedDict()
 
 
@@ -41,11 +46,16 @@ mtdt_dic["mesh"] = {"owner_id": "document", "fields": ["descriptor"], "target_na
                                          "mesh.csv")}
 
 
-DATASET = Bags.load_tabcomma_format(ARGS.dataset, unique=True,owner_str="pmId",set_str="cited", meta_data_dic=mtdt_dic)
-
+DATASET = Bags.load_tabcomma_format(ARGS.dataset, unique=True, owner_str="pmId",
+                                    set_str="cited", meta_data_dic=mtdt_dic)
+# Drop could also be a callable according to evaluation.py but not managed as input parameter
+try:
+    drop = int(ARGS.drop)
+except ValueError:
+    drop = float(ARGS.drop)
 
 EVAL = Evaluation(DATASET, ARGS.year, logfile=ARGS.outfile)
-EVAL.setup(min_count=ARGS.min_count, min_elements=2)
+EVAL.setup(min_count=ARGS.min_count, min_elements=2, drop=drop)
 
 print("Loading pre-trained embedding", W2V_PATH)
 VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
