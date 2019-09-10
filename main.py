@@ -47,17 +47,17 @@ except ValueError:
 # fields: list of column names in table
 # target names: key for these data in the owner_attributes dictionary
 # path: absolute path to the csv file
-mtdt_dic = OrderedDict()
-mtdt_dic["author"] = {"owner_id": "pmId", "fields": ["name"],"target_names": ["author"],
-                      "path": os.path.join("/data22/ggerstenkorn/citation_data_preprocessing/final_data/", "author.csv")}
-mtdt_dic["mesh"] = {"owner_id": "document", "fields": ["descriptor"], "target_names": ["mesh"],
-                    "path": os.path.join("/data22/ggerstenkorn/citation_data_preprocessing/final_data/", "mesh.csv")}
+# mtdt_dic = OrderedDict()
+# mtdt_dic["author"] = {"owner_id": "pmId", "fields": ["name"],"target_names": ["author"],
+#                       "path": os.path.join("/data22/ggerstenkorn/citation_data_preprocessing/final_data/", "author.csv")}
+# mtdt_dic["mesh"] = {"owner_id": "document", "fields": ["descriptor"], "target_names": ["mesh"],
+#                     "path": os.path.join("/data22/ggerstenkorn/citation_data_preprocessing/final_data/", "mesh.csv")}
 
 # With no metadata or just titles
-# DATASET = Bags.load_tabcomma_format(ARGS.dataset, unique=True)
+DATASET = Bags.load_tabcomma_format(ARGS.dataset, unique=True)
 # With more metadata for PubMed (generic conditions)
-DATASET = Bags.load_tabcomma_format(ARGS.dataset, unique=True, owner_str="pmId",
-                                    set_str="cited", meta_data_dic=mtdt_dic)
+# DATASET = Bags.load_tabcomma_format(ARGS.dataset, unique=True, owner_str="pmId",
+#                                     set_str="cited", meta_data_dic=mtdt_dic)
 
 EVAL = Evaluation(DATASET, ARGS.year, logfile=ARGS.outfile)
 EVAL.setup(min_count=ARGS.min_count, min_elements=2, drop=drop)
@@ -86,37 +86,37 @@ vae_params = {
 
 # Models without using no metadata
 
-# BASELINES = [
-#     # RandomBaseline(),
-#     # MostPopular(),
-#     Countbased(),
-#     SVDRecommender(100, use_title=False),
-# ]
+BASELINES = [
+    # RandomBaseline(),
+    # MostPopular(),
+    Countbased(),
+    SVDRecommender(100, use_title=False)
+]
 
-# RECOMMENDERS = [
-    # AAERecommender(adversarial=False, lr=ARGS.lr, **ae_params),
-    # AAERecommender(gen_lr=ARGS.lr, reg_lr=ARGS.lr, **ae_params),
-    # VAERecommender(conditions=None, **vae_params),
-    # DAERecommender(conditions=None, **ae_params)
-# ]
+RECOMMENDERS = [
+    AAERecommender(adversarial=False, lr=0.001, **ae_params),
+    AAERecommender(gen_lr=0.001, reg_lr=0.001, **ae_params),
+    VAERecommender(conditions=None, **vae_params),
+    DAERecommender(conditions=None, **ae_params)
+]
 
 # Metadata to use (apart for SVD, whichc uses only titles)
 CONDITIONS = ConditionList([
-    ('title', PretrainedWordEmbeddingCondition(VECTORS)),
-    ('journal', CategoricalCondition(embedding_dim=32, reduce=None)),
-    ('author', CategoricalCondition(embedding_dim=32, reduce="sum",
-                                    sparse=True, embedding_on_gpu=True)),
-    ('mesh', CategoricalCondition(embedding_dim=32, reduce="sum",
-                                  sparse=True, embedding_on_gpu=True))
+    ('title', PretrainedWordEmbeddingCondition(VECTORS)) #,
+#     ('journal', CategoricalCondition(embedding_dim=32, reduce=None)),
+#     ('author', CategoricalCondition(embedding_dim=32, reduce="sum",
+#                                     sparse=True, embedding_on_gpu=True)),
+#     ('mesh', CategoricalCondition(embedding_dim=32, reduce="sum",
+#                                   sparse=True, embedding_on_gpu=True))
 ])
 
 # Models using the metadata set in CONDITIONS
 CONDITIONED_MODELS = [
     # TODO SVD can use only titles not generic conditions
-    # SVDRecommender(1000, use_title=True),
+    SVDRecommender(1000, use_title=True),
     AAERecommender(adversarial=False, conditions=CONDITIONS, **ae_params),
     AAERecommender(adversarial=True, conditions=CONDITIONS, **ae_params),
-    DecodingRecommender(conditions=CONDITIONS, n_epochs=100, batch_size=100,
+    DecodingRecommender(conditions=CONDITIONS, n_epochs=100, batch_size=500,
                            optimizer='adam',n_hidden=100, lr=0.001, verbose=True),
     VAERecommender(conditions=CONDITIONS, **vae_params),
     DAERecommender(conditions=CONDITIONS, **ae_params)
@@ -124,9 +124,9 @@ CONDITIONED_MODELS = [
 
 
 # Use only partial citations/labels list (no additional metadata)
-# with open(ARGS.outfile, 'a') as fh:
-#     print("~ Partial List", "~" * 42, file=fh)
-# EVAL(BASELINES + RECOMMENDERS)
+with open(ARGS.outfile, 'a') as fh:
+    print("~ Partial List", "~" * 42, file=fh)
+EVAL(BASELINES + RECOMMENDERS)
 # Use only additional metadata (as defined in CONDITIONS for all models but SVD, which uses only titles)
 with open(ARGS.outfile, 'a') as fh:
     print("~ Conditioned Models", "~" * 42, file=fh)
