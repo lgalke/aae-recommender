@@ -35,7 +35,7 @@ ae_params = {
     'n_code': 50,
     'n_epochs': 20,
     # 'embedding': VECTORS,
-    'batch_size': 100,
+    'batch_size': 500,
     'n_hidden': 100,
     'normalize_inputs': True,
 }
@@ -45,7 +45,7 @@ vae_params = {
     # VAE results get worse with more epochs in preliminary optimization 
     #(Pumed with threshold 50)
     'n_epochs': 50,
-    'batch_size': 100,
+    'batch_size': 500,
     'n_hidden': 100,
     'normalize_inputs': True,
 }
@@ -73,20 +73,20 @@ CONDITIONS = ConditionList([
 ])
 
 CONDITIONED_MODELS = [
-    # AAERecommender(adversarial=False,
-    #               conditions=CONDITIONS,
-    #               lr=0.001,
-    #               **ae_params),
-    # AAERecommender(adversarial=True,
-    #               conditions=CONDITIONS,
-    #               gen_lr=0.001,
-    #               reg_lr=0.001,
-    #               **ae_params),
-    # DecodingRecommender(CONDITIONS,
-    #                    n_epochs=20, batch_size=100, optimizer='adam',
-    #                    n_hidden=100, lr=0.001, verbose=True),
+    AAERecommender(adversarial=False,
+                  conditions=CONDITIONS,
+                  lr=0.001,
+                  **ae_params),
+    AAERecommender(adversarial=True,
+                  conditions=CONDITIONS,
+                  gen_lr=0.001,
+                  reg_lr=0.001,
+                  **ae_params),
+    DecodingRecommender(CONDITIONS,
+                       n_epochs=20, batch_size=500, optimizer='adam',
+                        n_hidden=100, lr=0.001, verbose=True),
     VAERecommender(conditions=CONDITIONS, **vae_params),
-    # DAERecommender(conditions=CONDITIONS, **ae_params)
+    DAERecommender(conditions=CONDITIONS, **ae_params)
 ]
 
 TITLE_ENHANCED = [
@@ -237,7 +237,7 @@ def unpack_papers(papers):
     return bags_of_labels, ids, {"title": side_info, "year": years}
 
 
-def main(year, min_count=None, outfile=None):
+def main(year, min_count=None, outfile=None, drop=1):
     """ Main function for training and evaluating AAE methods on IREON data """
     if (CLEAN == True):
         print("Loading data from", DATA_PATH)
@@ -259,7 +259,7 @@ def main(year, min_count=None, outfile=None):
     log(bags, logfile=outfile)
 
     evaluation = Evaluation(bags, year, logfile=outfile)
-    evaluation.setup(min_count=min_count, min_elements=2)
+    evaluation.setup(min_count=min_count, min_elements=2, drop=drop)
 
     # with open(outfile, 'a') as fh:
     #     print("~ Partial List", "~" * 42, file=fh)
@@ -284,5 +284,14 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--outfile',
                         help="File to store the results.",
                         type=str, default=None)
+    parser.add_argument('-dr', '--drop', type=str,
+                        help='Drop parameter', default="1")
     args = parser.parse_args()
-    main(year=args.year, min_count=args.min_count, outfile=args.outfile)
+
+    # Drop could also be a callable according to evaluation.py but not managed as input parameter
+    try:
+        drop = int(args.drop)
+    except ValueError:
+        drop = float(args.drop)
+
+    main(year=args.year, min_count=args.min_count, outfile=args.outfile, drop=drop)
