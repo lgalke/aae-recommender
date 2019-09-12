@@ -70,6 +70,8 @@ CONDITIONS = ConditionList([
 ])
 
 CONDITIONED_MODELS = [
+    # TODO SVD can use only titles not generic conditions
+    # SVDRecommender(1000, use_title=True),
     AAERecommender(adversarial=False,
                   conditions=CONDITIONS,
                   lr=0.001,
@@ -84,18 +86,6 @@ CONDITIONED_MODELS = [
                        n_hidden=100, lr=0.001, verbose=True),
     VAERecommender(conditions=CONDITIONS, **vae_params),
     DAERecommender(conditions=CONDITIONS, **ae_params)
-]
-
-TITLE_ENHANCED = [
-    SVDRecommender(1000, use_title=True),
-    # DecodingRecommender(n_epochs=100, batch_size=100, optimizer='adam',
-    #                     n_hidden=100, embedding=VECTORS,
-    #                     lr=0.001, verbose=True),
-    # AAERecommender(adversarial=False, use_title=True, lr=0.001,
-    #                **ae_params),
-    # AAERecommender(adversarial=True, use_title=True,
-    #                prior='gauss', gen_lr=0.001, reg_lr=0.001,
-    #                **ae_params),
 ]
 
 
@@ -192,18 +182,16 @@ def main(year, min_count=None, outfile=None, drop=1):
     evaluation = Evaluation(bags, year, logfile=outfile)
     evaluation.setup(min_count=min_count, min_elements=2, drop=drop)
 
+    # Use only partial citations/labels list (no additional metadata)
     # with open(outfile, 'a') as fh:
     #     print("~ Partial List", "~" * 42, file=fh)
     # evaluation(BASELINES + RECOMMENDERS)
     # evaluation(RECOMMENDERS)
 
+    # Use additional metadata (as defined in CONDITIONS for all models but SVD, which uses only titles)
     with open(outfile, 'a') as fh:
         print("~ Conditioned Models", "~" * 42, file=fh)
     evaluation(CONDITIONED_MODELS)
-
-    # with open(outfile, 'a') as fh:
-    #     print("~ Partial List + Titles", "~" * 42, file=fh)
-    # evaluation(TITLE_ENHANCED)
 
 
 if __name__ == '__main__':

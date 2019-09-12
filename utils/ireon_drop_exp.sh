@@ -8,7 +8,7 @@ do
   for DROP in 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 #0.9
   do
     echo python3 ../eval/fiv.py $DATASET_YEAR -m $THRESHOLD -dr $DROP -o $OUTPUT_PREFIX/ireon-$DATASET_YEAR-$THRESHOLD-$RUN-$DROP.txt
-    #python3 ../eval/fiv.py $DATASET_YEAR -m $THRESHOLD -dr $DROP -o $OUTPUT_PREFIX/ireon-$DATASET_YEAR-$THRESHOLD-$RUN-$DROP.txt
+    python3 ../eval/fiv.py $DATASET_YEAR -m $THRESHOLD -dr $DROP -o $OUTPUT_PREFIX/ireon-$DATASET_YEAR-$THRESHOLD-$RUN-$DROP.txt
   done
 done
 exit 0
