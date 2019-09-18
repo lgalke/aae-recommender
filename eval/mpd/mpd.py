@@ -105,7 +105,7 @@ def playlists_from_slices(slices_dir, n_jobs=1, debug=False, only=None, without=
             print()
     else:
         pps = Parallel(n_jobs=n_jobs, verbose=verbose)(delayed(load)(p) for p in it)
-        playlists = itertools.chain.from_iterable(pps)
+        playlists = [l for l in itertools.chain.from_iterable(pps)]
 
     return playlists
 

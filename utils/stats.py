@@ -14,7 +14,7 @@ from eval.mpd.mpd import playlists_from_slices, unpack_playlists
 matplotlib.use('agg')
 
 # Possible values: pubmed, dblp, acm, swp, rcv, econbiz, mpd
-dataset = "pubmed"
+dataset = "mpd"
 # only papers/labels with at least min_x_cit citations/occurrences
 # in the plot of the distribution of papers/labels by citations/occurrences
 # Set to 0 if not relevant
