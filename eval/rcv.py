@@ -83,7 +83,7 @@ MODELS = [
 ]
 
 
-def prepare_evaluation(bags, test_size=0.1, n_items=None, min_count=None):
+def prepare_evaluation(bags, test_size=0.1, n_items=None, min_count=None, drop=1):
     """
     Split data into train and dev set.
     Build vocab on train set and applies it to both train and test set.
@@ -102,7 +102,8 @@ def prepare_evaluation(bags, test_size=0.1, n_items=None, min_count=None):
     dev_set = dev_set.apply_vocab(vocab)
 
     # Drop one track off each playlist within test set
-    noisy, missing = corrupt_sets(dev_set.data, drop=1)
+    print("Drop parameter:", drop)
+    noisy, missing = corrupt_sets(dev_set.data, drop=drop)
     assert len(noisy) == len(missing) == len(dev_set)
     # Replace test data with corrupted data
     dev_set.data = noisy
@@ -125,7 +126,8 @@ def main(outfile=None, min_count=None, drop=1):
     log("Whole dataset:", logfile=outfile)
     log(bags, logfile=outfile)
     train_set, dev_set, y_test = prepare_evaluation(bags,
-                                                    min_count=min_count)
+                                                    min_count=min_count,
+                                                    drop=drop)
 
     log("Train set:", logfile=outfile)
     log(train_set, logfile=outfile)
