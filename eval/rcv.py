@@ -76,7 +76,7 @@ MODELS = [
     AAERecommender(adversarial=True, conditions=CONDITIONS, prior='gauss', gen_lr=0.001,
                    reg_lr=0.001, **ae_params),
     DecodingRecommender(conditions=CONDITIONS, n_epochs=100, batch_size=100,
-                        optimizer='adam', n_hidden=100, lr=0.001, verbose=True)
+                        optimizer='adam', n_hidden=100, lr=0.001, verbose=True),
     VAERecommender(conditions=CONDITIONS, **vae_params),
     DAERecommender(conditions=CONDITIONS, **ae_params)
     # Put more here...
