@@ -281,6 +281,16 @@ def main(outfile=None, min_count=None, aggregate=None):
 
     del playlists
     bags = Bags(data=bags_of_tracks, owners=pids, owner_attributes=side_info)
+    if args.compute_mi:
+        from sklearn.metrics import mutual_info_score
+        print("Computing MI")
+        X = bags.build_vocab(min_count=args.min_count, max_features=None).tocsr()
+        C = X.T @ X
+        print("(Pairwise) mutual information:", mutual_info_score(None, None, contingency=C))
+        # Exit in this case
+        print("Bye.")
+        exit(0)
+
     log("Whole dataset:", logfile=outfile)
     log(bags, logfile=outfile)
     train_set, dev_set, y_test = prepare_evaluation(bags,
@@ -343,6 +353,8 @@ if __name__ == '__main__':
     parser.add_argument('-m', '--min-count', type=int,
                         default=None,
                         help="Minimum count of items")
+    parser.add_argument('--compute-mi', default=False,
+                        action='store_true')
     parser.add_argument('-s', '--side_information', type=str,
                         # TODO: handle more than one argument
                         default="name",
@@ -352,4 +364,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
     print(args)
     main(outfile=args.outfile, min_count=args.min_count,
-         aggregate=args.aggregate)
+         aggregate=args.side_information)

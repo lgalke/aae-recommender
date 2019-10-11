@@ -231,6 +231,15 @@ def main(year, dataset, min_count=None, outfile=None, drop=1):
     bags_of_papers, ids, side_info = unpack_papers(papers)
     del papers
     bags = Bags(bags_of_papers, ids, side_info)
+    if args.compute_mi:
+        from sklearn.metrics import mutual_info_score
+        print("Computing MI on full dataset ")
+        X = bags.build_vocab(min_count=args.min_count, max_features=None).tocsr()
+        C = X.T @ X
+        print("(Pairwise) mutual information:", mutual_info_score(None, None, contingency=C))
+        # Exit in this case
+        print("Bye.")
+        exit(0)
 
     log("Whole dataset:", logfile=outfile)
     log(bags, logfile=outfile)
@@ -253,7 +262,8 @@ if __name__ == '__main__':
     parser.add_argument('year', type=int,
                         help='First year of the testing set.')
     parser.add_argument('-d', '--dataset', type=str,
-                        help="Parse the DBLP or ACM dataset", default="dblp")
+                        help="Parse the DBLP or ACM dataset", default="dblp",
+                        choices=["dblp", "acm"])
     parser.add_argument('-m', '--min-count', type=int,
                         help='Pruning parameter', default=50)
     parser.add_argument('-o', '--outfile',
@@ -261,6 +271,8 @@ if __name__ == '__main__':
                         type=str, default=None)
     parser.add_argument('-dr', '--drop', type=str,
                         help='Drop parameter', default="1")
+    parser.add_argument('--compute-mi', default=False,
+                        action='store_true')
     args = parser.parse_args()
 
     # Drop could also be a callable according to evaluation.py but not managed as input parameter
