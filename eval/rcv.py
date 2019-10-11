@@ -62,23 +62,21 @@ CONDITIONS = ConditionList([
 ])
 
 MODELS = [
-    # Countbased(),  # Only item sets
-    # SVDRecommender(10, use_title=False),
-    # AAERecommender(adversarial=False, use_title=False, lr=0.001,
-    #                **ae_params),
-    # AAERecommender(adversarial=True, use_title=False, prior='gauss', gen_lr=0.001,
-    #                reg_lr=0.001, **ae_params),
+    # Only item sets
+    Countbased(),
+    SVDRecommender(10, use_title=False),
+    AAERecommender(adversarial=False, lr=0.001, **ae_params),
+    AAERecommender(adversarial=True, prior='gauss', gen_lr=0.001,
+                   reg_lr=0.001, **ae_params),
     VAERecommender(conditions=None, **vae_params),
     DAERecommender(conditions=None, **ae_params),
-    # Title-enhanced
-    # SVDRecommender(10, use_title=True),
-    # AAERecommender(adversarial=False, use_title=True, lr=0.001,
-    #                **ae_params),
-    # AAERecommender(adversarial=True, use_title=True, prior='gauss', gen_lr=0.001,
-    #                reg_lr=0.001, **ae_params),
-    # DecodingRecommender(n_epochs=100, batch_size=100, optimizer='adam',
-    #                     n_hidden=100, embedding=VECTORS,
-    #                     lr=0.001, verbose=True)  # Only Title
+    # Title/condition(s)-enhanced
+    SVDRecommender(10, use_title=True),
+    AAERecommender(adversarial=False, conditions=CONDITIONS, lr=0.001, **ae_params),
+    AAERecommender(adversarial=True, conditions=CONDITIONS, prior='gauss', gen_lr=0.001,
+                   reg_lr=0.001, **ae_params),
+    DecodingRecommender(conditions=CONDITIONS, n_epochs=100, batch_size=100,
+                        optimizer='adam', n_hidden=100, lr=0.001, verbose=True)
     VAERecommender(conditions=CONDITIONS, **vae_params),
     DAERecommender(conditions=CONDITIONS, **ae_params)
     # Put more here...
@@ -120,7 +118,7 @@ def log(*print_args, logfile=None):
     print(*print_args)
 
 
-def main(outfile=None, min_count=None):
+def main(outfile=None, min_count=None, drop=1):
     """ Main function for training and evaluating AAE methods on Reuters data """
     print("Loading data from", DATA_PATH)
     bags = Bags.load_tabcomma_format(DATA_PATH, unique=True)
@@ -177,6 +175,15 @@ if __name__ == '__main__':
     parser.add_argument('-m', '--min-count', type=int,
                         default=None,
                         help="Minimum count of items")
+    parser.add_argument('-dr', '--drop', type=str,
+                  help='Drop parameter', default="1")
     args = parser.parse_args()
     print(args)
-    main(outfile=args.outfile, min_count=args.min_count)
+
+    # Drop could also be a callable according to evaluation.py but not managed as input parameter
+    try:
+        drop = int(args.drop)
+    except ValueError:
+        drop = float(args.drop)
+
+    main(outfile=args.outfile, min_count=args.min_count, drop=drop)
