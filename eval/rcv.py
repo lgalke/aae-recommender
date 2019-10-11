@@ -124,6 +124,15 @@ def main(outfile=None, min_count=None):
     """ Main function for training and evaluating AAE methods on Reuters data """
     print("Loading data from", DATA_PATH)
     bags = Bags.load_tabcomma_format(DATA_PATH, unique=True)
+    if args.compute_mi:
+        from sklearn.metrics import mutual_info_score
+        print("Computing MI on full dataset ")
+        X = bags.build_vocab(min_count=args.min_count, max_features=None).tocsr()
+        C = X.T @ X
+        print("(Pairwise) mutual information:", mutual_info_score(None, None, contingency=C))
+        # Exit in this case
+        print("Bye.")
+        exit(0)
     log("Whole dataset:", logfile=outfile)
     log(bags, logfile=outfile)
     train_set, dev_set, y_test = prepare_evaluation(bags,
@@ -177,6 +186,8 @@ if __name__ == '__main__':
     parser.add_argument('-m', '--min-count', type=int,
                         default=None,
                         help="Minimum count of items")
+    parser.add_argument('--compute-mi', default=False,
+                        action='store_true')
     args = parser.parse_args()
     print(args)
     main(outfile=args.outfile, min_count=args.min_count)

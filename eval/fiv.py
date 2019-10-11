@@ -244,6 +244,15 @@ def main(year, min_count=None, outfile=None, drop=1):
     bags_of_papers, ids, side_info = unpack_papers_conditions(papers)
     del papers
     bags = Bags(bags_of_papers, ids, side_info)
+    if args.compute_mi:
+        from sklearn.metrics import mutual_info_score
+        print("Computing MI on full dataset ")
+        X = bags.build_vocab(min_count=args.min_count, max_features=None).tocsr()
+        C = X.T @ X
+        print("(Pairwise) mutual information:", mutual_info_score(None, None, contingency=C))
+        # Exit in this case
+        print("Bye.")
+        exit(0)
 
     log("Whole dataset:", logfile=outfile)
     log(bags, logfile=outfile)
@@ -272,6 +281,8 @@ if __name__ == '__main__':
                         type=str, default=None)
     parser.add_argument('-dr', '--drop', type=str,
                         help='Drop parameter', default="1")
+    parser.add_argument('--compute-mi', default=False,
+                        action='store_true')
     args = parser.parse_args()
 
     # Drop could also be a callable according to evaluation.py but not managed as input parameter
