@@ -21,6 +21,7 @@ def compute_mutual_info(bags, conditions=None, include_labels=True):
     print("[MI]", "Y shape (labels):", Y.shape)
 
     if conditions:
+        print("[MI] Using conditions:", list(conditions.keys()))
         assert isinstance(conditions, ConditionList), "Expecting ConditionList instance"
         print("[MI]", "Preprocessing condition data...")
         condition_data = bags.get_attributes(conditions.keys())
@@ -30,7 +31,7 @@ def compute_mutual_info(bags, conditions=None, include_labels=True):
             print("[MI]", "Imposing conditions on labels")
             X = conditions.encode_impose(Y, condition_data)
         else:
-            print("[MI]", "Computing condition data")
+            print("[MI]", "Using only condition data")
             # Use *only* condition data to compute MI
             encoded_cdata = conditions.encode(condition_data)
             remaining_conditions = list(conditions.values())[1:]
