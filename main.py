@@ -18,6 +18,7 @@ from aaerec.dae import DAERecommender
 from gensim.models.keyedvectors import KeyedVectors
 
 from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, CategoricalCondition
+from aaerec.condition import CountCondition
 W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
 W2V_IS_BINARY = True
 
@@ -108,6 +109,10 @@ CONDITIONS = ConditionList([
 #                                     sparse=True, embedding_on_gpu=True)),
 #     ('mesh', CategoricalCondition(embedding_dim=32, reduce="sum",
 #                                   sparse=True, embedding_on_gpu=True))
+])
+
+MI_CONDITIONS = ConditionList([
+    ('title', CountCondition(max_features=50000))
 ])
 
 # Models using the metadata set in CONDITIONS
