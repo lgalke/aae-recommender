@@ -155,6 +155,7 @@ def unpack_papers(papers, aggregate=None):
             assert attr in PAPER_INFO
 
     bags_of_refs, ids, side_info, years = [], [], {}, {}
+    ref_cnt, title_cnt, author_cnt, venue_cnt = 0, 0, 0, 0
     for paper in papers:
         # Extract ids
         ids.append(paper["id"])
@@ -162,11 +163,15 @@ def unpack_papers(papers, aggregate=None):
         try:
             # References may be missing
             bags_of_refs.append(paper["references"])
+            if len(paper["references"]) > 0:
+                ref_cnt += 1
         except KeyError:
             bags_of_refs.append([])
         # Use dict here such that we can also deal with unsorted ids
         try:
             side_info[paper["id"]] = paper["title"]
+            if paper["title"] != "":
+                title_cnt += 1
         except KeyError:
             side_info[paper["id"]] = ""
         try:
@@ -174,10 +179,24 @@ def unpack_papers(papers, aggregate=None):
         except KeyError:
             years[paper["id"]] = -1
 
+        try:
+            if len(paper["authors"]) > 0:
+                author_cnt += 1
+        except KeyError:
+            pass
+        try:
+            if len(paper["venue"]) > 0:
+                venue_cnt += 1
+        except KeyError:
+            pass
+
         # We could assemble even more side info here from the track names
         if aggregate is not None:
             aggregated_paper_info = aggregate_paper_info(paper, aggregate)
             side_info[paper["id"]] += ' ' + aggregated_paper_info
+
+    print("Metadata-fields' frequencies: references={}, title={}, authors={}, venue={}"
+          .format(ref_cnt/len(papers), title_cnt/len(papers), author_cnt/len(papers), venue_cnt/len(papers)))
 
     # bag_of_refs and ids should have corresponding indices
     # In side info the id is the key

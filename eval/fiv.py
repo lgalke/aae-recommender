@@ -114,6 +114,7 @@ def unpack_papers(papers):
     """
 
     bags_of_labels, ids, side_info, years = [], [], {}, {}
+    subject_cnt, title_cnt, author_cnt, venue_cnt = 0, 0, 0, 0
     for paper in papers:
         # Extract ids
         ids.append(paper["id"])
@@ -121,17 +122,30 @@ def unpack_papers(papers):
         try:
             # Subject may be missing
             bags_of_labels.append(paper["subjects"])
+            if len(paper["subjects"]) > 0:
+                subject_cnt += 1
         except KeyError:
             bags_of_labels.append([])
         # Use dict here such that we can also deal with unsorted ids
         try:
             side_info[paper["id"]] = paper["title"]
+            if paper["title"] != "":
+                title_cnt += 1
         except KeyError:
             side_info[paper["id"]] = ""
         try:
             years[paper["id"]] = paper["year"]
         except KeyError:
             years[paper["id"]] = -1
+
+        try:
+            if len(paper["authors"]) > 0:
+                author_cnt += 1
+        except KeyError:
+            pass
+
+    print("Metadata-fields' frequencies: references={}, title={}, authors={}"
+          .format(subject_cnt / len(papers), title_cnt / len(papers), author_cnt / len(papers)))
 
     # bag_of_labels and ids should have corresponding indices
     # In side_info the id is the key
