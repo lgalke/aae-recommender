@@ -180,9 +180,12 @@ def unpack_playlists(playlists, aggregate=None):
             except KeyError:
                 pass
 
-    print("Metadata-fields' frequencies: tracks={}, playlist title={}, track title={} artist={}, album={}"
-          .format(tracks_cnt / len(playlists), playlist_name_cnt / len(playlists), track_name_cnt / len(playlists),
-                  artist_cnt / len(playlists), album_cnt / len(playlists)))
+    print("Metadata-fields' frequencies: tracks={}, playlist title={}, track title={}, artist={}, album={}"
+          .format(tracks_cnt / len(playlists), playlist_name_cnt / len(playlists),
+                  track_name_cnt / len(counted_tracks.keys()),
+                  artist_cnt / len(counted_tracks.keys()), album_cnt / len(counted_tracks.keys())))
+    print("Tracks and playlist-titles' frequency computed over the playlist number; "
+          "track title, artist, album over the track number")
 
     # bag_of_tracks and pids should have corresponding indices
     # In side info the pid is the key
