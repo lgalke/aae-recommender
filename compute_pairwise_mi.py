@@ -33,4 +33,4 @@ print(ARGS)
 BAGS = Bags.load_tabcomma_format(ARGS.dataset, unique=True)\
     .build_vocab(min_count=ARGS.min_count, max_features=ARGS.max_features)
 
-compute_mutual_info(BAGS, MI_CONDITIONS, include_labels=False)
+compute_mutual_info(BAGS, MI_CONDITIONS, include_labels=True)
