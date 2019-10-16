@@ -46,7 +46,7 @@ def paper_by_n_citations(citations):
 # path = '/data21/lgalke/datasets/PMC/citations_pmc.tsv'
 # path = '/data22/ivagliano/Reuters/rcv1.tsv'
 path = '/data22/ggerstenkorn/citation_data_preprocessing/final_data/owner_list_cleaned.csv'
-dataset = "pubmed"
+dataset = "econis"
 
 if dataset == "dblp" or dataset == "acm" or dataset == "swp" or dataset == "econis":
     if dataset == "dblp" or dataset == "acm":
@@ -62,13 +62,22 @@ if dataset == "dblp" or dataset == "acm" or dataset == "swp" or dataset == "econ
 
     years, citations = {}, {}
     for paper in papers:
-        try:
-             years[paper["year"]] += 1 
-        except KeyError:
-            if "year" not in paper.keys():
-                # skip papers without a year
-                continue
-            years[paper["year"]] = 0
+        if dataset != "econis":
+            try:
+                 years[paper["year"]] += 1
+            except KeyError:
+                if "year" not in paper.keys():
+                    # skip papers without a year
+                    continue
+                years[paper["year"]] = 0
+        else:
+            try:
+                years[paper["date"]] += 1
+            except KeyError:
+                if "date" not in paper.keys():
+                    # skip papers without a year
+                    continue
+                years[paper["date"]] = 0
         if dataset == "dblp":
             try:
                 citations[paper["n_citation"]] += 1
