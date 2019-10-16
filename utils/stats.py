@@ -7,7 +7,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from aaerec.datasets import Bags
 from eval.aminer import unpack_papers, papers_from_files
-from eval.fiv import load, unpack_papers as unpack_papers_fiv
+from eval.fiv import load as load_fiv, unpack_papers as unpack_papers_fiv
+from eval.econis import load as load_econis, unpack_papers_conditions as unpack_papers_econis
 
 
 def compute_stats(A):
@@ -47,14 +48,17 @@ def paper_by_n_citations(citations):
 path = '/data22/ggerstenkorn/citation_data_preprocessing/final_data/owner_list_cleaned.csv'
 dataset = "pubmed"
 
-if dataset == "dblp" or dataset == "acm" or dataset == "swp":
-    if dataset != "swp":
+if dataset == "dblp" or dataset == "acm" or dataset == "swp" or dataset == "econis":
+    if dataset == "dblp" or dataset == "acm":
         path = '/data22/ivagliano/aminer/'
         path += ("dblp-ref/" if dataset == "dblp" else "acm.txt")
         papers = papers_from_files(path, dataset, n_jobs=1)
+    elif dataset == "econis":
+        print("Loading Econis dataset")
+        papers = load_econis("/data22/ivagliano/econis/econbiz62k-extended.json")
     else:
         print("Loading SWP dataset")
-        papers = load("/data22/ivagliano/SWP/FivMetadata_clean.json")
+        papers = load_fiv("/data22/ivagliano/SWP/FivMetadata_clean.json")
 
     years, citations = {}, {}
     for paper in papers:
@@ -101,7 +105,7 @@ if dataset == "dblp" or dataset == "acm" or dataset == "swp":
     print("Plotting paper distribution by year on file")
     # plot papers from 1970
     plot(years, dataset, "year", 1970)
-    if dataset == "acm" or dataset == "swp":
+    if dataset == "acm" or dataset == "swp" or dataset == "econis":
         citations = paper_by_n_citations(citations)
 
     citations = collections.OrderedDict(sorted(citations.items()))
@@ -111,31 +115,36 @@ if dataset == "dblp" or dataset == "acm" or dataset == "swp":
     plot(citations, dataset, "number of {}".format(x_dim), 100)
 
     print("Unpacking {} data...".format(dataset))
-    if dataset != "swp":
+    if dataset == "dblp" or dataset == "acm":
         bags_of_papers, ids, side_info = unpack_papers(papers)
-    else:
+    elif dataset == "swp":
         bags_of_papers, ids, side_info = unpack_papers_fiv(papers)
+    else:
+        bags_of_papers, ids, side_info = unpack_papers_econis(papers)
     bags = Bags(bags_of_papers, ids, side_info)
 
 else:
-    print("Unpacking {} data...".format(dataset))
-    # Only with more metadata (generic conditions) for Pubmed (Econis thorugh separate script /eval/econis.py)
-    # key: name of a table
-    # owner_id: ID of citing paper
-    # fields: list of column names in table
-    # target names: key for these data in the owner_attributes dictionary
-    # path: absolute path to the csv file
-    mtdt_dic =  collections.OrderedDict()
-    mtdt_dic["author"] = {"owner_id": "pmId", "fields": ["name"],"target_names": ["author"],
-                          "path": os.path.join("/data22/ggerstenkorn/citation_data_preprocessing/final_data/", "author.csv")}
-    mtdt_dic["mesh"] = {"owner_id": "document", "fields": ["descriptor"], "target_names": ["mesh"],
-                        "path": os.path.join("/data22/ggerstenkorn/citation_data_preprocessing/final_data/", "mesh.csv")}
+    if dataset == "pubmed":
+        print("Unpacking {} data...".format(dataset))
+        # Only with more metadata (generic conditions) for Pubmed (Econis thorugh separate script /eval/econis.py)
+        # key: name of a table
+        # owner_id: ID of citing paper
+        # fields: list of column names in table
+        # target names: key for these data in the owner_attributes dictionary
+        # path: absolute path to the csv file
+        mtdt_dic =  collections.OrderedDict()
+        mtdt_dic["author"] = {"owner_id": "pmId", "fields": ["name"],"target_names": ["author"],
+                              "path": os.path.join("/data22/ggerstenkorn/citation_data_preprocessing/final_data/", "author.csv")}
+        mtdt_dic["mesh"] = {"owner_id": "document", "fields": ["descriptor"], "target_names": ["mesh"],
+                            "path": os.path.join("/data22/ggerstenkorn/citation_data_preprocessing/final_data/", "mesh.csv")}
 
-    # With no metadata or just titles
-    # bags = Bags.load_tabcomma_format(path, unique=True)
-    # With more metadata for PubMed (generic conditions)
-    bags = Bags.load_tabcomma_format(path, unique=True, owner_str="pmId",
-                                     set_str="cited", meta_data_dic=mtdt_dic)
+        # With no metadata or just titles
+        # bags = Bags.load_tabcomma_format(path, unique=True)
+        # With more metadata for PubMed (generic conditions)
+        bags = Bags.load_tabcomma_format(path, unique=True, owner_str="pmId",
+                                         set_str="cited", meta_data_dic=mtdt_dic)
+    else:
+        bags = Bags.load_tabcomma_format(path, unique=True)
 
 bags = bags.build_vocab(apply=True)
 
