@@ -46,7 +46,7 @@ def paper_by_n_citations(citations):
 # path = '/data21/lgalke/datasets/PMC/citations_pmc.tsv'
 # path = '/data22/ivagliano/Reuters/rcv1.tsv'
 path = '/data22/ggerstenkorn/citation_data_preprocessing/final_data/owner_list_cleaned.csv'
-dataset = "econis"
+dataset = "pubmed"
 
 if dataset == "dblp" or dataset == "acm" or dataset == "swp" or dataset == "econis":
     if dataset == "dblp" or dataset == "acm":
