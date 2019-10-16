@@ -5,11 +5,11 @@ Theory: https://nlp.stanford.edu/IR-book/html/htmledition/mutual-information-1.h
 Impl Docs: https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mutual_info_score.html
 """
 import argparse
-import numpy as np
 
-from aaerec.datasets import Bags
+import numpy as np
 from sklearn.metrics import mutual_info_score
 
+from aaerec.datasets import Bags
 from aaerec.condition import ConditionList, CountCondition
 from aaerec.utils import compute_mutual_info
 
@@ -33,4 +33,4 @@ print(ARGS)
 BAGS = Bags.load_tabcomma_format(ARGS.dataset, unique=True)\
     .build_vocab(min_count=ARGS.min_count, max_features=ARGS.max_features)
 
-compute_mutual_info(BAGS, MI_CONDITIONS, include_labels=True)
+compute_mutual_info(BAGS, MI_CONDITIONS, include_labels=True, normalize=True)

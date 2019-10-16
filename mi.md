@@ -41,3 +41,33 @@ ACM (base 2): 9.464868324975805
 [Min count 100 was necessary to compute]
 MPD (base e): 1.5618877076689044
 MPD (base 2): 2.2533276502793593
+
+# Normalized MI
+
+
+## Citations
+
+### Normalized by label entropy
+
+Pubmed-Labels (base e): 0.5996320157106622
+Pubmed-Titles (base e): 0.28040486167334816
+Pubmed-Titles+Labels (base e): 0.5423331521525753 
+
+
+Econbiz-Labels (base e): 0.29772784312775197
+Econbiz-TItles (base e): 0.19938533967999353
+Econbiz-Titles+Labels (base e): 0.23609754863423627
+
+### Normalized by feature entropy
+
+Econbiz-Labels (base e): 0.29772784312775197
+Econbiz-Titles (base e): 0.19396723516117295
+Econbiz-Titles+Labels (base e): 0.21247875392215715
+
+Pubmed-Labels (base e): 0.5996320157106608
+Pubmed-Titles (base e): 0.5120547952695118
+Pubmed-Titles+Labels (base e): 0.5915967330146087
+
+
+
+

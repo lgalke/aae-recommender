@@ -1,10 +1,14 @@
 """ Auxiliary utilities """
+import numpy as np
+from sklearn.metrics import mutual_info_score
+from scipy.stats import entropy
+
 from .datasets import BagsWithVocab
 from .condition import ConditionList
-from sklearn.metrics import mutual_info_score
 
 
-def compute_mutual_info(bags, conditions=None, include_labels=True):
+def compute_mutual_info(bags, conditions=None, include_labels=True,
+                        normalize=True):
     """
     Arguments
     =========
@@ -20,7 +24,9 @@ def compute_mutual_info(bags, conditions=None, include_labels=True):
     Y = bags.tocsr()
     print("[MI]", "Y shape (labels):", Y.shape)
 
-    n_labels = Y.shape[1]
+    # Number of different labels
+    n_labels = np.asarray(Y.shape[1])
+
 
     if conditions:
         print("[MI] Using conditions:", list(conditions.keys()))
@@ -52,5 +58,14 @@ def compute_mutual_info(bags, conditions=None, include_labels=True):
 
     print("[MI]", "Computing mutual information...")
     mi = mutual_info_score(None, None, contingency=contingency)
+
     print("[MI]", "Mutual information (base e):", mi)
+    if normalize:
+        print("[MI]", "Computing label entropy...")
+        # Entropy of column-sums of labels
+        h_features = entropy(np.asarray(X.sum(0)).ravel())
+        # Normalize by entropy
+        print("[MI]", "Normalizing with feature entropy:", h_features)
+        mi = mi / h_features
+        print("[MI]", "Normalized Mutual information (base e):", mi)
     return mi
