@@ -152,8 +152,8 @@ def unpack_papers_conditions(papers):
         # Use dict here such that we can also deal with unsorted ids
         try:
             side_info[paper["econbiz_id"]] = paper["title"]
-            if len(paper["title"]) != "":
-                subjects_cnt += 1
+            if paper["title"] != "":
+                title_cnt += 1
         except KeyError:
             side_info[paper["econbiz_id"]] = ""
         try:
