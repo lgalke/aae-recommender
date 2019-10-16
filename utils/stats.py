@@ -118,7 +118,23 @@ if dataset == "dblp" or dataset == "acm" or dataset == "swp":
 
 else:
     print("Unpacking {} data...".format(dataset))
+    # Only with more metadata (generic conditions) for Pubmed (Econis thorugh separate script /eval/econis.py)
+    # key: name of a table
+    # owner_id: ID of citing paper
+    # fields: list of column names in table
+    # target names: key for these data in the owner_attributes dictionary
+    # path: absolute path to the csv file
+    # mtdt_dic = OrderedDict()
+    # mtdt_dic["author"] = {"owner_id": "pmId", "fields": ["name"],"target_names": ["author"],
+    #                       "path": os.path.join("/data22/ggerstenkorn/citation_data_preprocessing/final_data/", "author.csv")}
+    # mtdt_dic["mesh"] = {"owner_id": "document", "fields": ["descriptor"], "target_names": ["mesh"],
+    #                     "path": os.path.join("/data22/ggerstenkorn/citation_data_preprocessing/final_data/", "mesh.csv")}
+
+    # With no metadata or just titles
     bags = Bags.load_tabcomma_format(path, unique=True)
+    # With more metadata for PubMed (generic conditions)
+    # bags = Bags.load_tabcomma_format(ARGS.dataset, unique=True, owner_str="pmId",
+    #                                  set_str="cited", meta_data_dic=mtdt_dic)
 
 bags = bags.build_vocab(apply=True)
 
