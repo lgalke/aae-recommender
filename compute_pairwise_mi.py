@@ -23,8 +23,8 @@ PARSER.add_argument('-M', '--max-features', type=int,
 ARGS = PARSER.parse_args()
 
 
-MI_CONDITIONS = ConditionList([('title', CountCondition(max_features=100000))])
-# MI_CONDITIONS = None
+# MI_CONDITIONS = ConditionList([('title', CountCondition(max_features=100000))])
+MI_CONDITIONS = None
 
 print("Computing Mutual Info with args")
 print(ARGS)

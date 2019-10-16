@@ -20,6 +20,8 @@ def compute_mutual_info(bags, conditions=None, include_labels=True):
     Y = bags.tocsr()
     print("[MI]", "Y shape (labels):", Y.shape)
 
+    n_labels = Y.shape[1]
+
     if conditions:
         print("[MI] Using conditions:", list(conditions.keys()))
         assert isinstance(conditions, ConditionList), "Expecting ConditionList instance"
@@ -45,7 +47,8 @@ def compute_mutual_info(bags, conditions=None, include_labels=True):
     print("[MI]", "X shape (features):", X.shape)
 
     print("[MI]", "Computing contingency table...")
-    contingency = X.T @ Y
+    contingency = X.T @ Y  # [N_feats, N_labels]
+    print("[MI] contingency", contingency.shape, contingency.dtype)
 
     print("[MI]", "Computing mutual information...")
     mi = mutual_info_score(None, None, contingency=contingency)
