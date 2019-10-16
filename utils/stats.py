@@ -1,5 +1,5 @@
 import collections
-
+import os
 import matplotlib
 
 matplotlib.use('agg')
@@ -43,8 +43,9 @@ def paper_by_n_citations(citations):
 
 # path = '/data21/lgalke/datasets/econbiz62k.tsv'
 # path = '/data21/lgalke/datasets/PMC/citations_pmc.tsv'
-path = '/data22/ivagliano/Reuters/rcv1.tsv'
-dataset = "rcv"
+# path = '/data22/ivagliano/Reuters/rcv1.tsv'
+path = '/data22/ggerstenkorn/citation_data_preprocessing/final_data/owner_list_cleaned.csv'
+dataset = "pubmed"
 
 if dataset == "dblp" or dataset == "acm" or dataset == "swp":
     if dataset != "swp":
@@ -124,17 +125,17 @@ else:
     # fields: list of column names in table
     # target names: key for these data in the owner_attributes dictionary
     # path: absolute path to the csv file
-    # mtdt_dic = OrderedDict()
-    # mtdt_dic["author"] = {"owner_id": "pmId", "fields": ["name"],"target_names": ["author"],
-    #                       "path": os.path.join("/data22/ggerstenkorn/citation_data_preprocessing/final_data/", "author.csv")}
-    # mtdt_dic["mesh"] = {"owner_id": "document", "fields": ["descriptor"], "target_names": ["mesh"],
-    #                     "path": os.path.join("/data22/ggerstenkorn/citation_data_preprocessing/final_data/", "mesh.csv")}
+    mtdt_dic =  collections.OrderedDict()
+    mtdt_dic["author"] = {"owner_id": "pmId", "fields": ["name"],"target_names": ["author"],
+                          "path": os.path.join("/data22/ggerstenkorn/citation_data_preprocessing/final_data/", "author.csv")}
+    mtdt_dic["mesh"] = {"owner_id": "document", "fields": ["descriptor"], "target_names": ["mesh"],
+                        "path": os.path.join("/data22/ggerstenkorn/citation_data_preprocessing/final_data/", "mesh.csv")}
 
     # With no metadata or just titles
-    bags = Bags.load_tabcomma_format(path, unique=True)
+    # bags = Bags.load_tabcomma_format(path, unique=True)
     # With more metadata for PubMed (generic conditions)
-    # bags = Bags.load_tabcomma_format(ARGS.dataset, unique=True, owner_str="pmId",
-    #                                  set_str="cited", meta_data_dic=mtdt_dic)
+    bags = Bags.load_tabcomma_format(path, unique=True, owner_str="pmId",
+                                     set_str="cited", meta_data_dic=mtdt_dic)
 
 bags = bags.build_vocab(apply=True)
 
