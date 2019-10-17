@@ -242,7 +242,6 @@ class Bags(object):
         # loading
 
         df = pd.read_csv(path, sep="\t", dtype=str, error_bad_lines=False)
-        #df.info()
         df = df.fillna("")
 
         set_owners = df[owner_str].values
@@ -310,8 +309,6 @@ class Bags(object):
                 # loading meta data and select the relevant
                 auth_path = mtdt_transform_table["path"]
                 meta_data = pd.read_csv(auth_path, error_bad_lines=False, dtype=str)
-                #meta_data.info()
-                meta_data_header = list(meta_data.columns.values)
                 print("Metadata-fields' frequencies: {}={}".format(key,
                     meta_data[mtdt_transform_table["owner_id"]].nunique() / len(df)))
 
