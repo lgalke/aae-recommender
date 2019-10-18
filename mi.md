@@ -49,14 +49,13 @@ MPD (base 2): 2.2533276502793593
 
 ### Normalized by label entropy
 
-Pubmed-Labels (base e): 0.5996320157106622
-Pubmed-Titles (base e): 0.28040486167334816
-Pubmed-Titles+Labels (base e): 0.5423331521525753 
-
-
 Econbiz-Labels (base e): 0.29772784312775197
 Econbiz-TItles (base e): 0.19938533967999353
 Econbiz-Titles+Labels (base e): 0.23609754863423627
+
+Pubmed-Labels (base e): 0.5996320157106622
+Pubmed-Titles (base e): 0.28040486167334816
+Pubmed-Titles+Labels (base e): 0.5423331521525753 
 
 ### Normalized by feature entropy
 
