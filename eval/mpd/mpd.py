@@ -133,7 +133,7 @@ def playlists_from_slices(slices_dir, n_jobs=1, debug=False, only=None, without=
             print()
     else:
         pps = Parallel(n_jobs=n_jobs, verbose=verbose)(delayed(load)(p) for p in it)
-        playlists = itertools.chain.from_iterable(pps)
+        playlists = [l for l in itertools.chain.from_iterable(pps)]
 
     return playlists
 
@@ -166,14 +166,20 @@ def unpack_playlists(playlists, aggregate=None):
             assert attr in TRACK_INFO
 
     bags_of_tracks, pids, side_info = [], [], {}
+    tracks_cnt, playlist_name_cnt, track_name_cnt, artist_cnt, album_cnt = 0, 0, 0, 0, 0
+    counted_tracks = {}
     for playlist in playlists:
         # Extract pids
         pids.append(playlist["pid"])
         # Put all tracks of the playlists in here
         bags_of_tracks.append([t["track_uri"] for t in playlist["tracks"]])
+        if len(playlist["tracks"]) > 0:
+            tracks_cnt += 1
         # Use dict here such that we can also deal with unsorted pids
         try:
             side_info[playlist["pid"]] = playlist["name"]
+            if playlist["name"] != "":
+                playlist_name_cnt += 1
         except KeyError:
             side_info[playlist["pid"]] = ""
 
@@ -181,6 +187,36 @@ def unpack_playlists(playlists, aggregate=None):
         if aggregate is not None:
             aggregated_track_info = aggregate_track_info(playlist, aggregate)
             side_info[playlist["pid"]] += ' ' + aggregated_track_info
+
+        for t in playlist["tracks"]:
+            try:
+                if counted_tracks[t["track_uri"]] is True:
+                    continue
+            except KeyError:
+                pass
+            counted_tracks[t["track_uri"]] = True
+            try:
+                if t["track_name"] != "":
+                    track_name_cnt += 1
+            except KeyError:
+                pass
+            try:
+                if t["artist_name"] != "":
+                    artist_cnt += 1
+            except KeyError:
+                pass
+            try:
+                if t["album_name"] != "":
+                    album_cnt += 1
+            except KeyError:
+                pass
+
+    print("Metadata-fields' frequencies: tracks={}, playlist title={}, track title={}, artist={}, album={}"
+          .format(tracks_cnt / len(playlists), playlist_name_cnt / len(playlists),
+                  track_name_cnt / len(counted_tracks.keys()),
+                  artist_cnt / len(counted_tracks.keys()), album_cnt / len(counted_tracks.keys())))
+    print("Tracks and playlist-titles' frequency computed over the playlist number; "
+          "track title, artist, album over the track number")
 
     # bag_of_tracks and pids should have corresponding indices
     # In side info the pid is the key
