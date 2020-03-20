@@ -39,7 +39,7 @@ ae_params = {
     'n_code': 50,
     'n_epochs': 20,
 #    'embedding': VECTORS,
-    'batch_size': 200,
+    'batch_size': 1000,
     'n_hidden': 100,
     'normalize_inputs': True,
 }
@@ -90,7 +90,7 @@ CONDITIONED_MODELS = [
                    reg_lr=0.001,
                     **ae_params),
     DecodingRecommender(CONDITIONS,
-                        n_epochs=100, batch_size=100, optimizer='adam',
+                        n_epochs=100, batch_size=1000, optimizer='adam',
                         n_hidden=100, lr=0.001, verbose=True),
     VAERecommender(conditions=CONDITIONS, **ae_params),
     DAERecommender(conditions=CONDITIONS, **ae_params)
@@ -222,7 +222,7 @@ def unpack_papers(papers, aggregate=None):
     return bags_of_refs, ids, {"title": side_info, "year": years, "author": authors, "venue": venue}
 
 
-def main(year, dataset, min_count=None, outfile=None):
+def main(year, dataset, min_count=None, outfile=None, drop=1):
     """ Main function for training and evaluating AAE methods on DBLP data """
     path = DATA_PATH + ("dblp-ref/" if dataset == "dblp" else "acm.txt")
     print("Loading data from", path)
@@ -236,7 +236,7 @@ def main(year, dataset, min_count=None, outfile=None):
     log(bags, logfile=outfile)
 
     evaluation = Evaluation(bags, year, logfile=outfile)
-    evaluation.setup(min_count=min_count, min_elements=2)
+    evaluation.setup(min_count=min_count, min_elements=2, drop=drop)
 
     # with open(outfile, 'a') as fh:
     #     print("~ Partial List", "~" * 42, file=fh)
@@ -246,7 +246,7 @@ def main(year, dataset, min_count=None, outfile=None):
     with open(outfile, 'a') as fh:
         print("~ Partial List + Titles + Author + Venue", "~" * 42, file=fh)
     # evaluation(TITLE_ENHANCED)
-    evaluation(CONDITIONED_MODELS, batch_size=500)
+    evaluation(CONDITIONED_MODELS, batch_size=1000)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -259,5 +259,14 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--outfile',
                         help="File to store the results.",
                         type=str, default=None)
+    parser.add_argument('-dr', '--drop', type=str,
+                        help='Drop parameter', default="1")
     args = parser.parse_args()
-    main(year=args.year, dataset=args.dataset, min_count=args.min_count, outfile=args.outfile)
+
+    # Drop could also be a callable according to evaluation.py but not managed as input parameter
+    try:
+        drop = int(args.drop)
+    except ValueError:
+        drop = float(args.drop)
+
+    main(year=args.year, dataset=args.dataset, min_count=args.min_count, outfile=args.outfile, drop=drop)
