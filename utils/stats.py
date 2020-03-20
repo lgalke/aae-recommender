@@ -3,6 +3,7 @@ import os
 import matplotlib
 
 import numpy as np
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -12,18 +13,16 @@ from eval.fiv import load, unpack_papers as unpack_papers_fiv
 from eval.mpd.mpd import playlists_from_slices, unpack_playlists
 from eval.econis import load as load_econis, unpack_papers_conditions as unpack_papers_econis
 
-matplotlib.use('agg')
-
 # Possible values: pubmed, dblp, acm, swp, rcv, econbiz, mpd
-dataset = "mpd"
+dataset = "rcv"
 # only papers/labels with at least min_x_cit citations/occurrences
 # in the plot of the distribution of papers/labels by citations/occurrences
 # Set to 0 if not relevant
-min_x_cit = 10
+min_x_cit = 0
 # only papers/labels with at most man_x_cit citations/occurrences
 # in the plot of the distribution of papers/labels by citations/occurrences
 # Set to None if not relevant
-max_x_cit = 100
+max_x_cit = 100000
 # Shows the y-value at the given mark_x_cit
 # Set to None if not relevant
 mark_x_cit = 50
