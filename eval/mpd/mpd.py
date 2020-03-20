@@ -51,9 +51,10 @@ DATA_PATH = "/data21/lgalke/datasets/MPD/data/"
 
 CONDITIONS = ConditionList([
     ('name', PretrainedWordEmbeddingCondition(VECTORS)),
-    #('artist_name', CategoricalCondition(embedding_dim=32)),
-    #('track_name', PretrainedWordEmbeddingCondition(VECTORS)),
-    #('album_name', PretrainedWordEmbeddingCondition(VECTORS))
+    ('artist_name', CategoricalCondition(embedding_dim=32, reduce="sum", # vocab_size=0.01,
+                                         sparse=True, embedding_on_gpu=True)),
+    ('track_name', PretrainedWordEmbeddingCondition(VECTORS)),
+    ('album_name', PretrainedWordEmbeddingCondition(VECTORS))
 ])
 
 # These need to be implemented in evaluation.py
@@ -65,15 +66,15 @@ MODELS = [
     #SVDRecommender(1000, use_title=False),
     #AAERecommender(adversarial=True, use_title=False, n_epochs=55, embedding=VECTORS),
     #AAERecommender(adversarial=False, n_epochs=1),
-    VAERecommender(conditions=None, n_epochs=55),
-    DAERecommender(conditions=None, n_epochs=55),
+    #VAERecommender(conditions=None, n_epochs=55, batch_size=1000),
+    #DAERecommender(conditions=None, n_epochs=55, batch_size=1000),
     # Title-enhanced
     #SVDRecommender(1000, use_title=True),
     #AAERecommender(adversarial=True, use_side_info=True, n_epochs=55, embedding=VECTORS),
     #AAERecommender(adversarial=False, use_side_info=["name"], n_epochs=5, embedding=VECTORS),
     #DecodingRecommender(n_epochs=55, embedding=VECTORS)
-    VAERecommender(conditions=CONDITIONS, n_epochs=55),
-    DAERecommender(conditions=CONDITIONS, n_epochs=55),
+    VAERecommender(conditions=CONDITIONS, n_epochs=55, batch_size=1000),
+    DAERecommender(conditions=CONDITIONS, n_epochs=55, batch_size=1000),
     # Generic condition all
     #AAERecommender(adversarial=False, conditions=CONDITIONS, n_epochs=55),
     #AAERecommender(adversarial=True, conditions=CONDITIONS, n_epochs=55),
@@ -325,7 +326,7 @@ def main(outfile=None, min_count=None, aggregate=None):
 
         print("evaluate:")
         # Evaluate metrics
-        results = evaluate(y_test, y_pred, METRICS, batch_size=50)
+        results = evaluate(y_test, y_pred, METRICS, batch_size=500)
 
         print("metrics: ")
         log("-" * 78, logfile=outfile)
@@ -348,6 +349,9 @@ if __name__ == '__main__':
                         default="name",
                         nargs='+',
                         help="list of incorporated additional attributes")
+    parser.add_argument('-a', '--aggregate', type=bool,
+                        default=None,
+                        help="If true present aggregate side information")
 
     args = parser.parse_args()
     print(args)
