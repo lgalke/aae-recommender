@@ -1,5 +1,5 @@
 """
-Executable to run AAE on the IREON dataset
+Executable to run AAE on the Econis dataset
 """
 import argparse
 import json
@@ -19,9 +19,7 @@ from eval.mpd.mpd import log
 from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, CategoricalCondition
 
 # Should work on kdsrv03
-DATA_PATH = "/data22/ivagliano/SWP/FivMetadata.json"
-CLEAN_DATA_PATH = "/data22/ivagliano/SWP/FivMetadata_clean.json"
-CLEAN = False
+DATA_PATH = "/data22/ivagliano/econis/econbiz62k-extended.json"
 DEBUG_LIMIT = None
 METRICS = ['mrr', 'map']
 
@@ -29,13 +27,12 @@ W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
 W2V_IS_BINARY = True
 print("Loading pre-trained embedding", W2V_PATH)
 VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
-print("Done")
 
 ae_params = {
     'n_code': 50,
-    'n_epochs': 20,
+    'n_epochs': 100,
     # 'embedding': VECTORS,
-    'batch_size': 500,
+    'batch_size': 1000,
     'n_hidden': 100,
     'normalize_inputs': True,
 }
@@ -45,7 +42,7 @@ vae_params = {
     # VAE results get worse with more epochs in preliminary optimization 
     #(Pumed with threshold 50)
     'n_epochs': 50,
-    'batch_size': 500,
+    'batch_size': 1000,
     'n_hidden': 100,
     'normalize_inputs': True,
 }
@@ -58,23 +55,23 @@ BASELINES = [
 ]
 
 RECOMMENDERS = [
-    AAERecommender(adversarial=False, lr=0.001,
-                   **ae_params),
-    AAERecommender(prior='gauss', gen_lr=0.001,
-                   reg_lr=0.001, **ae_params),
+    # AAERecommender(use_title=False, adversarial=False, lr=0.001,
+    #                **ae_params),
+    # AAERecommender(use_title=False, prior='gauss', gen_lr=0.001,
+    #                reg_lr=0.001, **ae_params),
     VAERecommender(conditions=None, **vae_params),
     DAERecommender(conditions=None, **ae_params)
 ]
 
 CONDITIONS = ConditionList([
     ('title', PretrainedWordEmbeddingCondition(VECTORS)),
-#    ('author', CategoricalCondition(embedding_dim=32, reduce="sum",
-#                                    sparse=True, embedding_on_gpu=True))
+    ('author', CategoricalCondition(embedding_dim=32, reduce="sum",
+                                    sparse=True, embedding_on_gpu=True))
 ])
 
 CONDITIONED_MODELS = [
     # TODO SVD can use only titles not generic conditions
-    SVDRecommender(1000, use_title=True),
+    # SVDRecommender(1000, use_title=True),
     AAERecommender(adversarial=False,
                   conditions=CONDITIONS,
                   lr=0.001,
@@ -85,8 +82,8 @@ CONDITIONED_MODELS = [
                   reg_lr=0.001,
                   **ae_params),
     DecodingRecommender(CONDITIONS,
-                       n_epochs=20, batch_size=500, optimizer='adam',
-                        n_hidden=100, lr=0.001, verbose=True),
+                       n_epochs=100, batch_size=1000, optimizer='adam',
+                       n_hidden=100, lr=0.001, verbose=True),
     VAERecommender(conditions=CONDITIONS, **vae_params),
     DAERecommender(conditions=CONDITIONS, **ae_params)
 ]
@@ -95,36 +92,8 @@ CONDITIONED_MODELS = [
 def load(path):
     """ Loads a single file """
     with open(path, 'r') as fhandle:
-        obj = [json.loads(line.rstrip('\n')) for line in fhandle]
+        obj = json.load(fhandle)
     return obj
-
-
-def clean(path, papers):
-    with open(path, "w") as write_file:
-        for p in papers:
-            try:
-                p["year"] = p.pop("date")
-            except KeyError:
-                continue
-            p["subjects"] = parse_en_labels(p.pop("subject"))
-            p["authors"] = parse_authors(p)
-            if len(p["year"]) < 4:
-                continue
-            if len(p["year"]) >= 4:
-                matches = re.findall(r'.*([1-2][0-9]{3})', p["year"])
-                # if no or more than one match skip string
-                if len(matches) == 0 or len(matches) > 1:
-                    print("no match for {}".format(p["year"]))
-                    continue
-                else:
-                    try:
-                        p["year"] = int(matches[0])
-                    except ValueError:
-                        print("Value error for {}".format(matches[0]))
-                        continue
-            if (p["year"] > 2016):
-                continue
-            write_file.write(json.dumps(p) + "\n")
 
 
 def parse_en_labels(subjects):
@@ -138,6 +107,7 @@ def parse_en_labels(subjects):
 
     return labels
 
+
 def parse_authors(p):
     """
     From Marc21-IDs in the json formats to a list of authors
@@ -149,13 +119,11 @@ def parse_authors(p):
     except KeyError:
         pass
 
-    for obj in p.pop("Marc21-IDs"):
-        try:
-            author = obj.pop("700").pop("entry")
-        except KeyError:
-            continue
-        if "Author aut" in author:
-           authors.append(author.replace(", Author aut", ""))
+    try:
+        for contributor in p.pop("contributor_personal"):
+            authors.append(contributor.pop("name"))
+    except KeyError:
+        pass
 
     return authors
 
@@ -167,27 +135,41 @@ def unpack_papers_conditions(papers):
     """
 
     bags_of_labels, ids, side_info, years, authors = [], [], {}, {}, {}
+    subjects_cnt, title_cnt, authors_cnt = 0, 0, 0
     for paper in papers:
         # Extract ids
-        ids.append(paper["id"])
+        ids.append(paper["econbiz_id"])
         # Put all subjects assigned to the paper in here
         try:
             # Subject may be missing
-            bags_of_labels.append(paper["subjects"])
+            subjects = parse_en_labels(paper["subject_stw"])
+            bags_of_labels.append(subjects)
+            if len(subjects) > 0:
+                subjects_cnt += 1
         except KeyError:
             bags_of_labels.append([])
 
         # Use dict here such that we can also deal with unsorted ids
         try:
-            side_info[paper["id"]] = paper["title"]
+            side_info[paper["econbiz_id"]] = paper["title"]
+            if paper["title"] != "":
+                title_cnt += 1
         except KeyError:
-            side_info[paper["id"]] = ""
+            side_info[paper["econbiz_id"]] = ""
         try:
-            years[paper["id"]] = paper["year"]
+            # Sometimes data in format yyyy.mm.dd (usually only year)
+            if type(paper["date"]) is str:
+                paper["date"] = int(paper["date"][:4])
+            years[paper["econbiz_id"]] = paper["date"]
         except KeyError:
-            years[paper["id"]] = -1
+            years[paper["econbiz_id"]] = -1
 
-        authors[paper["id"]] = paper["authors"]
+        authors[paper["econbiz_id"]] = parse_authors(paper)
+        if len(authors[paper["econbiz_id"]]) > 0:
+            authors_cnt += 1
+
+    print("Metadata-fields' frequencies: subjects={}, title={}, authors={}"
+          .format(subjects_cnt / len(papers), title_cnt / len(papers), authors_cnt / len(papers)))
 
     # bag_of_labels and ids should have corresponding indices
     # In side_info the id is the key
@@ -195,65 +177,11 @@ def unpack_papers_conditions(papers):
     return bags_of_labels, ids, {"title": side_info, "year": years, "author": authors}
 
 
-def unpack_papers(papers):
-    """
-    Unpacks list of papers in a way that is compatible with our Bags dataset
-    format. It is not mandatory that papers are sorted.
-    """
-
-    bags_of_labels, ids, side_info, years = [], [], {}, {}
-    subject_cnt, title_cnt, author_cnt, venue_cnt = 0, 0, 0, 0
-    for paper in papers:
-        # Extract ids
-        ids.append(paper["id"])
-        # Put all subjects assigned to the paper in here
-        try:
-            # Subject may be missing
-            bags_of_labels.append(paper["subjects"])
-            if len(paper["subjects"]) > 0:
-                subject_cnt += 1
-        except KeyError:
-            bags_of_labels.append([])
-        # Use dict here such that we can also deal with unsorted ids
-        try:
-            side_info[paper["id"]] = paper["title"]
-            if paper["title"] != "":
-                title_cnt += 1
-        except KeyError:
-            side_info[paper["id"]] = ""
-        try:
-            years[paper["id"]] = paper["year"]
-        except KeyError:
-            years[paper["id"]] = -1
-
-        try:
-            if len(paper["authors"]) > 0:
-                author_cnt += 1
-        except KeyError:
-            pass
-
-    print("Metadata-fields' frequencies: references={}, title={}, authors={}"
-          .format(subject_cnt / len(papers), title_cnt / len(papers), author_cnt / len(papers)))
-
-    # bag_of_labels and ids should have corresponding indices
-    # In side_info the id is the key
-    # Re-use 'title' and year here because methods rely on it
-    return bags_of_labels, ids, {"title": side_info, "year": years}
-
-
 def main(year, min_count=None, outfile=None, drop=1):
     """ Main function for training and evaluating AAE methods on IREON data """
-    if (CLEAN == True):
-        print("Loading data from", DATA_PATH)
-        papers = load(DATA_PATH)
-        print("Cleaning data...")
-        clean(CLEAN_DATA_PATH, papers)
-        print("Clean data in {}".format(CLEAN_DATA_PATH))
-        return
-
-    print("Loading data from", CLEAN_DATA_PATH)
-    papers = load(CLEAN_DATA_PATH)
-    print("Unpacking IREON data...")
+    print("Loading data from", DATA_PATH)
+    papers = load(DATA_PATH)
+    print("Unpacking data...")
     # bags_of_papers, ids, side_info = unpack_papers(papers)
     bags_of_papers, ids, side_info = unpack_papers_conditions(papers)
     del papers
@@ -266,9 +194,11 @@ def main(year, min_count=None, outfile=None, drop=1):
     evaluation.setup(min_count=min_count, min_elements=2, drop=drop)
 
     # Use only partial citations/labels list (no additional metadata)
-    with open(outfile, 'a') as fh:
-        print("~ Partial List", "~" * 42, file=fh)
-    evaluation(BASELINES + RECOMMENDERS)
+    # with open(outfile, 'a') as fh:
+    #     print("~ Partial List", "~" * 42, file=fh)
+    # evaluation(BASELINES + RECOMMENDERS)
+    # evaluation(RECOMMENDERS)
+
     # Use additional metadata (as defined in CONDITIONS for all models but SVD, which uses only titles)
     with open(outfile, 'a') as fh:
         print("~ Conditioned Models", "~" * 42, file=fh)

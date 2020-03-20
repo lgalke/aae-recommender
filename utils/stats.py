@@ -1,5 +1,5 @@
 import collections
-
+import os
 import matplotlib
 
 import numpy as np
@@ -10,6 +10,7 @@ from aaerec.datasets import Bags
 from eval.aminer import unpack_papers, papers_from_files
 from eval.fiv import load, unpack_papers as unpack_papers_fiv
 from eval.mpd.mpd import playlists_from_slices, unpack_playlists
+from eval.econis import load as load_econis, unpack_papers_conditions as unpack_papers_econis
 
 matplotlib.use('agg')
 
@@ -107,16 +108,24 @@ def generate_years_citations_set_cnts(papers, dataset):
     years, citations, set_cnts = {}, {}, {}
 
     for paper in papers:
-        try:
-            years[paper["year"]] += 1
-        except KeyError:
-            # MPD has no time information (no year)
-            if "year" not in paper.keys() and dataset != "mpd":
-                # skip papers without a year
-                # unless dataset is MPD, which has no year
-                continue
-            if dataset != "mpd":
-                years[paper["year"]] = 0
+        if dataset != "econis":
+            try:
+                 years[paper["year"]] += 1
+            except KeyError:
+                if "year" not in paper.keys() and dataset != "mpd":
+                    # skip papers without a year
+                    # unless dataset is MPD, which has no year
+                    continue
+                if dataset != "mpd":
+                    years[paper["year"]] = 0
+        else:
+            try:
+                years[paper["date"]] += 1
+            except KeyError:
+                if "date" not in paper.keys():
+                    # skip papers without a year
+                    continue
+                years[paper["date"]] = 0
         if dataset == "dblp":
             # DBLP has the citations for each paper
             try:
@@ -160,7 +169,6 @@ def generate_years_citations_set_cnts(papers, dataset):
             set_cnts[paper["pid"]] = len(paper["tracks"])
 
     return years, citations, set_cnts
-
 
 def generate_citations(df):
     citations = {}
@@ -213,6 +221,9 @@ if dataset == "dblp" or dataset == "acm" or dataset == "swp" or dataset == "mpd"
     elif dataset == "swp":
         print("Loading SWP dataset")
         papers = load(path)
+    elif dataset == "econbiz":
+        print("Loading EconBiz dataset")
+        papers = load_econis("/data22/ivagliano/econis/econbiz62k-extended.json")
     else:
         print("Loading MPD dataset")
         # actually not papers but playlists
@@ -253,8 +264,10 @@ if dataset == "dblp" or dataset == "acm" or dataset == "swp" or dataset == "mpd"
     elif dataset == "mpd":
         # not bags_of_papers but bugs_of_tracks
         bags_of_papers, ids, side_info = unpack_playlists(papers)
-    else:
+    elif dataset == "swp":
         bags_of_papers, ids, side_info = unpack_papers_fiv(papers)
+    else:
+        bags_of_papers, ids, side_info = unpack_papers_econis(papers)
     bags = Bags(bags_of_papers, ids, side_info)
 
 else:
@@ -271,7 +284,26 @@ else:
     set_cnts = set_count(df)
 
     print("Unpacking {} data...".format(dataset))
-    bags = Bags.load_tabcomma_format(path, unique=True)
+    if dataset == "pubmed":
+        # Only with more metadata (generic conditions) for Pubmed (Econis thorugh separate script /eval/econis.py)
+        # key: name of a table
+        # owner_id: ID of citing paper
+        # fields: list of column names in table
+        # target names: key for these data in the owner_attributes dictionary
+        # path: absolute path to the csv file
+        mtdt_dic =  collections.OrderedDict()
+        mtdt_dic["author"] = {"owner_id": "pmId", "fields": ["name"],"target_names": ["author"],
+                              "path": os.path.join("/data22/ggerstenkorn/citation_data_preprocessing/final_data/", "author.csv")}
+        mtdt_dic["mesh"] = {"owner_id": "document", "fields": ["descriptor"], "target_names": ["mesh"],
+                            "path": os.path.join("/data22/ggerstenkorn/citation_data_preprocessing/final_data/", "mesh.csv")}
+
+        # With no metadata or just titles
+        # bags = Bags.load_tabcomma_format(path, unique=True)
+        # With more metadata for PubMed (generic conditions)
+        bags = Bags.load_tabcomma_format(path, unique=True, owner_str="pmId",
+                                         set_str="cited", meta_data_dic=mtdt_dic)
+    else:
+        bags = Bags.load_tabcomma_format(path, unique=True)
 
 # only papers with min min_x_cit and max max_x_cit citations
 citations = from_to_key(citations, min_x_cit, max_x_cit)

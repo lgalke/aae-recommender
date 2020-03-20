@@ -15,28 +15,31 @@ from aaerec.baselines import Countbased
 from aaerec.datasets import Bags
 from aaerec.evaluation import Evaluation
 from aaerec.svd import SVDRecommender
+from aaerec.vae import VAERecommender
+from aaerec.dae import DAERecommender
 from eval.mpd.mpd import log
+
+from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, CategoricalCondition
 
 # Should work on kdsrv03
 DATA_PATH = "/data22/ivagliano/aminer/"
 DEBUG_LIMIT = None
-# Use only this many most frequent items
-N_ITEMS = 50000
-# Use all present items
-# N_ITEMS = None
 # authors is an array of strings, n_citation is an integer: do they make sense used in this way?
-PAPER_INFO = ['title', 'venue', 'abstract']
-METRICS = ['mrr', 'map']
+PAPER_INFO = ['title', 'venue', 'author']
+# TODO Add it as parameters of evaluate() to make it effective (see mpd.py)
+# METRICS = ['mrr', 'map']
 
 W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
 W2V_IS_BINARY = True
+print("Loading keyed vectors") 
 VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
+print("Done") 
 
 ae_params = {
     'n_code': 50,
     'n_epochs': 20,
-    'embedding': VECTORS,
-    'batch_size': 100,
+#    'embedding': VECTORS,
+    'batch_size': 1000,
     'n_hidden': 100,
     'normalize_inputs': True,
 }
@@ -49,22 +52,48 @@ BASELINES = [
 ]
 
 RECOMMENDERS = [
-    AAERecommender(use_title=False, adversarial=False, lr=0.0001,
-                   **ae_params),
-    AAERecommender(use_title=False, prior='gauss', gen_lr=0.0001,
-                   reg_lr=0.0001, **ae_params),
+    # AAERecommender(use_title=False, adversarial=False, lr=0.0001,
+    #                **ae_params),
+    # AAERecommender(use_title=False, prior='gauss', gen_lr=0.0001,
+    #                reg_lr=0.0001, **ae_params),
+    # VAERecommender(conditions=None, **ae_params)
+    # DAERecommender(conditions=None, **ae_params)
 ]
 
-TITLE_ENHANCED = [
-    SVDRecommender(1000, use_title=True),
-    DecodingRecommender(n_epochs=100, batch_size=100, optimizer='adam',
-                        n_hidden=100, embedding=VECTORS,
-                        lr=0.001, verbose=True),
-    AAERecommender(adversarial=False, use_title=True, lr=0.001,
+# TITLE_ENHANCED = [
+#     SVDRecommender(1000, use_title=True),
+#     DecodingRecommender(n_epochs=100, batch_size=100, optimizer='adam',
+#                         n_hidden=100, embedding=VECTORS,
+#                         lr=0.001, verbose=True),
+#     AAERecommender(adversarial=False, use_title=True, lr=0.001,
+#                    **ae_params),
+#     AAERecommender(adversarial=True, use_title=True,
+#                    prior='gauss', gen_lr=0.001, reg_lr=0.001,
+#                    **ae_params),
+# ]
+
+CONDITIONS = ConditionList([
+    ('title', PretrainedWordEmbeddingCondition(VECTORS)),
+    ('venue', PretrainedWordEmbeddingCondition(VECTORS)),
+    ('author', CategoricalCondition(embedding_dim=32, reduce="sum", # vocab_size=0.01,
+                                    sparse=True, embedding_on_gpu=True))
+])
+
+CONDITIONED_MODELS = [
+    AAERecommender(adversarial=False,
+                   conditions=CONDITIONS,
+                   lr=0.001,
                    **ae_params),
-    AAERecommender(adversarial=True, use_title=True,
-                   prior='gauss', gen_lr=0.001, reg_lr=0.001,
-                   **ae_params),
+    AAERecommender(adversarial=True,
+                   conditions=CONDITIONS,
+                   gen_lr=0.001,
+                   reg_lr=0.001,
+                    **ae_params),
+    DecodingRecommender(CONDITIONS,
+                        n_epochs=100, batch_size=1000, optimizer='adam',
+                        n_hidden=100, lr=0.001, verbose=True),
+    VAERecommender(conditions=CONDITIONS, **ae_params),
+    DAERecommender(conditions=CONDITIONS, **ae_params)
 ]
 
 
@@ -154,8 +183,7 @@ def unpack_papers(papers, aggregate=None):
         for attr in aggregate:
             assert attr in PAPER_INFO
 
-    bags_of_refs, ids, side_info, years = [], [], {}, {}
-    ref_cnt, title_cnt, author_cnt, venue_cnt = 0, 0, 0, 0
+    bags_of_refs, ids, side_info, years, authors, venue = [], [], {}, {}, {}, {}
     for paper in papers:
         # Extract ids
         ids.append(paper["id"])
@@ -178,6 +206,14 @@ def unpack_papers(papers, aggregate=None):
             years[paper["id"]] = paper["year"]
         except KeyError:
             years[paper["id"]] = -1
+        try:
+            authors[paper["id"]] = paper["authors"]
+        except KeyError:
+            authors[paper["id"]] = []
+        try:
+            venue[paper["id"]] = paper["venue"]
+        except KeyError:
+            venue[paper["id"]] = ""
 
         try:
             if len(paper["authors"]) > 0:
@@ -201,10 +237,10 @@ def unpack_papers(papers, aggregate=None):
     # bag_of_refs and ids should have corresponding indices
     # In side info the id is the key
     # Re-use 'title' and year here because methods rely on it
-    return bags_of_refs, ids, {"title": side_info, "year": years}
+    return bags_of_refs, ids, {"title": side_info, "year": years, "author": authors, "venue": venue}
 
 
-def main(year, dataset, min_count=None, outfile=None):
+def main(year, dataset, min_count=None, outfile=None, drop=1):
     """ Main function for training and evaluating AAE methods on DBLP data """
     path = DATA_PATH + ("dblp-ref/" if dataset == "dblp" else "acm.txt")
     print("Loading data from", path)
@@ -218,17 +254,17 @@ def main(year, dataset, min_count=None, outfile=None):
     log(bags, logfile=outfile)
 
     evaluation = Evaluation(bags, year, logfile=outfile)
-    evaluation.setup(min_count=min_count, min_elements=2)
-    print("Loading pre-trained embedding", W2V_PATH)
+    evaluation.setup(min_count=min_count, min_elements=2, drop=drop)
+
+    # with open(outfile, 'a') as fh:
+    #     print("~ Partial List", "~" * 42, file=fh)
+    # evaluation(BASELINES + RECOMMENDERS)
+    # evaluation(RECOMMENDERS, batch_size=1000)
 
     with open(outfile, 'a') as fh:
-        print("~ Partial List", "~" * 42, file=fh)
-    evaluation(BASELINES + RECOMMENDERS)
-
-    with open(outfile, 'a') as fh:
-        print("~ Partial List + Titles", "~" * 42, file=fh)
-    evaluation(TITLE_ENHANCED)
-
+        print("~ Partial List + Titles + Author + Venue", "~" * 42, file=fh)
+    # evaluation(TITLE_ENHANCED)
+    evaluation(CONDITIONED_MODELS, batch_size=1000)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -241,5 +277,14 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--outfile',
                         help="File to store the results.",
                         type=str, default=None)
+    parser.add_argument('-dr', '--drop', type=str,
+                        help='Drop parameter', default="1")
     args = parser.parse_args()
-    main(year=args.year, dataset=args.dataset, min_count=args.min_count, outfile=args.outfile)
+
+    # Drop could also be a callable according to evaluation.py but not managed as input parameter
+    try:
+        drop = int(args.drop)
+    except ValueError:
+        drop = float(args.drop)
+
+    main(year=args.year, dataset=args.dataset, min_count=args.min_count, outfile=args.outfile, drop=drop)

@@ -157,14 +157,21 @@ class Bags(object):
                  data,
                  owners,
                  owner_attributes=None):
+        """
+
+        :param data: ???, ???
+        :param owners: iterable (prob list), of ids
+        :param owner_attributes: dict, of dicts in form of {attribute: {id: <unknown>}}
+        """
+        # TODO: think about: split between prediction relevant attributes and data splitting infos like year
         assert len(owners) == len(data)
         self.data = data
         self.bag_owners = owners
+        # attributes are called by keys --> just adding new key will suffice
         self.owner_attributes = owner_attributes
 
         # consumes performance
         # self.index2token = invert_mapping(vocab)
-
 
     def clone(self):
         """ Creates a really deep copy """
@@ -193,187 +200,141 @@ class Bags(object):
         """ Computes the number of (non-zero) elements """
         return sum(map(len, self.data))
 
-
-
-    def get_attribute(self, attribute):
+    def get_single_attribute(self, attribute):
+        # TODO: rename to get_attribute() again? at least check for all other calls
+        # TODO: find representation in owner_attributes for doctex
         """
         Retrieves the attribute 'attribute' of each bag owner and returns them as a list
         in the same order as self.bag_owners.
+        :param attribute: hashable (str), key in owner_attributes (~ side_info)
+        :return: vectorizable, ordered like Bag data containing respective attribute
         """
         if self.owner_attributes is None or self.bag_owners is None:
             raise ValueError("Owners not present")
 
-        attributes = []
+        # find how attributes are used --> starting at top level to see what is needed
+        # Answer: vectorizable
+        # use it like before, it worked there
+
+
+
+        attribute_l = []
         for owner in self.bag_owners:
-            attributes.append(self.owner_attributes[attribute][owner])
+            attribute_l.append(self.owner_attributes[attribute][owner])
 
-        return attributes
+        return attribute_l
 
-    ### Attribute features to be dropped ###
+    def get_attributes(self, attribute_list):
+        return [self.get_single_attribute(a) for a in attribute_list]
 
-    # def reverse_vocab(self):
-    #     # This essentially recomputes index2token
-    #     reverse = {}
-    #     for token in self.vocab:
-    #         reverse[self.vocab[token]] = token
-    #     return reverse
-
-    # def get_element_attributes(self, attribute, default_value = None):
-    #    """
-    #    Returns a list of element attributes sorted in the same order as the index.
-    #    Hence, bag.get_element_attributes("<attribute>")[i] returns the value of <attribute>
-    #    of the element represented in column bag.tocsr()[:, i].
-
-    #    Arguments:
-    #    ==========
-    #    attribute : str
-    #        The name of the attribute.
-    #    default_value : default = None
-    #        If a token can not be found in the vocabulary, this value is inserted instead.
-    #    """
-    #    #reverse_voc = self.reverse_vocab()
-    #    reverse_voc = self.index2token
-    #    indices = [idx for idx in reverse_voc]  # No-op
-    #    indices = sorted(indices)
-
-    #    attribute_values = []
-    #    for idx in indices:
-    #        att_dict = self.element_attributes[attribute]
-    #        token = reverse_voc[idx]
-    #        if token in att_dict:
-    #            attribute_values.append(att_dict[token])
-    #        else:
-    #            attribute_values.append(default_value)
-
-    #    return attribute_values
-
-    # def populate_element_attributes(self, element_attributes_file, attributes):
-    #    """
-    #    Fills the bag with element attributes by extracting them from a file.
-    #    Iterates over all elements in all sets, extracts their token, and fills the element_attributes dictionary with
-    #    respective values.
-
-    #    Arguments:
-    #    =========
-    #    element_attributes_file : str
-    #        A .CSV file that contains the values for 'attributes'. Must contain a column 'token' that contains
-    #        the token of the element to retrieve the attribute for, and it must contain a column for each attribute field in the
-    #        list of attributes <attributes>.
-    #    attributes : list of str
-    #        Contains the names of the attributes to extract from the file.
-    #    """
-    #    tokens_in_bag = set([key for key in self.vocab])
-    #    df = pd.read_csv(element_attributes_file, dtype = {"token" : str})
-    #    tokens_in_df = set(df["token"].values)
-
-    #    tokens_in_df_and_bag = tokens_in_df.intersection(tokens_in_bag)
-    #    relevant_df = df[df["token"].isin(tokens_in_df_and_bag)]
-
-    #    for row in relevant_df.iterrows():
-    #        row = row[1]
-    #        for att_name in attributes:
-    #            self.element_attributes[att_name][row["token"]] = row[att_name]
-
-    ### Attribute features to be dropped ###
-
-    # @classmethod
-    # def from_sets(
-    #         self,
-    #         sets,
-    #         set_owners,  # stores the identifier associated with each bag, i.e., the id of the citing document
-    #         owner_attributes,
-    #         max_features=None,
-    #         min_count=None,  # min cited
-    #         min_elements=1):  # min citing
-    #     # this corrups natural order.
-    #     print("Removing duplicate elements...")
-    #     sets = [list(set(x)) for x in sets]  # remove duplicates
-    #     print("Data:", len(sets))
-    #     vocab, counts = build_vocab(
-    #         sets, max_features=max_features, min_count=min_count)
-    #     print("Pruned vocab has", len(vocab), "elements with minimum",
-    #           min_count, "occurences.")
-    #     # TMP disable Dont use
-    #     # print("Filtering set owners...")
-    #     # set_owners = filter_set_owners(set_owners, sets, vocab, min_elements)
-    #     # set_owners = filter_set_owners_slow(set_owners, sets, max_features,
-    #     #                                     min_count, min_elements)
-    #     # ^^^ this is essentially the same vvv there must be a better way
-    #     print("Filtering rare tokens...")
-    #     sets = filter_vocab(sets, vocab)
-    #     print("Converting tokens to indices...")
-    #     data = apply_vocab(sets, vocab)
-    #     # filter too small sets
-    #     print("First 5 bags", data[:5])
-    #     if min_elements:
-    #         print("Filtering sets that contain minimum", min_elements,
-    #               "elements")
-    #         enough = [len(bag) >= min_elements for bag in data]
-    #         data = [b for i, b in enumerate(data) if enough[i]] 
-    #         set_owners = [o for i, o in enumerate(set_owners) if enough[i]] 
-    #         # filtered = filter(lambda row: len(row[0]) >= min_elements,
-    #         #                   zip(data, set_owners))
-    #         # data, set_owners = tuple(zip(*filtered))
-    #         # could also filter owner_attributes here...
-    #     assert len(data) == len(set_owners)
-    #     print("Retained", len(data), "records.")
-    #     # TODO FIXME pass constraints to store in Bags class for rebuilding vocab
-    #     bags = Bags(data, vocab, counts, set_owners, owner_attributes)
-
-    #     return bags
+    def to_dict(self):
+        return dict(enumerate(self.data))
 
     @classmethod
-    def load_tabcomma_format(self, path, unique=False):
+    def load_tabcomma_format(self, path, meta_data_dic = False, unique=False, owner_str="owner", set_str="set"):
         """
+
+        Returns ordered lists for Owner, Set of Owner and a
         Arguments
         =========
 
         """
         # loading
-        # TODO FIXME make the year and the month column int? c0
+
         df = pd.read_csv(path, sep="\t", dtype=str, error_bad_lines=False)
         df = df.fillna("")
 
-        header = list(df.columns.values)
-        owner_attributes = dict()
-        sets = df["set"].values
-        set_owners = df["owner"].values
-        print("Found", len(sets), 'rows')
-
-        meta_vals = []
-        for meta_header in header[2:]:
-            meta_vals.append(df[meta_header].values)
-        print("with", len(header) - 2, "metadata columns.")
-
-
-        # for i, owner in enumerate(set_owners):
-        #     for j in range(2, len(header)):
-        #         owner_attributes[header[j]][owner] = meta_vals[j - 2][i]
-
-        for i in range(2, len(header)):
-            owner_attributes[header[i]] = {}
-            for j, owner in enumerate(set_owners):
-                owner_attributes[header[i]][owner] = meta_vals[i - 2][j]
-
+        set_owners = df[owner_str].values
+        sets = df[set_str].values
         sets = list(map(lambda x: x.split(","), sets))
         if unique:
             print("Making items unique within user.")
             sets = [list(set(s)) for s in sets]
 
 
+        owner_attributes = dict()
+        print("Found", len(sets), 'rows')
+
+        header = list(df.columns.values)
+        fields_freqs = ["{}={}".format(h, df[h].count() / len(df)) for h in header]
+        print("Metadata-fields' frequencies: " + ", ".join(fields_freqs))
+
+        meta_vals = []
+        for meta_header in header[2:]:
+            meta_vals.append(df[meta_header].values)
+        #print("with", len(header) - 2, "metadata columns.")
+
+        for i in range(2, len(header)):
+            owner_attributes[header[i]] = {}
+            for j, owner in enumerate(set_owners):
+                owner_attributes[header[i]][owner] = meta_vals[i - 2][j]
+
+
+        if meta_data_dic:
+
+
+            def iterate_metadata(meta_data, mtdt_transform_table):
+                """
+                    accumulates lists for specified attributes per "owner"
+                    Warning: not working if dependent on other additional keys
+                :param meta_data: pandas DataFrame with the columns for each attribute
+                :param mtdt_transform_table: a dictionary with information which attributes are relevant
+                    # key: name of a table
+                    # owner_id: ID of citing paper
+                    # fields: list of column names in table
+                    # target names: key for these data in the owner_attributes dictionary
+                    # path: absolute path to the csv file
+                :return: dict owner_attributes[<attr_name>][<documentID>].append(<attribute(s)>)
+                """
+                print("create dict from df")
+                owner_attributes = {}
+                for target_attr_name in mtdt_transform_table["target_names"]:
+                    owner_attributes[target_attr_name] = defaultdict(list)
+
+                for index, row in meta_data.iterrows():
+                    # owner_attributes[<attr_name>][<documentID>].append(<attribute(s)>)
+                    for attr, target_name in zip(mtdt_transform_table["fields"],mtdt_transform_table["target_names"]):
+                        owner_id = row[mtdt_transform_table["owner_id"]]
+                        attr_value = row[attr]
+                        owner_attributes[target_name][owner_id].append(attr_value)
+
+
+
+                print("creating dict finished")
+                return owner_attributes
+
+            # loads each table from file, selects the relevant attributes and adds them to the owner_attributes
+            for key in meta_data_dic.keys():
+                mtdt_transform_table = meta_data_dic[key]
+                # loading meta data and select the relevant
+                auth_path = mtdt_transform_table["path"]
+                meta_data = pd.read_csv(auth_path, error_bad_lines=False, dtype=str)
+                print("Metadata-fields' frequencies: {}={}".format(key,
+                    meta_data[mtdt_transform_table["owner_id"]].nunique() / len(df)))
+
+                targets = [mtdt_transform_table["owner_id"]] + mtdt_transform_table["fields"]
+                meta_data = meta_data[targets]
+                # add the additional attributes
+
+                owner_attributes.update(iterate_metadata(meta_data, mtdt_transform_table))
+
         bags = Bags(sets, set_owners, owner_attributes=owner_attributes)
 
         return bags
 
     def train_test_split(self, on_year=None, **split_params):
-        """ Returns one training bags instance and one test bag instance.
+        """ Returns one training bag instance and one test bag instance.
         Builds the vocabulary from the training set.
+
+        :param on_year: int, split on this year
+        :param **split_params:
+        :return: tuple, first training bag instance, second test bag instance
         """
         if on_year is not None:
             print("Splitting data on year:", on_year)
             assert self.owner_attributes['year'], "Cant split on non-existing 'year'"
             on_year = int(on_year)
-            is_train = [int(y) < on_year for y in self.get_attribute('year')]
+            is_train = [int(y) < on_year for y in self.get_single_attribute('year')]
             train_data, test_data = split_by_mask(self.data, is_train)
             train_owners, test_owners = split_by_mask(self.bag_owners, is_train)
         else:
@@ -425,69 +386,6 @@ class Bags(object):
         self.owner_attributes = attributes
         return self
 
-    # END BASIC FUNCTIONALITY
-
-    # def split(self, is_test, is_train = lambda x : True):
-    #     """
-    #     Splits the bag into two parts between which the data is disjoint.
-
-    #     Parameters:
-    #         - is_test: A function 'token' -> Bool that determines for each
-    #         token whether it should belong to the second set returned or not.
-    #         - is_train: A function 'token' -> Bool that determines for each
-    #         token whether it should belong to the first set returned or not.
-    #         Note that it will only be assigned to the first set if it has not
-    #         already been assigned to the second one. By default, it will
-    #         automatically be assigned
-    #         to the first set if is_test yields False for the token.
-
-    #     Returns:
-    #         - train_bag : The first bag
-    #         - test_bag : The second bag
-    #     """
-    #     raise DeprecationWarning("Use train_test_split() instead.")
-
-    #     # split owners
-    #     train_owners = []
-    #     test_owners = []
-
-    #     n_ignored = 0
-    #     for i, owner in enumerate(self.bag_owners):
-    #         # are 2 *different* criterions really necessary TODO FIXME
-    #         if is_test(owner):
-    #             test_owners.append(i)
-    #         elif is_train(owner):
-    #             train_owners.append(i)
-    #         else:
-    #             n_ignored += 1
-    #             # raise ValueError("{} is neither train nor test.".format(owner))
-
-    #     print("{} train documents, {} test documents".format(len(train_owners), len(test_owners)))
-    #     print(n_ignored, "documents are neither train nor test.")
-
-    #     train_bag_owners = [self.bag_owners[i] for i in train_owners]
-    #     test_bag_owners = [self.bag_owners[i] for i in test_owners]
-
-    #     # select data columns accordingly
-    #     train_data = [self.data[i] for i in train_owners]
-    #     test_data = [self.data[i] for i in test_owners]
-
-    #     # build new bags
-    #     train_bag = Bags(
-    #         train_data,
-    #         self.vocab,
-    #         self.counts,
-    #         train_bag_owners,
-    #         owner_attributes=self.owner_attributes)
-    #     test_bag = Bags(
-    #         test_data,
-    #         self.vocab,
-    #         self.counts,
-    #         test_bag_owners,
-    #         owner_attributes=self.owner_attributes)
-
-    #     return train_bag, test_bag
-
     def inflate(self, factor):
         # TODO FIXME
         """
@@ -507,6 +405,7 @@ class Bags(object):
         # no
         # current_data = self.data.copy()
         # current_owners = self.bag_owners.copy()
+        raise DeprecationWarning("This method should not be used")
 
         for __i in range(1, factor):
             self.data.extend([[t for t in b] for b in self.data])
@@ -546,13 +445,13 @@ class BagsWithVocab(Bags):
         raise ValueError("A vocabulary has already been applied.")
 
     def __str__(self):
-        s = "{} elements in [{}, {}] with density {}"
+        s = "{} elements in [{}, {}] [data_points,vocabulary_size] with density {}"
         return s.format(self.numel(), *self.size(), self.density())
 
     def size(self, dim=None):
         sizes = (len(self.data), len(self.vocab))
 
-        if dim:
+        if dim is not None:
             return sizes[dim]
         else:
             return sizes
