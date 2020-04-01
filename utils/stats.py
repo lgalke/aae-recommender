@@ -14,7 +14,7 @@ from eval.mpd.mpd import playlists_from_slices, unpack_playlists
 from eval.econis import load as load_econis, unpack_papers_conditions as unpack_papers_econis
 
 # Possible values: pubmed, dblp, acm, swp, rcv, econbiz, mpd
-dataset = "rcv"
+dataset = "pubmed"
 # only papers/labels with at least min_x_cit citations/occurrences
 # in the plot of the distribution of papers/labels by citations/occurrences
 # Set to 0 if not relevant
@@ -36,7 +36,7 @@ min_x_set = 0
 max_x_set = 500
 # Shows the y-value at the given mark_x_cit
 # Set to None if not relevant
-mark_x_set = 100
+mark_x_set = 1
 # Only papers from min_year
 min_year = 1970
 
@@ -169,11 +169,13 @@ def generate_years_citations_set_cnts(papers, dataset):
 
     return years, citations, set_cnts
 
-def generate_citations(df):
+def generate_citations(df, dataset):
     citations = {}
 
+    key = "cited" if dataset == "pubmed" else "set"
+
     for index, paper in df.iterrows():
-        for ref in paper["set"].split(","):
+        for ref in paper[key].split(","):
             if ref == "":
                 continue
             try:
@@ -184,11 +186,14 @@ def generate_citations(df):
     return citations
 
 
-def set_count(df):
+def set_count(df, dataset):
     set_cnts = {}
 
+    owner = "pmId" if dataset == "pubmed" else "owner"
+    set = "cited" if dataset == "pubmed" else "set"
+
     for index, paper in df.iterrows():
-        set_cnts[paper["owner"]] = len(paper["set"].split(","))
+        set_cnts[paper[owner]] = len(paper[set].split(","))
 
     return set_cnts
 
@@ -202,7 +207,8 @@ def set_path(ds):
     elif ds == "mpd":
         p = "/data21/lgalke/datasets/MPD/data/"
     elif ds == "pubmed":
-        p = "/data21/lgalke/datasets/PMC/citations_pmc.tsv"
+        # p = "/data21/lgalke/datasets/PMC/citations_pmc.tsv"
+        p = "/data22/ggerstenkorn/citation_data_preprocessing/final_data/owner_list_cleaned.csv"
     elif ds == "econbiz":
         p = "/data21/lgalke/datasets/econbiz62k.tsv"
     else:
@@ -275,12 +281,12 @@ else:
     # replace nan with empty string
     df = df.replace(np.nan, "", regex=True)
 
-    citations = generate_citations(df)
+    citations = generate_citations(df, dataset)
     print("Generating {} distribution"
           .format("citations" if dataset == "pubmed" else "occurrences"))
     citations = paper_by_n_citations(citations)
 
-    set_cnts = set_count(df)
+    set_cnts = set_count(df, dataset)
 
     print("Unpacking {} data...".format(dataset))
     if dataset == "pubmed":

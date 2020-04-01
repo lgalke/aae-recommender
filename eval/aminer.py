@@ -184,6 +184,7 @@ def unpack_papers(papers, aggregate=None):
             assert attr in PAPER_INFO
 
     bags_of_refs, ids, side_info, years, authors, venue = [], [], {}, {}, {}, {}
+    title_cnt = author_cnt = ref_cnt = venue_cnt = one_ref_cnt = 0
     for paper in papers:
         # Extract ids
         ids.append(paper["id"])
@@ -193,6 +194,8 @@ def unpack_papers(papers, aggregate=None):
             bags_of_refs.append(paper["references"])
             if len(paper["references"]) > 0:
                 ref_cnt += 1
+            if len(paper["references"]) == 1:
+                one_ref_cnt += 1
         except KeyError:
             bags_of_refs.append([])
         # Use dict here such that we can also deal with unsorted ids
@@ -231,8 +234,8 @@ def unpack_papers(papers, aggregate=None):
             aggregated_paper_info = aggregate_paper_info(paper, aggregate)
             side_info[paper["id"]] += ' ' + aggregated_paper_info
 
-    print("Metadata-fields' frequencies: references={}, title={}, authors={}, venue={}"
-          .format(ref_cnt/len(papers), title_cnt/len(papers), author_cnt/len(papers), venue_cnt/len(papers)))
+    print("Metadata-fields' frequencies: references={}, title={}, authors={}, venue={}, one-reference={}"
+          .format(ref_cnt/len(papers), title_cnt/len(papers), author_cnt/len(papers), venue_cnt/len(papers), one_ref_cnt/len(papers)))
 
     # bag_of_refs and ids should have corresponding indices
     # In side info the id is the key
