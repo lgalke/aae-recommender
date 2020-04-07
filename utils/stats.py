@@ -22,7 +22,7 @@ min_x_cit = 0
 # only papers/labels with at most man_x_cit citations/occurrences
 # in the plot of the distribution of papers/labels by citations/occurrences
 # Set to None if not relevant
-max_x_cit = 100000
+max_x_cit = None
 # Shows the y-value at the given mark_x_cit
 # Set to None if not relevant
 mark_x_cit = 50
@@ -33,7 +33,7 @@ min_x_set = 0
 # only papers/labels with at most man_x_cit citations/occurrences
 # in the plot of the distribution of papers/labels by citations/occurrences
 # Set to None if not relevant
-max_x_set = 500
+max_x_set = None
 # Shows the y-value at the given mark_x_cit
 # Set to None if not relevant
 mark_x_set = 1
@@ -43,6 +43,24 @@ min_year = 1970
 
 def compute_stats(A):
     return A.shape[1], A.min(), A.max(), np.median(A, axis=1)[0, 0], A.mean(), A.std()
+
+
+def power_law_exponent(degrees, dmin=None):
+    # TODO At now array from dict that has not a key for every x but only for the one > 0. Is that ok?
+    print("Computing power law exponent")
+
+    if dmin is None:
+        dmin = degrees.min()
+    else:
+        degrees = degrees[degrees >= dmin]
+
+    # N must be number of values that go into computation
+    # Not total number of nodes
+    n = degrees.size
+    print("d_min =", dmin)
+    print("N =", n)
+    gamma = 1 + n / np.log(degrees / dmin).sum()
+    print("Gamma = {:.4f}".format(gamma))
 
 
 def plot(objects, dataset, x_dim, y_dim, x=None):
@@ -168,6 +186,7 @@ def generate_years_citations_set_cnts(papers, dataset):
             set_cnts[paper["pid"]] = len(paper["tracks"])
 
     return years, citations, set_cnts
+
 
 def generate_citations(df, dataset):
     citations = {}
@@ -325,6 +344,9 @@ elif dataset == "swp" or dataset == "rcv" or dataset == "econbiz":
 else:
     y_dim = 'Papers'
 
+print("The power-law distribution's exponent for {} is {}"
+      .format(x_dim, power_law_exponent(np.array(list(citations.values())))))
+
 print("Plotting {} distribution by number of {} on file"
       .format("papers'" if x_dim == "Citations" else "labels'", x_dim.lower()))
 # show the y-value for the bar at x=mark_x_cit in the plot
@@ -334,6 +356,9 @@ print("Generating reference/label/track distribution")
 set_cnts = paper_by_n_citations(set_cnts)
 set_cnts = from_to_key(set_cnts, min_x_set, max_x_set)
 set_cnts = collections.OrderedDict(sorted(set_cnts.items()))
+# print("Reference/label/track")
+# print(set_cnts)
+print("Total documents: {}".format(np.sum(set_cnts.keys())))
 
 if dataset == "pubmed" or dataset == "acm" or dataset == "dblp":
     x_dim = "References"
@@ -341,6 +366,9 @@ elif dataset == "mpd":
     x_dim = "Tracks"
 else:
     x_dim = "Labels"
+
+print("The power-law distribution's exponent for {} is {}"
+      .format(x_dim, power_law_exponent(np.array(list(set_cnts.values())))))
 
 print("Plotting papers' distribution by number of their {} on file".format(x_dim.lower()))
 y_dim = "Papers" if dataset != "mpd" else "Playlists"
