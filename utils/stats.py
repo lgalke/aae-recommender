@@ -344,8 +344,8 @@ elif dataset == "swp" or dataset == "rcv" or dataset == "econbiz":
 else:
     y_dim = 'Papers'
 
-print("The power-law distribution's exponent for {} is {}"
-      .format(x_dim, power_law_exponent(np.array(list(citations.values())))))
+print("The power-law distribution's exponent for {}:".format(x_dim))
+power_law_exponent(np.array(list(citations.values())))
 
 print("Plotting {} distribution by number of {} on file"
       .format("papers'" if x_dim == "Citations" else "labels'", x_dim.lower()))
@@ -358,7 +358,7 @@ set_cnts = from_to_key(set_cnts, min_x_set, max_x_set)
 set_cnts = collections.OrderedDict(sorted(set_cnts.items()))
 # print("Reference/label/track")
 # print(set_cnts)
-print("Total documents: {}".format(np.sum(set_cnts.keys())))
+print("Total documents: {}".format(np.array(list(set_cnts.keys()).sum())))
 
 if dataset == "pubmed" or dataset == "acm" or dataset == "dblp":
     x_dim = "References"
@@ -367,8 +367,8 @@ elif dataset == "mpd":
 else:
     x_dim = "Labels"
 
-print("The power-law distribution's exponent for {} is {}"
-      .format(x_dim, power_law_exponent(np.array(list(set_cnts.values())))))
+print("The power-law distribution's exponent for {}:".format(x_dim))
+power_law_exponent(np.array(list(set_cnts.values())))
 
 print("Plotting papers' distribution by number of their {} on file".format(x_dim.lower()))
 y_dim = "Papers" if dataset != "mpd" else "Playlists"
