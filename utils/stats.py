@@ -358,7 +358,7 @@ set_cnts = from_to_key(set_cnts, min_x_set, max_x_set)
 set_cnts = collections.OrderedDict(sorted(set_cnts.items()))
 # print("Reference/label/track")
 # print(set_cnts)
-print("Total documents: {}".format(np.array(list(set_cnts.keys()).sum())))
+print("Total documents: {}".format(np.array(list(set_cnts.keys())).sum()))
 
 if dataset == "pubmed" or dataset == "acm" or dataset == "dblp":
     x_dim = "References"
