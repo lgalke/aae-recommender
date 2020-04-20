@@ -25,11 +25,11 @@ CLEAN = False
 DEBUG_LIMIT = None
 METRICS = ['mrr', 'map']
 
-W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
-W2V_IS_BINARY = True
-print("Loading pre-trained embedding", W2V_PATH)
-VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
-print("Done")
+# W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
+# W2V_IS_BINARY = True
+# print("Loading pre-trained embedding", W2V_PATH)
+# VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
+# print("Done")
 
 ae_params = {
     'n_code': 50,
@@ -57,39 +57,39 @@ BASELINES = [
     SVDRecommender(1000, use_title=False),
 ]
 
-RECOMMENDERS = [
-    AAERecommender(adversarial=False, lr=0.001,
-                   **ae_params),
-    AAERecommender(prior='gauss', gen_lr=0.001,
-                   reg_lr=0.001, **ae_params),
-    VAERecommender(conditions=None, **vae_params),
-    DAERecommender(conditions=None, **ae_params)
-]
+# RECOMMENDERS = [
+#     AAERecommender(adversarial=False, lr=0.001,
+#                    **ae_params),
+#     AAERecommender(prior='gauss', gen_lr=0.001,
+#                    reg_lr=0.001, **ae_params),
+#     VAERecommender(conditions=None, **vae_params),
+#     DAERecommender(conditions=None, **ae_params)
+# ]
 
-CONDITIONS = ConditionList([
-    ('title', PretrainedWordEmbeddingCondition(VECTORS)),
-#    ('author', CategoricalCondition(embedding_dim=32, reduce="sum",
-#                                    sparse=True, embedding_on_gpu=True))
-])
+# CONDITIONS = ConditionList([
+    # ('title', PretrainedWordEmbeddingCondition(VECTORS)),
+# #    ('author', CategoricalCondition(embedding_dim=32, reduce="sum",
+# #                                    sparse=True, embedding_on_gpu=True))
+# ])
 
-CONDITIONED_MODELS = [
-    # TODO SVD can use only titles not generic conditions
-    SVDRecommender(1000, use_title=True),
-    AAERecommender(adversarial=False,
-                  conditions=CONDITIONS,
-                  lr=0.001,
-                  **ae_params),
-    AAERecommender(adversarial=True,
-                  conditions=CONDITIONS,
-                  gen_lr=0.001,
-                  reg_lr=0.001,
-                  **ae_params),
-    DecodingRecommender(CONDITIONS,
-                       n_epochs=20, batch_size=500, optimizer='adam',
-                        n_hidden=100, lr=0.001, verbose=True),
-    VAERecommender(conditions=CONDITIONS, **vae_params),
-    DAERecommender(conditions=CONDITIONS, **ae_params)
-]
+# CONDITIONED_MODELS = [
+#     # TODO SVD can use only titles not generic conditions
+#     SVDRecommender(1000, use_title=True),
+#     AAERecommender(adversarial=False,
+#                   conditions=CONDITIONS,
+#                   lr=0.001,
+#                   **ae_params),
+#     AAERecommender(adversarial=True,
+#                   conditions=CONDITIONS,
+#                   gen_lr=0.001,
+#                   reg_lr=0.001,
+#                   **ae_params),
+#     DecodingRecommender(CONDITIONS,
+#                        n_epochs=20, batch_size=500, optimizer='adam',
+#                         n_hidden=100, lr=0.001, verbose=True),
+#     VAERecommender(conditions=CONDITIONS, **vae_params),
+#     DAERecommender(conditions=CONDITIONS, **ae_params)
+# ]
 
 
 def load(path):
@@ -245,13 +245,13 @@ def main(year, min_count=None, outfile=None, drop=1):
     del papers
     bags = Bags(bags_of_papers, ids, side_info)
     if args.compute_mi:
-        from sklearn.metrics import mutual_info_score
-        print("Computing MI on full dataset ")
-        X = bags.build_vocab(min_count=args.min_count, max_features=None).tocsr()
-        C = X.T @ X
-        print("(Pairwise) mutual information:", mutual_info_score(None, None, contingency=C))
-        # Exit in this case
-        print("Bye.")
+        from aaerec.utils import compute_mutual_info
+        print("[MI] Dataset: IREON (fiv)")
+        print("[MI] min Count:", min_count)
+        tmp = bags.build_vocab(min_count=min_count, max_features=None)
+        compute_mutual_info(tmp, conditions=None, include_labels=True,
+                            normalize=True)
+        print("=" * 78)
         exit(0)
 
     log("Whole dataset:", logfile=outfile)
@@ -275,7 +275,7 @@ if __name__ == '__main__':
     parser.add_argument('year', type=int,
                         help='First year of the testing set.')
     parser.add_argument('-m', '--min-count', type=int,
-                        help='Pruning parameter', default=50)
+                        help='Pruning parameter', default=None)
     parser.add_argument('-o', '--outfile',
                         help="File to store the results.",
                         type=str, default=None)

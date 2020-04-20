@@ -32,11 +32,11 @@ DEBUG_LIMIT = None
 
 # These need to be implemented in evaluation.py
 METRICS = ['mrr', 'map']
-W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
-W2V_IS_BINARY = True
+# W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
+# W2V_IS_BINARY = True
 
-print("Loading pre-trained embedding", W2V_PATH)
-VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
+# print("Loading pre-trained embedding", W2V_PATH)
+# VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 
 ae_params = {
     'n_code': 50,
@@ -57,9 +57,9 @@ vae_params = {
     'normalize_inputs': True,
 }
 
-CONDITIONS = ConditionList([
-    ('title', PretrainedWordEmbeddingCondition(VECTORS))
-])
+# CONDITIONS = ConditionList([
+#     ('title', PretrainedWordEmbeddingCondition(VECTORS))
+# ])
 
 MODELS = [
     # Countbased(),  # Only item sets
@@ -79,8 +79,8 @@ MODELS = [
     # DecodingRecommender(n_epochs=100, batch_size=100, optimizer='adam',
     #                     n_hidden=100, embedding=VECTORS,
     #                     lr=0.001, verbose=True)  # Only Title
-    VAERecommender(conditions=CONDITIONS, **vae_params),
-    DAERecommender(conditions=CONDITIONS, **ae_params)
+    # VAERecommender(conditions=CONDITIONS, **vae_params),
+    # DAERecommender(conditions=CONDITIONS, **ae_params)
     # Put more here...
 ]
 
@@ -125,13 +125,13 @@ def main(outfile=None, min_count=None):
     print("Loading data from", DATA_PATH)
     bags = Bags.load_tabcomma_format(DATA_PATH, unique=True)
     if args.compute_mi:
-        from sklearn.metrics import mutual_info_score
-        print("Computing MI on full dataset ")
-        X = bags.build_vocab(min_count=args.min_count, max_features=None).tocsr()
-        C = X.T @ X
-        print("(Pairwise) mutual information:", mutual_info_score(None, None, contingency=C))
-        # Exit in this case
-        print("Bye.")
+        from aaerec.utils import compute_mutual_info
+        print("[MI] Dataset: Reuters")
+        print("[MI] min Count:", min_count)
+        tmp = bags.build_vocab(min_count=min_count, max_features=None)
+        compute_mutual_info(tmp, conditions=None, include_labels=True,
+                            normalize=True)
+        print("=" * 78)
         exit(0)
     log("Whole dataset:", logfile=outfile)
     log(bags, logfile=outfile)

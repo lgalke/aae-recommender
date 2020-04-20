@@ -1,0 +1,93 @@
+Loading data from /data22/ivagliano/SWP/FivMetadata_clean.json
+Unpacking IREON data...
+[MI] Dataset: IREON (fiv)
+[MI] min Count: None
+[MI] Put labels into csr format...
+[MI] Y shape (labels): (76359, 10440)
+[MI] X shape (features): (76359, 10440)
+[MI] Computing contingency table...
+[MI] contingency (10440, 10440) float64
+[MI] Computing mutual information...
+[MI] Mutual information (base e): 1.5155694207276322
+[MI] Computing label entropy...
+[MI] Normalizing with feature entropy: 7.664878157141518
+[MI] Normalized Mutual information (base e): 0.19772909492573554
+==============================================================================
+Namespace(compute_mi=True, min_count=None, outfile=None)
+Loading data from /data22/ivagliano/Reuters/rcv1.tsv
+Making items unique within user.
+Found 744693 rows
+[MI] Dataset: Reuters
+[MI] min Count: None
+[MI] Put labels into csr format...
+[MI] Y shape (labels): (744693, 104)
+[MI] X shape (features): (744693, 104)
+[MI] Computing contingency table...
+[MI] contingency (104, 104) float64
+[MI] Computing mutual information...
+[MI] Mutual information (base e): 1.1639243092018587
+[MI] Computing label entropy...
+[MI] Normalizing with feature entropy: 3.629451554396518
+[MI] Normalized Mutual information (base e): 0.3206887574493025
+==============================================================================
+Loading data from /data22/ivagliano/econis/econbiz62k-extended.json
+Unpacking data...
+[MI] Dataset: ECONIS
+[MI] min Count: None
+[MI] Put labels into csr format...
+[MI] Y shape (labels): (61607, 4587)
+[MI] X shape (features): (61607, 4587)
+[MI] Computing contingency table...
+[MI] contingency (4587, 4587) float64
+[MI] Computing mutual information...
+[MI] Mutual information (base e): 2.0590876358085795
+[MI] Computing label entropy...
+[MI] Normalizing with feature entropy: 6.932660985483196
+[MI] Normalized Mutual information (base e): 0.29701259590224494
+==============================================================================
+Loading data from /data22/ivagliano/aminer/dblp-ref/
+Unpacking dblp data...
+[MI] Dataset: dblp
+[MI] min Count: None
+[MI] Put labels into csr format...
+[MI] Y shape (labels): (3079007, 1985921)
+[MI] X shape (features): (3079007, 1985921)
+[MI] Computing contingency table...
+[MI] contingency (1985921, 1985921) float64
+[MI] Computing mutual information...
+[MI] Mutual information (base e): 7.1401291641694735
+[MI] Computing label entropy...
+[MI] Normalizing with feature entropy: 13.204533089764139
+[MI] Normalized Mutual information (base e): 0.5407331797066224
+==============================================================================
+Loading data from /data22/ivagliano/aminer/acm.txt
+Unpacking acm data...
+[MI] Dataset: acm
+[MI] min Count: None
+[MI] Put labels into csr format...
+[MI] Y shape (labels): (2385066, 2631128)
+[MI] X shape (features): (2385066, 2631128)
+[MI] Computing contingency table...
+[MI] contingency (2631128, 2631128) float64
+[MI] Computing mutual information...
+[MI] Mutual information (base e): 6.560546793828111
+[MI] Computing label entropy...
+[MI] Normalizing with feature entropy: 12.421437294097698
+[MI] Normalized Mutual information (base e): 0.5281632582845699
+==============================================================================
+Computing Mutual Info with args
+Namespace(dataset='/data21/lgalke/datasets/citations_pmc.tsv', max_features=None, min_count=None)
+Making items unique within user.
+Found 224092 rows
+[MI] Dataset: CITREC
+[MI] min Count: None
+[MI] Put labels into csr format...
+[MI] Y shape (labels): (224092, 2896764)
+[MI] X shape (features): (224092, 2896764)
+[MI] Computing contingency table...
+[MI] contingency (2896764, 2896764) float64
+[MI] Computing mutual information...
+[MI] Mutual information (base e): 8.559119191132712
+[MI] Computing label entropy...
+[MI] Normalizing with feature entropy: 14.273952969286967
+[MI] Normalized Mutual information (base e): 0.5996320157106606
