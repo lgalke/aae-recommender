@@ -180,8 +180,10 @@ def main(year, min_count=None, outfile=None, drop=1):
         print("[MI] Dataset: ECONIS")
         print("[MI] min Count:", min_count)
         tmp = bags.build_vocab(min_count=min_count, max_features=None)
-        compute_mutual_info(tmp, conditions=None, include_labels=True,
-                            normalize=True)
+        mi = compute_mutual_info(tmp, conditions=None, include_labels=True,
+                                 normalize=True)
+        with open('mi.csv', 'a') as mifile:
+            print('EconBiz', min_count, mi, sep=',', file=mifile)
         print("=" * 78)
         exit(0)
 
