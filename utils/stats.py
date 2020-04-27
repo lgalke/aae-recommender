@@ -1,3 +1,4 @@
+import argparse
 import collections
 import os
 import matplotlib
@@ -13,12 +14,21 @@ from eval.fiv import load, unpack_papers as unpack_papers_fiv
 from eval.mpd.mpd import playlists_from_slices, unpack_playlists
 from eval.econis import load as load_econis, unpack_papers_conditions as unpack_papers_econis
 
+PARSER = argparse.ArgumentParser()
+PARSER.add_argument('-d', '--dataset', type=str,
+                    help='Possible values: pubmed, dblp, acm, swp, rcv, econbiz, mpd')
+PARSER.add_argument('-m', '--min-count', type=int,
+                    help='Pruning parameter', default=0)
+
+ARGS = PARSER.parse_args()
+
+
 # Possible values: pubmed, dblp, acm, swp, rcv, econbiz, mpd
-dataset = "pubmed"
+dataset = ARGS.dataset
 # only papers/labels with at least min_x_cit citations/occurrences
 # in the plot of the distribution of papers/labels by citations/occurrences
 # Set to 0 if not relevant
-min_x_cit = 0
+min_x_cit = ARGS.min_count
 # only papers/labels with at most man_x_cit citations/occurrences
 # in the plot of the distribution of papers/labels by citations/occurrences
 # Set to None if not relevant
@@ -29,7 +39,7 @@ mark_x_cit = 50
 # only papers/labels with at least min_x_cit citations/occurrences
 # in the plot of the distribution of papers/labels by citations/occurrences
 # Set to 0 if not relevant
-min_x_set = 0
+min_x_set = ARGS.min_count
 # only papers/labels with at most man_x_cit citations/occurrences
 # in the plot of the distribution of papers/labels by citations/occurrences
 # Set to None if not relevant
