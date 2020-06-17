@@ -22,7 +22,7 @@ For pytorch, please refer to their [installation
 instructions](http://pytorch.org/) that depend on the python/CUDA setup you are
 working in.
 
-To use pretreined word-embeddings download [the `word2vec` Google News corpus](https://github.com/mmihaltz/word2vec-GoogleNews-vectors)
+To use pretreined word-embeddings, the [`word2vec` Google News](https://github.com/mmihaltz/word2vec-GoogleNews-vectors) corpus should be download.
 
 ## Installation
 
