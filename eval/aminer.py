@@ -21,15 +21,15 @@ from eval.mpd.mpd import log
 
 from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, CategoricalCondition
 
-# Should work on kdsrv03
-DATA_PATH = "/data22/ivagliano/aminer/"
+# Set to a folder containing both ACM and DBLP datasets
+DATA_PATH = "../aminer/"
 DEBUG_LIMIT = None
-# authors is an array of strings, n_citation is an integer: do they make sense used in this way?
 PAPER_INFO = ['title', 'venue', 'author']
 # TODO Add it as parameters of evaluate() to make it effective (see mpd.py)
 # METRICS = ['mrr', 'map']
 
-W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
+# Set to the word2vec-Google-News-corpus file
+W2V_PATH = "../vectors/GoogleNews-vectors-negative300.bin.gz"
 W2V_IS_BINARY = True
 print("Loading keyed vectors") 
 VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
@@ -48,29 +48,21 @@ BASELINES = [
     # RandomBaseline(),
     # MostPopular(),
     Countbased(),
-    SVDRecommender(1000, use_title=False),
+    SVDRecommender(1000, use_title=False)
 ]
 
 RECOMMENDERS = [
-    # AAERecommender(use_title=False, adversarial=False, lr=0.0001,
-    #                **ae_params),
-    # AAERecommender(use_title=False, prior='gauss', gen_lr=0.0001,
-    #                reg_lr=0.0001, **ae_params),
-    # VAERecommender(conditions=None, **ae_params)
-    # DAERecommender(conditions=None, **ae_params)
+    AAERecommender(use_title=False, adversarial=False, lr=0.0001,
+                   **ae_params),
+    AAERecommender(use_title=False, prior='gauss', gen_lr=0.0001,
+                   reg_lr=0.0001, **ae_params),
+    VAERecommender(conditions=None, **ae_params),
+    DAERecommender(conditions=None, **ae_params)
 ]
 
-# TITLE_ENHANCED = [
-#     SVDRecommender(1000, use_title=True),
-#     DecodingRecommender(n_epochs=100, batch_size=100, optimizer='adam',
-#                         n_hidden=100, embedding=VECTORS,
-#                         lr=0.001, verbose=True),
-#     AAERecommender(adversarial=False, use_title=True, lr=0.001,
-#                    **ae_params),
-#     AAERecommender(adversarial=True, use_title=True,
-#                    prior='gauss', gen_lr=0.001, reg_lr=0.001,
-#                    **ae_params),
-# ]
+TITLE_ENHANCED = [
+    SVDRecommender(1000, use_title=True)
+]
 
 CONDITIONS = ConditionList([
     ('title', PretrainedWordEmbeddingCondition(VECTORS)),
@@ -259,6 +251,7 @@ def main(year, dataset, min_count=None, outfile=None, drop=1):
     evaluation = Evaluation(bags, year, logfile=outfile)
     evaluation.setup(min_count=min_count, min_elements=2, drop=drop)
 
+    # To evaluate the baselines and the recommenders without metadata (or just the recommenders without metadata)
     # with open(outfile, 'a') as fh:
     #     print("~ Partial List", "~" * 42, file=fh)
     # evaluation(BASELINES + RECOMMENDERS)
@@ -266,6 +259,7 @@ def main(year, dataset, min_count=None, outfile=None, drop=1):
 
     with open(outfile, 'a') as fh:
         print("~ Partial List + Titles + Author + Venue", "~" * 42, file=fh)
+    # To evaluate SVD with titles
     # evaluation(TITLE_ENHANCED)
     evaluation(CONDITIONED_MODELS, batch_size=1000)
 

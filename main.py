@@ -18,10 +18,11 @@ from aaerec.dae import DAERecommender
 from gensim.models.keyedvectors import KeyedVectors
 
 from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, CategoricalCondition
-W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
+# Set this to the word2vec Google News corpus file
+W2V_PATH = "./vectors/GoogleNews-vectors-negative300.bin.gz"
 W2V_IS_BINARY = True
 
-
+# Command line arguments
 PARSER = argparse.ArgumentParser()
 PARSER.add_argument('dataset', type=str,
                     help='path to dataset')

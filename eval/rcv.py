@@ -12,9 +12,6 @@ import numpy as np
 import scipy.sparse as sp
 
 
-# Imports are broken, you can quickfix via symlink
-# cd eval/mpd/; ln -s ../../aaerec aaerec
-
 from aaerec.datasets import Bags, corrupt_sets
 from aaerec.transforms import lists2sparse
 from aaerec.evaluation import remove_non_missing, evaluate
@@ -26,13 +23,14 @@ from aaerec.dae import DAERecommender
 from gensim.models.keyedvectors import KeyedVectors
 from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, CategoricalCondition
 
-# Should work on kdsrv03
-DATA_PATH = "/data22/ivagliano/Reuters/rcv1.tsv"
+# Set it to the RCV-dataset file
+DATA_PATH = "../Reuters/rcv1.tsv"
 DEBUG_LIMIT = None
 
 # These need to be implemented in evaluation.py
 METRICS = ['mrr', 'map']
-W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
+# Set it to the word2vec-Google-News-corpus file
+W2V_PATH = "../vectors/GoogleNews-vectors-negative300.bin.gz"
 W2V_IS_BINARY = True
 
 print("Loading pre-trained embedding", W2V_PATH)
