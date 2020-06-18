@@ -75,7 +75,7 @@ For `EconBiz`, only titles are available and we are currently asserting that cop
 Further public datasets used were the DBLP-Citation-network V10 and ACM-Citation-network V9 datasets from the [AMiner](https://www.aminer.org/citation) project, and the [Reuters RCV1](https://trec.nist.gov/data/reuters/reuters.html) corpora.
 We converted the provided XML dumps into the dataset format above, using the [`parse_reuters.py`](utils/parse_reuters.py) script.
 
-We also run experiments with the Million Playlist Dataset (MPD), provided by [Spotify](https://research.spotify.com/datasets), and IREON, provided by [FIV](https://fiviblk.de/), but we are not allowed to redistribute them. The MPD dataset was used only to participate to the [RecSys Challenge 2018](http://www.recsyschallenge.com/2018/).
+We also run experiments with the Million Playlist Dataset (MPD), provided by [Spotify](https://research.spotify.com/datasets), and IREON, provided by [FIV](https://fiviblk.de/), but we are not allowed to redistribute them. The MPD dataset was used only to participate to the [RecSys Challenge 2018](http://www.recsyschallenge.com/2018/) (see more information [here](https://github.com/lgalke/mpd-aae-recommender)). 
 
 ## References and cite
 
