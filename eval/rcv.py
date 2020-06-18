@@ -23,12 +23,12 @@ from aaerec.dae import DAERecommender
 from gensim.models.keyedvectors import KeyedVectors
 from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, CategoricalCondition
 
-# Set it to the RCV-dataset file
+# Set it to the Reuters RCV dataset
 DATA_PATH = "../Reuters/rcv1.tsv"
 DEBUG_LIMIT = None
-
 # These need to be implemented in evaluation.py
 METRICS = ['mrr', 'map']
+
 # Set it to the word2vec-Google-News-corpus file
 W2V_PATH = "../vectors/GoogleNews-vectors-negative300.bin.gz"
 W2V_IS_BINARY = True
@@ -36,6 +36,7 @@ W2V_IS_BINARY = True
 print("Loading pre-trained embedding", W2V_PATH)
 VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 
+# Hyperparameters
 ae_params = {
     'n_code': 50,
     'n_epochs': 100,
@@ -44,7 +45,6 @@ ae_params = {
     'n_hidden': 100,
     'normalize_inputs': True,
 }
-
 vae_params = {
     'n_code': 50,
     # VAE results get worse with more epochs in preliminary optimization 
@@ -55,12 +55,14 @@ vae_params = {
     'normalize_inputs': True,
 }
 
+# Metadata to use
 CONDITIONS = ConditionList([
     ('title', PretrainedWordEmbeddingCondition(VECTORS))
 ])
 
+# Models without/with metadata (Reuters has only titles)
 MODELS = [
-    # Only item sets
+    # Use no metadata (only item sets)
     Countbased(),
     SVDRecommender(10, use_title=False),
     AAERecommender(adversarial=False, lr=0.001, **ae_params),
@@ -68,7 +70,7 @@ MODELS = [
                    reg_lr=0.001, **ae_params),
     VAERecommender(conditions=None, **vae_params),
     DAERecommender(conditions=None, **ae_params),
-    # Title/condition(s)-enhanced
+    # Use title (as defined in CONDITIONS above)
     SVDRecommender(10, use_title=True),
     AAERecommender(adversarial=False, conditions=CONDITIONS, lr=0.001, **ae_params),
     AAERecommender(adversarial=True, conditions=CONDITIONS, prior='gauss', gen_lr=0.001,

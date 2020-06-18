@@ -18,6 +18,7 @@ from aaerec.dae import DAERecommender
 from gensim.models.keyedvectors import KeyedVectors
 
 from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, CategoricalCondition
+
 # Set this to the word2vec Google News corpus file
 W2V_PATH = "./vectors/GoogleNews-vectors-negative300.bin.gz"
 W2V_IS_BINARY = True
@@ -66,7 +67,7 @@ EVAL.setup(min_count=ARGS.min_count, min_elements=2, drop=drop)
 print("Loading pre-trained embedding", W2V_PATH)
 VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 
-
+# Hyperparameters
 ae_params = {
     'n_code': 50,
     'n_epochs': 100,
@@ -74,7 +75,6 @@ ae_params = {
     'n_hidden': 100,
     'normalize_inputs': True,
 }
-
 vae_params = {
     'n_code': 50,
     # VAE results get worse with more epochs in preliminary optimization 
@@ -85,15 +85,13 @@ vae_params = {
     'normalize_inputs': True,
 }
 
-# Models without using no metadata
-
+# Models without metadata
 BASELINES = [
     # RandomBaseline(),
     # MostPopular(),
     Countbased(),
     SVDRecommender(100, use_title=False)
 ]
-
 RECOMMENDERS = [
     AAERecommender(adversarial=False, lr=0.001, **ae_params),
     AAERecommender(gen_lr=0.001, reg_lr=0.001, **ae_params),
@@ -101,7 +99,7 @@ RECOMMENDERS = [
     DAERecommender(conditions=None, **ae_params)
 ]
 
-# Metadata to use (apart for SVD, whichc uses only titles)
+# Metadata to use (apart for SVD, which uses only titles)
 CONDITIONS = ConditionList([
     ('title', PretrainedWordEmbeddingCondition(VECTORS)) #,
 #     ('journal', CategoricalCondition(embedding_dim=32, reduce=None)),
@@ -111,9 +109,9 @@ CONDITIONS = ConditionList([
 #                                   sparse=True, embedding_on_gpu=True))
 ])
 
-# Models using the metadata set in CONDITIONS
+# Model with metadata (metadata used as set in CONDITIONS above)
 CONDITIONED_MODELS = [
-    # TODO SVD can use only titles not generic conditions
+    # SVD can use only titles not generic conditions
     SVDRecommender(1000, use_title=True),
     AAERecommender(adversarial=False, conditions=CONDITIONS, **ae_params),
     AAERecommender(adversarial=True, conditions=CONDITIONS, **ae_params),

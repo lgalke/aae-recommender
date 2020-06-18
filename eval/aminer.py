@@ -35,6 +35,7 @@ print("Loading keyed vectors")
 VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 print("Done") 
 
+# Hyperparameters
 ae_params = {
     'n_code': 50,
     'n_epochs': 20,
@@ -44,26 +45,28 @@ ae_params = {
     'normalize_inputs': True,
 }
 
+# Models without metadata
 BASELINES = [
     # RandomBaseline(),
     # MostPopular(),
     Countbased(),
     SVDRecommender(1000, use_title=False)
 ]
-
 RECOMMENDERS = [
-    AAERecommender(use_title=False, adversarial=False, lr=0.0001,
+    AAERecommender(adversarial=False,
+                   conditions=None,
+                   lr=0.001,
                    **ae_params),
-    AAERecommender(use_title=False, prior='gauss', gen_lr=0.0001,
-                   reg_lr=0.0001, **ae_params),
+    AAERecommender(adversarial=True,
+                   conditions=None,
+                   gen_lr=0.001,
+                   reg_lr=0.001,
+                    **ae_params),
     VAERecommender(conditions=None, **ae_params),
     DAERecommender(conditions=None, **ae_params)
 ]
 
-TITLE_ENHANCED = [
-    SVDRecommender(1000, use_title=True)
-]
-
+# Metadata to use
 CONDITIONS = ConditionList([
     ('title', PretrainedWordEmbeddingCondition(VECTORS)),
     ('venue', PretrainedWordEmbeddingCondition(VECTORS)),
@@ -71,7 +74,10 @@ CONDITIONS = ConditionList([
                                     sparse=True, embedding_on_gpu=True))
 ])
 
+# Model with metadata (metadata used as set in CONDITIONS above)
 CONDITIONED_MODELS = [
+    # SVD can use only titles not generic conditions
+    SVDRecommender(1000, use_title=True)
     AAERecommender(adversarial=False,
                    conditions=CONDITIONS,
                    lr=0.001,

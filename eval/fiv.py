@@ -18,19 +18,24 @@ from eval.mpd.mpd import log
 
 from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, CategoricalCondition
 
-# Should work on kdsrv03
-DATA_PATH = "/data22/ivagliano/SWP/FivMetadata.json"
-CLEAN_DATA_PATH = "/data22/ivagliano/SWP/FivMetadata_clean.json"
+# Set to a folder containing the IREON file
+# (used only for cleaning final path for running is CLEAN_DATA_PATH)
+DATA_PATH = "../SWP/FivMetadata.json"
+# Optionnally clean the data before using them
 CLEAN = False
+# Set to a folder containing the cleaned IREON file
+CLEAN_DATA_PATH = "../SWP/FivMetadata_clean.json"
 DEBUG_LIMIT = None
 METRICS = ['mrr', 'map']
 
-W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
+# Set to the word2vec-Google-News-corpus file
+W2V_PATH = "../vectors/GoogleNews-vectors-negative300.bin.gz"
 W2V_IS_BINARY = True
 print("Loading pre-trained embedding", W2V_PATH)
 VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 print("Done")
 
+# Hyperparameters
 ae_params = {
     'n_code': 50,
     'n_epochs': 20,
@@ -39,7 +44,6 @@ ae_params = {
     'n_hidden': 100,
     'normalize_inputs': True,
 }
-
 vae_params = {
     'n_code': 50,
     # VAE results get worse with more epochs in preliminary optimization 
@@ -50,13 +54,13 @@ vae_params = {
     'normalize_inputs': True,
 }
 
+# Models without metadata
 BASELINES = [
     # RandomBaseline(),
     # MostPopular(),
     Countbased(),
     SVDRecommender(1000, use_title=False),
 ]
-
 RECOMMENDERS = [
     AAERecommender(adversarial=False, lr=0.001,
                    **ae_params),
@@ -66,12 +70,14 @@ RECOMMENDERS = [
     DAERecommender(conditions=None, **ae_params)
 ]
 
+# Metadata to use
 CONDITIONS = ConditionList([
     ('title', PretrainedWordEmbeddingCondition(VECTORS)),
 #    ('author', CategoricalCondition(embedding_dim=32, reduce="sum",
 #                                    sparse=True, embedding_on_gpu=True))
 ])
 
+# Model with metadata (metadata used as set in CONDITIONS above)
 CONDITIONED_MODELS = [
     # TODO SVD can use only titles not generic conditions
     SVDRecommender(1000, use_title=True),
