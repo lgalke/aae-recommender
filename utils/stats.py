@@ -55,6 +55,24 @@ def compute_stats(A):
     return A.shape[1], A.min(), A.max(), np.median(A, axis=1)[0, 0], A.mean(), A.std()
 
 
+def power_law_exponent(degrees, dmin=None):
+    # TODO At now array from dict that has not a key for every x but only for the one > 0. Is that ok?
+    print("Computing power law exponent")
+
+    if dmin is None:
+        dmin = degrees.min()
+    else:
+        degrees = degrees[degrees >= dmin]
+
+    # N must be number of values that go into computation
+    # Not total number of nodes
+    n = degrees.size
+    print("d_min =", dmin)
+    print("N =", n)
+    gamma = 1 + n / np.log(degrees / dmin).sum()
+    print("Gamma = {:.4f}".format(gamma))
+
+
 def plot(objects, dataset, x_dim, y_dim, x=None):
     plt.bar(objects.keys(), objects.values(), align='center', alpha=0.5)
     plt.ylabel(y_dim)
@@ -178,6 +196,7 @@ def generate_years_citations_set_cnts(papers, dataset):
             set_cnts[paper["pid"]] = len(paper["tracks"])
 
     return years, citations, set_cnts
+
 
 def generate_citations(df, dataset):
     citations = {}
@@ -323,6 +342,7 @@ else:
 # only papers with min min_x_cit and max max_x_cit citations
 citations = from_to_key(citations, min_x_cit, max_x_cit)
 citations = collections.OrderedDict(sorted(citations.items()))
+print("Total documents/labels (citation/occurrence distribution): {}".format(np.array(list(citations.values())).sum()))
 
 if dataset == "pubmed" or dataset == "acm" or dataset == "dblp":
     x_dim = "Citations"
@@ -335,6 +355,9 @@ elif dataset == "swp" or dataset == "rcv" or dataset == "econbiz":
 else:
     y_dim = 'Papers'
 
+print("The power-law distribution's exponent for {}:".format(x_dim))
+power_law_exponent(np.array(list(citations.values())))
+
 print("Plotting {} distribution by number of {} on file"
       .format("papers'" if x_dim == "Citations" else "labels'", x_dim.lower()))
 # show the y-value for the bar at x=mark_x_cit in the plot
@@ -344,6 +367,9 @@ print("Generating reference/label/track distribution")
 set_cnts = paper_by_n_citations(set_cnts)
 set_cnts = from_to_key(set_cnts, min_x_set, max_x_set)
 set_cnts = collections.OrderedDict(sorted(set_cnts.items()))
+# print("Reference/label/track")
+# print(set_cnts)
+print("Total documents (reference/label/track distribution): {}".format(np.array(list(set_cnts.values())).sum()))
 
 if dataset == "pubmed" or dataset == "acm" or dataset == "dblp":
     x_dim = "References"
@@ -351,6 +377,9 @@ elif dataset == "mpd":
     x_dim = "Tracks"
 else:
     x_dim = "Labels"
+
+print("The power-law distribution's exponent for {}:".format(x_dim))
+power_law_exponent(np.array(list(set_cnts.values())))
 
 print("Plotting papers' distribution by number of their {} on file".format(x_dim.lower()))
 y_dim = "Papers" if dataset != "mpd" else "Playlists"

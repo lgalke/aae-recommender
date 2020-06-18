@@ -15,7 +15,7 @@ done
 ### ACM
 echo "ACM"
 for pruning in {15..55..5}; do
-    python3 stats.py 9999 --dataset "acm" --min-count "$pruning"
+    python3 stats.py --dataset "acm" --min-count "$pruning"
 done
 
 ### EconBiz
