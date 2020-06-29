@@ -42,7 +42,7 @@ ae_params = {
 
 vae_params = {
     'n_code': 50,
-    # VAE results get worse with more epochs in preliminary optimization 
+    # VAE results get worse with more epochs in preliminary optimization
     #(Pumed with threshold 50)
     'n_epochs': 50,
     'batch_size': 500,
