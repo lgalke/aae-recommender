@@ -8,7 +8,7 @@ requirements = [
       'gensim',
       'pandas',
       'joblib',
-#      'matplotlib',
+      'matplotlib',
 #      'seaborn',
 ]
 setup(name='aaerec',

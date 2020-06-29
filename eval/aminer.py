@@ -21,20 +21,22 @@ from eval.mpd.mpd import log
 
 from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, CategoricalCondition
 
-# Should work on kdsrv03
-DATA_PATH = "/data22/ivagliano/aminer/"
+# Set to a folder containing both ACM and DBLP datasets
+DATA_PATH = "../aminer/"
 DEBUG_LIMIT = None
-# authors is an array of strings, n_citation is an integer: do they make sense used in this way?
 PAPER_INFO = ['title', 'venue', 'author']
 # TODO Add it as parameters of evaluate() to make it effective (see mpd.py)
 # METRICS = ['mrr', 'map']
 
-# W2V_PATH = "/data21/lgalke/vectors/GoogleNews-vectors-negative300.bin.gz"
-# W2V_IS_BINARY = True
-# print("Loading keyed vectors") 
-# VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
-# print("Done") 
 
+# Set to the word2vec-Google-News-corpus file
+W2V_PATH = "../vectors/GoogleNews-vectors-negative300.bin.gz"
+W2V_IS_BINARY = True
+print("Loading keyed vectors") 
+VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
+print("Done") 
+
+# Hyperparameters
 ae_params = {
     'n_code': 50,
     'n_epochs': 20,
@@ -44,56 +46,55 @@ ae_params = {
     'normalize_inputs': True,
 }
 
+# Models without metadata
 BASELINES = [
     # RandomBaseline(),
     # MostPopular(),
     Countbased(),
-    SVDRecommender(1000, use_title=False),
+    SVDRecommender(1000, use_title=False)
 ]
 
-# RECOMMENDERS = [
-    # AAERecommender(use_title=False, adversarial=False, lr=0.0001,
-    #                **ae_params),
-    # AAERecommender(use_title=False, prior='gauss', gen_lr=0.0001,
-    #                reg_lr=0.0001, **ae_params),
-    # VAERecommender(conditions=None, **ae_params)
-    # DAERecommender(conditions=None, **ae_params)
-# ]
+RECOMMENDERS = [
+    AAERecommender(adversarial=False,
+                   conditions=None,
+                   lr=0.001,
+                   **ae_params),
+    AAERecommender(adversarial=True,
+                   conditions=None,
+                   gen_lr=0.001,
+                   reg_lr=0.001,
+                    **ae_params),
+    VAERecommender(conditions=None, **ae_params),
+    DAERecommender(conditions=None, **ae_params)
+]
 
-# TITLE_ENHANCED = [
-#     SVDRecommender(1000, use_title=True),
-#     DecodingRecommender(n_epochs=100, batch_size=100, optimizer='adam',
-#                         n_hidden=100, embedding=VECTORS,
-#                         lr=0.001, verbose=True),
-#     AAERecommender(adversarial=False, use_title=True, lr=0.001,
-#                    **ae_params),
-#     AAERecommender(adversarial=True, use_title=True,
-#                    prior='gauss', gen_lr=0.001, reg_lr=0.001,
-#                    **ae_params),
-# ]
+# Metadata to use
+CONDITIONS = ConditionList([
+    ('title', PretrainedWordEmbeddingCondition(VECTORS)),
+    ('venue', PretrainedWordEmbeddingCondition(VECTORS)),
+    ('author', CategoricalCondition(embedding_dim=32, reduce="sum", # vocab_size=0.01,
+                                    sparse=True, embedding_on_gpu=True))
+])
 
-# CONDITIONS = ConditionList([ ('title', PretrainedWordEmbeddingCondition(VECTORS)),
-#     ('venue', PretrainedWordEmbeddingCondition(VECTORS)),
-#     ('author', CategoricalCondition(embedding_dim=32, reduce="sum", # vocab_size=0.01,
-#                                     sparse=True, embedding_on_gpu=True))
-# ])
-
-# CONDITIONED_MODELS = [
-#     AAERecommender(adversarial=False,
-#                    conditions=CONDITIONS,
-#                    lr=0.001,
-#                    **ae_params),
-#     AAERecommender(adversarial=True,
-#                    conditions=CONDITIONS,
-#                    gen_lr=0.001,
-#                    reg_lr=0.001,
-#                     **ae_params),
-#     DecodingRecommender(CONDITIONS,
-#                         n_epochs=100, batch_size=1000, optimizer='adam',
-#                         n_hidden=100, lr=0.001, verbose=True),
-#     VAERecommender(conditions=CONDITIONS, **ae_params),
-#     DAERecommender(conditions=CONDITIONS, **ae_params)
-# ]
+# Model with metadata (metadata used as set in CONDITIONS above)
+CONDITIONED_MODELS = [
+    # SVD can use only titles not generic conditions
+    SVDRecommender(1000, use_title=True)
+    AAERecommender(adversarial=False,
+                   conditions=CONDITIONS,
+                   lr=0.001,
+                   **ae_params),
+    AAERecommender(adversarial=True,
+                   conditions=CONDITIONS,
+                   gen_lr=0.001,
+                   reg_lr=0.001,
+                    **ae_params),
+    DecodingRecommender(CONDITIONS,
+                        n_epochs=100, batch_size=1000, optimizer='adam',
+                        n_hidden=100, lr=0.001, verbose=True),
+    VAERecommender(conditions=CONDITIONS, **ae_params),
+    DAERecommender(conditions=CONDITIONS, **ae_params)
+]
 
 
 def load_dblp(path):
@@ -183,6 +184,7 @@ def unpack_papers(papers, aggregate=None):
             assert attr in PAPER_INFO
 
     bags_of_refs, ids, side_info, years, authors, venue = [], [], {}, {}, {}, {}
+    title_cnt = author_cnt = ref_cnt = venue_cnt = one_ref_cnt = 0
     for paper in papers:
         # Extract ids
         ids.append(paper["id"])
@@ -190,11 +192,17 @@ def unpack_papers(papers, aggregate=None):
         try:
             # References may be missing
             bags_of_refs.append(paper["references"])
+            if len(paper["references"]) > 0:
+                ref_cnt += 1
+            if len(paper["references"]) == 1:
+                one_ref_cnt += 1
         except KeyError:
             bags_of_refs.append([])
         # Use dict here such that we can also deal with unsorted ids
         try:
             side_info[paper["id"]] = paper["title"]
+            if paper["title"] != "":
+                title_cnt += 1
         except KeyError:
             side_info[paper["id"]] = ""
         try:
@@ -210,10 +218,24 @@ def unpack_papers(papers, aggregate=None):
         except KeyError:
             venue[paper["id"]] = ""
 
+        try:
+            if len(paper["authors"]) > 0:
+                author_cnt += 1
+        except KeyError:
+            pass
+        try:
+            if len(paper["venue"]) > 0:
+                venue_cnt += 1
+        except KeyError:
+            pass
+
         # We could assemble even more side info here from the track names
         if aggregate is not None:
             aggregated_paper_info = aggregate_paper_info(paper, aggregate)
             side_info[paper["id"]] += ' ' + aggregated_paper_info
+
+    print("Metadata-fields' frequencies: references={}, title={}, authors={}, venue={}, one-reference={}"
+          .format(ref_cnt/len(papers), title_cnt/len(papers), author_cnt/len(papers), venue_cnt/len(papers), one_ref_cnt/len(papers)))
 
     # bag_of_refs and ids should have corresponding indices
     # In side info the id is the key
@@ -249,6 +271,7 @@ def main(year, dataset, min_count=None, outfile=None, drop=1):
     evaluation = Evaluation(bags, year, logfile=outfile)
     evaluation.setup(min_count=min_count, min_elements=2, drop=drop)
 
+    # To evaluate the baselines and the recommenders without metadata (or just the recommenders without metadata)
     # with open(outfile, 'a') as fh:
     #     print("~ Partial List", "~" * 42, file=fh)
     # evaluation(BASELINES + RECOMMENDERS)
@@ -256,6 +279,7 @@ def main(year, dataset, min_count=None, outfile=None, drop=1):
 
     with open(outfile, 'a') as fh:
         print("~ Partial List + Titles + Author + Venue", "~" * 42, file=fh)
+    # To evaluate SVD with titles
     # evaluation(TITLE_ENHANCED)
     evaluation(CONDITIONED_MODELS, batch_size=1000)
 

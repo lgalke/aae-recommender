@@ -22,6 +22,8 @@ For pytorch, please refer to their [installation
 instructions](http://pytorch.org/) that depend on the python/CUDA setup you are
 working in.
 
+To use pretreined word-embeddings, the [`word2vec` Google News](https://github.com/mmihaltz/word2vec-GoogleNews-vectors) corpus should be download.
+
 ## Installation
 
 You can install this package and all necessary dependencies via pip.
@@ -32,12 +34,18 @@ pip install -e .
 
 ## Running
 
-The `main.py` file is an executable to run an evaluation of the specified models.
+The [`main.py`](main.py) file is an executable to run an evaluation of the specified models on the PubMed or `EconBiz` dataset (see the *Concrete datasets* section below).
 The `dataset` and `year` are mandatory arguments. The `dataset` is expected to be a path to a tsv-file,
 of which the format is described next.
 
-## Dataset Format
+The [`eval/aminer.py`](eval/aminer.py) file is an executable to run an evaluation of the specified models on the AMiner datasets (see the *Concrete datasets* section below). The `dataset` and `year` are mandatory arguments. The `dataset` argument is expected to be either `dblp` or `acm`, and the `DATA_PATH` constant in the script needs to be set to the path to a folder which contains both datasets.
 
+The [`eval/rcv.py`](eval/rcv.py) file is an executable to run an evaluation of the specified models on the Reuters RCV1 dataset (see the *Concrete datasets* section below). The `DATA_PATH` constant in the script needs to be set to the path to a tsv-file,
+of which the format is described next.
+
+Further scripts in the [`eval`](eval) folder were used to perform experiments for other datasets which we are not allowed to redistribute (see the *Concrete datasets* section below).
+
+## Dataset Format
 
 The expected dataset Format is a **tab-separated** with columns:
 
@@ -51,18 +59,23 @@ An arbitrary number of supplementary information columns can follow.
 The current implementation, however, makes use of the `year` property for splitting the data into train and test sets.
 Also, title-enhanced recommendation models rely on the `title` property to be present.
 
+The format of the ACM and DBLP datasets is described [here](https://www.aminer.org/citation).
+
 ## Concrete datasets
 
-So far, we worked with the PubMed citations dataset from
+We worked with the PubMed citations dataset from
 [CITREC](https://www.isg.uni-konstanz.de/projects/citrec/).  We converted the
-provided SQL dumps into the dataset format above. We plan to also publish our
-converted tsv version of the CITREC PubMed dataset.
+provided SQL dumps into the dataset format above.
 The references in the CITREC TREC Genomics dataset are not disambiguated.
 Therefore we operate only the PubMed dataset for citation recommendation.
-
 For subject label recommendation, we used the the economics dataset `EconBiz`, provided by [ZBW](https://zbw.eu).
-We are currently asserting that copyright issues do not prevent us from publishing the
-metadata of the documents in the aforementioned format.
+The PubMed and `EconBiz` datasets are available [here](https://www.kaggle.com/hsrobo/titlebased-semantic-subject-indexing).
+For `EconBiz`, only titles are available and we are currently asserting that copyright issues do not prevent us from publishing the further metadata of the documents that we have used.
+
+Further public datasets used were the DBLP-Citation-network V10 and ACM-Citation-network V9 datasets from the [AMiner](https://www.aminer.org/citation) project, and the [Reuters RCV1](https://trec.nist.gov/data/reuters/reuters.html) corpora.
+We converted the provided XML dumps into the dataset format above, using the [`parse_reuters.py`](utils/parse_reuters.py) script.
+
+We also run experiments with the Million Playlist Dataset (MPD), provided by [Spotify](https://research.spotify.com/datasets), and IREON, provided by [FIV](https://fiviblk.de/), but we are not allowed to redistribute them. The MPD dataset was used only to participate to the [RecSys Challenge 2018](http://www.recsyschallenge.com/2018/) (see more information [here](https://github.com/lgalke/mpd-aae-recommender)). 
 
 ## References and cite
 

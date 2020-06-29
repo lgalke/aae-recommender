@@ -256,6 +256,8 @@ class Bags(object):
         print("Found", len(sets), 'rows')
 
         header = list(df.columns.values)
+        fields_freqs = ["{}={}".format(h, df[h].count() / len(df)) for h in header]
+        print("Metadata-fields' frequencies: " + ", ".join(fields_freqs))
 
         meta_vals = []
         for meta_header in header[2:]:
@@ -307,6 +309,8 @@ class Bags(object):
                 # loading meta data and select the relevant
                 auth_path = mtdt_transform_table["path"]
                 meta_data = pd.read_csv(auth_path, error_bad_lines=False, dtype=str)
+                print("Metadata-fields' frequencies: {}={}".format(key,
+                    meta_data[mtdt_transform_table["owner_id"]].nunique() / len(df)))
 
                 targets = [mtdt_transform_table["owner_id"]] + mtdt_transform_table["fields"]
                 meta_data = meta_data[targets]
