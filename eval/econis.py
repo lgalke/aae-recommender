@@ -23,6 +23,7 @@ DATA_PATH = "../econis/econbiz62k-extended.json"
 DEBUG_LIMIT = None
 METRICS = ['mrr', 'map']
 
+
 # Set to the word2vec-Google-News-corpus file
 W2V_PATH = "../vectors/GoogleNews-vectors-negative300.bin.gz"
 W2V_IS_BINARY = True
@@ -47,6 +48,7 @@ vae_params = {
     'n_hidden': 100,
     'normalize_inputs': True,
 }
+
 
 # Models without metadata
 BASELINES = [
@@ -194,6 +196,17 @@ def main(year, min_count=None, outfile=None, drop=1):
     bags_of_papers, ids, side_info = unpack_papers_conditions(papers)
     del papers
     bags = Bags(bags_of_papers, ids, side_info)
+    if args.compute_mi:
+        from aaerec.utils import compute_mutual_info
+        print("[MI] Dataset: ECONIS")
+        print("[MI] min Count:", min_count)
+        tmp = bags.build_vocab(min_count=min_count, max_features=None)
+        mi = compute_mutual_info(tmp, conditions=None, include_labels=True,
+                                 normalize=True)
+        with open('mi.csv', 'a') as mifile:
+            print('EconBiz', min_count, mi, sep=',', file=mifile)
+        print("=" * 78)
+        exit(0)
 
     log("Whole dataset:", logfile=outfile)
     log(bags, logfile=outfile)
@@ -217,12 +230,14 @@ if __name__ == '__main__':
     parser.add_argument('year', type=int,
                         help='First year of the testing set.')
     parser.add_argument('-m', '--min-count', type=int,
-                        help='Pruning parameter', default=50)
+                        help='Pruning parameter', default=None)
     parser.add_argument('-o', '--outfile',
                         help="File to store the results.",
                         type=str, default=None)
     parser.add_argument('-dr', '--drop', type=str,
                         help='Drop parameter', default="1")
+    parser.add_argument('--compute-mi', default=False,
+                        action='store_true')
     args = parser.parse_args()
 
     # Drop could also be a callable according to evaluation.py but not managed as input parameter

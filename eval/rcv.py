@@ -29,12 +29,13 @@ DEBUG_LIMIT = None
 # These need to be implemented in evaluation.py
 METRICS = ['mrr', 'map']
 
+
 # Set it to the word2vec-Google-News-corpus file
 W2V_PATH = "../vectors/GoogleNews-vectors-negative300.bin.gz"
 W2V_IS_BINARY = True
 
-print("Loading pre-trained embedding", W2V_PATH)
-VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
+# print("Loading pre-trained embedding", W2V_PATH)
+# VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 
 # Hyperparameters
 ae_params = {
@@ -47,7 +48,7 @@ ae_params = {
 }
 vae_params = {
     'n_code': 50,
-    # VAE results get worse with more epochs in preliminary optimization 
+    # VAE results get worse with more epochs in preliminary optimization
     #(Pumed with threshold 50)
     'n_epochs': 50,
     'batch_size': 100,
@@ -123,6 +124,17 @@ def main(outfile=None, min_count=None, drop=1):
     """ Main function for training and evaluating AAE methods on Reuters data """
     print("Loading data from", DATA_PATH)
     bags = Bags.load_tabcomma_format(DATA_PATH, unique=True)
+    if args.compute_mi:
+        from aaerec.utils import compute_mutual_info
+        print("[MI] Dataset: Reuters")
+        print("[MI] min Count:", min_count)
+        tmp = bags.build_vocab(min_count=min_count, max_features=None)
+        mi = compute_mutual_info(tmp, conditions=None, include_labels=True,
+                                 normalize=True)
+        with open('mi.csv', 'a') as mifile:
+            print('Reuters', min_count, mi, sep=',', file=mifile)
+        print("=" * 78)
+        exit(0)
     log("Whole dataset:", logfile=outfile)
     log(bags, logfile=outfile)
     train_set, dev_set, y_test = prepare_evaluation(bags,
@@ -177,6 +189,8 @@ if __name__ == '__main__':
     parser.add_argument('-m', '--min-count', type=int,
                         default=None,
                         help="Minimum count of items")
+    parser.add_argument('--compute-mi', default=False,
+                        action='store_true')
     parser.add_argument('-dr', '--drop', type=str,
                   help='Drop parameter', default="1")
     args = parser.parse_args()

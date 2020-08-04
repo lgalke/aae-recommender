@@ -11,6 +11,8 @@ import torch
 import scipy.sparse as sp
 import numpy as np
 
+from sklearn.feature_extraction.text import CountVectorizer
+
 
 
 from .ub import GensimEmbeddedVectorizer
@@ -88,7 +90,8 @@ class ConditionList(OrderedDict):
     def encode_impose(self, x, condition_inputs, dim=None):
         """ Subsequently conduct encode & impose with all conditions
         in order.
-        : param x: ???, suspect its the normal data not the condition ones
+        : param x: the normal data not the condition ones
+        : param condition_inputs: the condition inputs (should be transformed before)
         """
         assert len(condition_inputs) == len(self)
         for condition, condition_input in zip(self.values(), condition_inputs):
@@ -250,6 +253,38 @@ class ConditionBase(ABC):
                     any("eval" in B.__dict__ for B in mro)]):
                 return True
         return NotImplemented  # Proceed with usual mechanisms
+
+
+class CountCondition(ConditionBase):
+    def __init__(self, **cv_params):
+        """ CV Params as in:
+        https://scikit-learn.org/stable/modules/generated/sklearn.feature_extraction.text.CountVectorizer.html
+        """
+        super(CountCondition, self).__init__()
+        self.cv = CountVectorizer(binary=True, **cv_params)
+
+    def fit(self, raw_inputs):
+        self.cv.fit(raw_inputs)
+        return self
+
+    def transform(self, raw_inputs):
+        return self.cv.transform(raw_inputs)
+
+    def fit_transform(self, raw_inputs):
+        return self.cv.fit_transform(raw_inputs)
+
+    def impose(self, x, encoded_inputs, dim=None):
+        assert dim is None, "dim not supported for scipy.sparse based imposing"
+        return sp.hstack([x, encoded_inputs])
+
+    def size_increment(self):
+        return len(self.cv.vocabulary_)
+
+
+
+
+
+
 
 
 """ Three basic variants of conditioning

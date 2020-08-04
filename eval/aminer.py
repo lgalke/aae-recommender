@@ -28,6 +28,7 @@ PAPER_INFO = ['title', 'venue', 'author']
 # TODO Add it as parameters of evaluate() to make it effective (see mpd.py)
 # METRICS = ['mrr', 'map']
 
+
 # Set to the word2vec-Google-News-corpus file
 W2V_PATH = "../vectors/GoogleNews-vectors-negative300.bin.gz"
 W2V_IS_BINARY = True
@@ -52,6 +53,7 @@ BASELINES = [
     Countbased(),
     SVDRecommender(1000, use_title=False)
 ]
+
 RECOMMENDERS = [
     AAERecommender(adversarial=False,
                    conditions=None,
@@ -250,6 +252,18 @@ def main(year, dataset, min_count=None, outfile=None, drop=1):
     bags_of_papers, ids, side_info = unpack_papers(papers)
     del papers
     bags = Bags(bags_of_papers, ids, side_info)
+    if args.compute_mi:
+        from aaerec.utils import compute_mutual_info
+        print("[MI] Dataset:", dataset)
+        print("[MI] min Count:", min_count)
+        tmp = bags.build_vocab(min_count=min_count, max_features=None)
+        mi = compute_mutual_info(tmp, conditions=None, include_labels=True,
+                                  normalize=True)
+        with open('mi.csv', 'a') as mifile:
+            print(dataset, min_count, mi, sep=',', file=mifile)
+
+        print("=" * 78)
+        exit(0)
 
     log("Whole dataset:", logfile=outfile)
     log(bags, logfile=outfile)
@@ -274,14 +288,17 @@ if __name__ == '__main__':
     parser.add_argument('year', type=int,
                         help='First year of the testing set.')
     parser.add_argument('-d', '--dataset', type=str,
-                        help="Parse the DBLP or ACM dataset", default="dblp")
+                        help="Parse the DBLP or ACM dataset", default="dblp",
+                        choices=["dblp", "acm"])
     parser.add_argument('-m', '--min-count', type=int,
-                        help='Pruning parameter', default=50)
+                        help='Pruning parameter', default=None)
     parser.add_argument('-o', '--outfile',
                         help="File to store the results.",
                         type=str, default=None)
     parser.add_argument('-dr', '--drop', type=str,
                         help='Drop parameter', default="1")
+    parser.add_argument('--compute-mi', default=False,
+                        action='store_true')
     args = parser.parse_args()
 
     # Drop could also be a callable according to evaluation.py but not managed as input parameter
