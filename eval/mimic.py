@@ -11,7 +11,6 @@ import argparse
 import numpy as np
 import scipy.sparse as sp
 
-
 from aaerec.datasets import Bags, corrupt_sets
 from aaerec.transforms import lists2sparse
 from aaerec.evaluation import remove_non_missing, evaluate
@@ -21,16 +20,14 @@ from aaerec.aae import AAERecommender, DecodingRecommender
 from aaerec.vae import VAERecommender
 from aaerec.dae import DAERecommender
 from gensim.models.keyedvectors import KeyedVectors
-from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, CategoricalCondition
+from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, CategoricalCondition, Condition
 from eval.fiv import load
-
 
 # Set it to the Reuters RCV dataset
 DATA_PATH = "../MIMIC/diagnoses_icd.json"
 DEBUG_LIMIT = None
 # These need to be implemented in evaluation.py
 METRICS = ['mrr', 'map']
-
 
 # Set it to the word2vec-Google-News-corpus file TODO see if useful when using conditions
 # W2V_PATH = "../vectors/GoogleNews-vectors-negative300.bin.gz"
@@ -51,7 +48,7 @@ ae_params = {
 vae_params = {
     'n_code': 50,
     # VAE results get worse with more epochs in preliminary optimization
-    #(Pumed with threshold 50)
+    # (Pumed with threshold 50)
     'n_epochs': 50,
     'batch_size': 100,
     'n_hidden': 100,
@@ -59,9 +56,15 @@ vae_params = {
 }
 
 # Metadata to use TODO adapt them
-# CONDITIONS = ConditionList([
-#     ('title', PretrainedWordEmbeddingCondition(VECTORS))
-# ])
+CONDITIONS = ConditionList([
+    ('gender', CategoricalCondition(embedding_dim=32, reduce="sum",
+                                    sparse=True, embedding_on_gpu=True)),
+    ('ethnicity', CategoricalCondition(embedding_dim=32, reduce="sum",
+                                       sparse=True, embedding_on_gpu=True)),
+    ('admission_type', CategoricalCondition(embedding_dim=32, reduce="sum",
+                                            sparse=True, embedding_on_gpu=True)),
+    ('age', Condition())
+])
 
 # Models without/with metadata (Reuters has only titles) TODO adapt them
 MODELS = [
@@ -74,14 +77,14 @@ MODELS = [
     VAERecommender(conditions=None, **vae_params),
     DAERecommender(conditions=None, **ae_params),
     # Use title (as defined in CONDITIONS above)
-    # SVDRecommender(10, use_title=True),
-    # AAERecommender(adversarial=False, conditions=CONDITIONS, lr=0.001, **ae_params),
-    # AAERecommender(adversarial=True, conditions=CONDITIONS, prior='gauss', gen_lr=0.001,
-    #                reg_lr=0.001, **ae_params),
-    # DecodingRecommender(conditions=CONDITIONS, n_epochs=100, batch_size=100,
-    #                     optimizer='adam', n_hidden=100, lr=0.001, verbose=True),
-    # VAERecommender(conditions=CONDITIONS, **vae_params),
-    # DAERecommender(conditions=CONDITIONS, **ae_params)
+    SVDRecommender(10, use_title=True),
+    AAERecommender(adversarial=False, conditions=CONDITIONS, lr=0.001, **ae_params),
+    AAERecommender(adversarial=True, conditions=CONDITIONS, prior='gauss', gen_lr=0.001,
+                   reg_lr=0.001, **ae_params),
+    DecodingRecommender(conditions=CONDITIONS, n_epochs=100, batch_size=100,
+                        optimizer='adam', n_hidden=100, lr=0.001, verbose=True),
+    VAERecommender(conditions=CONDITIONS, **vae_params),
+    DAERecommender(conditions=CONDITIONS, **ae_params)
     # Put more here...
 ]
 
@@ -120,14 +123,15 @@ def log(*print_args, logfile=None):
         with open(logfile, 'a') as fhandle:
             print(*print_args, file=fhandle)
     print(*print_args)
-    
+
+
 def unpack_patients(patients):
     """
     Unpacks list of patients in a way that is compatible with our Bags dataset
     format. It is not mandatory that patients are sorted.
     """
 
-    bags_of_codes, ids, side_info, years, authors = [], [], {}, {}, {}
+    bags_of_codes, ids, age, gender, ethnicity, admission_type, hospstay, icustay = [], [], {}, {}, {}, {}, {}, {}
     for patient in patients:
         # Extract ids
         ids.append(patient["hadm_id"])
@@ -141,21 +145,23 @@ def unpack_patients(patients):
         # TODO adapt to new features rather categorical (string or numbers) and numerical than text
         #  features that can be easily used: age, gender, ethnicity, adm_type, icu_stay_seq, hosp_stay_seq
         # Use dict here such that we can also deal with unsorted ids
-        # try:
-        #     side_info[patient["id"]] = patient["title"]
-        # except KeyError:
-        #     side_info[patient["id"]] = ""
-        # try:
-        #     years[patient["id"]] = patient["year"]
-        # except KeyError:
-        #     years[patient["id"]] = -1
-        #
-        # authors[patient["id"]] = patient["authors"]
+        try:
+            age[patient["hadm_id"]] = patient["age"]
+        except KeyError:
+            age[patient["hadm_id"]] = ""
+        try:
+            gender[patient["hadm_id"]] = patient["gender"]
+        except KeyError:
+            gender[patient["hadm_id"]] = -1
+
+        ethnicity[patient["hadm_id"]] = patient["ethnicity_grouped"]
+        admission_type[patient["hadm_id"]] = patient["admission_type"]
+        hospstay[patient["hadm_id"]] = patient["hospstay_seq"]
+        icustay[patient["hadm_id"]] = patient["icustay_seq"]
 
     # bag_of_codes and ids should have corresponding indices
-    # In side_info the id is the key
-    # Re-use 'title' and year here because methods rely on it
-    return bags_of_codes, ids  #, {"title": side_info, "year": years, "author": authors}
+    return bags_of_codes, ids, {"age": age, "gender": gender, "ethnicity": ethnicity, "admission_type": admission_type,
+                                "hospstay": hospstay, "icustay": icustay}
 
 
 def main(outfile=None, min_count=None, drop=1):
@@ -163,11 +169,11 @@ def main(outfile=None, min_count=None, drop=1):
     print("Loading data from", DATA_PATH)
     patients = load(DATA_PATH)
     print("Unpacking MIMIC data...")
-    # bags_of_patients, ids, side_info = unpack_patients(patients)  # with conditions
-    bags_of_patients, ids = unpack_patients(patients)
+    bags_of_patients, ids, side_info = unpack_patients(patients)  # with conditions
+    # bags_of_patients, ids = unpack_patients(patients)
     del patients
-    # bags = Bags(bags_of_patients, ids, side_info)  # with conditions
-    bags = Bags(bags_of_patients, ids)
+    bags = Bags(bags_of_patients, ids, side_info)  # with conditions
+    # bags = Bags(bags_of_patients, ids)
     if args.compute_mi:
         from aaerec.utils import compute_mutual_info
         print("[MI] Dataset: Reuters")
@@ -236,7 +242,7 @@ if __name__ == '__main__':
     parser.add_argument('--compute-mi', default=False,
                         action='store_true')
     parser.add_argument('-dr', '--drop', type=str,
-                  help='Drop parameter', default="1")
+                        help='Drop parameter', default="1")
     args = parser.parse_args()
     print(args)
 

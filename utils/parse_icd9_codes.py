@@ -2,11 +2,13 @@ import pandas as pd
 import json
 
 SEPARATOR = ";"
-IN_DATA_PATH = "../data/diagnoses_icd_readm.csv"
-READM = True
+IN_DATA_PATH = "../data/diagnoses_icd.csv"
+IN_DATA_PATH_ICUSTAY_DETAIL = "../data/icustay_detail.csv"
+READM = False
 
 print("Reading data from {}".format(IN_DATA_PATH))
 df = pd.read_csv(IN_DATA_PATH, sep=SEPARATOR, index_col=False)
+df_conditions = pd.read_csv(IN_DATA_PATH_ICUSTAY_DETAIL, sep=SEPARATOR, index_col=False)
 print(df.head())
 # drop unused columns
 df = df.drop(['subject_id', 'seq_num'], axis=1)
@@ -20,6 +22,8 @@ if READM:
     print(df.head())
 else:
     df = df.groupby('hadm_id')['icd9_code'].apply(list).reset_index(name='icd9_code_lst')
+    df = df.merge(df_conditions, on='hadm_id')
+    print(df.head())
 
 # from df to dict
 patients = df.T.to_dict()
