@@ -342,11 +342,14 @@ class Bags(object):
             split = train_test_split(self.data, self.bag_owners, **split_params)
             train_data, test_data, train_owners, test_owners = split
         print("{} train, {} test documents.".format(len(train_data), len(test_data)))
-        metadata_columns = list(self.owner_attributes.keys())
-        train_attributes = {k: {owner: self.owner_attributes[k][owner] for owner in
+        if self.owner_attributes is not None:
+            metadata_columns = list(self.owner_attributes.keys())
+            train_attributes = {k: {owner: self.owner_attributes[k][owner] for owner in
                                 train_owners} for k in metadata_columns}
-        test_attributes = {k: {owner: self.owner_attributes[k][owner] for owner in
+            test_attributes = {k: {owner: self.owner_attributes[k][owner] for owner in
                                test_owners} for k in metadata_columns}
+        else:
+            train_attributes = test_attributes = None
         train_set = Bags(train_data, train_owners, owner_attributes=train_attributes)
         test_set = Bags(test_data, test_owners, owner_attributes=test_attributes)
         return train_set, test_set

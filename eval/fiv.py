@@ -32,7 +32,7 @@ METRICS = ['mrr', 'map']
 W2V_PATH = "../vectors/GoogleNews-vectors-negative300.bin.gz"
 W2V_IS_BINARY = True
 print("Loading pre-trained embedding", W2V_PATH)
-VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
+# VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 print("Done")
 
 # Hyperparameters
@@ -73,7 +73,7 @@ RECOMMENDERS = [
 
 # Metadata to use
 CONDITIONS = ConditionList([
-    ('title', PretrainedWordEmbeddingCondition(VECTORS)),
+#    ('title', PretrainedWordEmbeddingCondition(VECTORS)),
 #    ('author', CategoricalCondition(embedding_dim=32, reduce="sum",
 #                                    sparse=True, embedding_on_gpu=True))
 ])
@@ -91,9 +91,9 @@ CONDITIONED_MODELS = [
                   gen_lr=0.001,
                   reg_lr=0.001,
                   **ae_params),
-    DecodingRecommender(CONDITIONS,
-                       n_epochs=20, batch_size=500, optimizer='adam',
-                        n_hidden=100, lr=0.001, verbose=True),
+#    DecodingRecommender(CONDITIONS,
+#                       n_epochs=20, batch_size=500, optimizer='adam',
+#                        n_hidden=100, lr=0.001, verbose=True),
     VAERecommender(conditions=CONDITIONS, **vae_params),
     DAERecommender(conditions=CONDITIONS, **ae_params)
 ]
