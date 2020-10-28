@@ -45,8 +45,15 @@ class Discriminator(nn.Module):
             self.D_item_bias = self.D_item_bias.cuda()
             self.l2l = self.l2l.cuda()
 
-    def pre_logits(self, input_user, input_item, condition_data=None):
-        u_embedding = self.D_user_embeddings[input_user, :]
+    def pre_logits(self, user_pos, input_item, condition_data=None):
+        # u_embedding = self.D_user_embeddings[input_user, :]
+        u_embedding = torch.zeros([len(user_pos), self.emb_dim], dtype=torch.float32)
+        if torch.cuda.is_available():
+            u_embedding = u_embedding.cuda()
+        for idx,u in enumerate(user_pos):
+            for i in u:
+                u_embedding[idx].add(self.D_item_embeddings[i])
+            u_embedding[idx] /= len(u)
         if self.conditions:
             # In generator need to use dimension 0 in discriminator 1 so by default 0 (given in condition creation)
             # and here we use one through the dim parameter
@@ -65,8 +72,14 @@ class Discriminator(nn.Module):
             + self.lamda * (self.l2l(self.D_user_embeddings) + self.l2l(self.D_item_embeddings) + self.l2l(self.D_item_bias))
         return loss
 
-    def get_reward(self, user_index, sample):
-        u_embedding = self.D_user_embeddings[user_index, :]
+    def get_reward(self, user_pos, sample):
+        # u_embedding = self.D_user_embeddings[user_index, :]
+        u_embedding = torch.zeros(self.emb_dim, dtype=torch.float32)
+        if torch.cuda.is_available():
+            u_embedding = u_embedding.cuda()
+        for i in user_pos:
+            u_embedding.add(self.D_item_embeddings[i])
+        u_embedding /= len(user_pos)
         item_embeddings = self.D_item_embeddings[sample, :]
         D_item_bias = self.D_item_bias[sample]
 
