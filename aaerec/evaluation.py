@@ -213,7 +213,7 @@ def evaluate(ground_truth, predictions, metrics, batch_size=None):
         # Average later
         results_per_metric = [[] for _ in range(len(metrics))]
         for start in range(0, n_samples, batch_size):
-            end = min(start + batch_size, n_samples) 
+            end = min(start + batch_size, n_samples)
             pred_batch = predictions[start:end, :]
             gold_batch = ground_truth[start:end, :]
             if sp.issparse(pred_batch):
@@ -296,6 +296,7 @@ class Evaluation(object):
         print("Train:", train_set, file=log_fh)
         print("Test:", test_set, file=log_fh)
         print("Drop parameter:", drop)
+        print("Drop parameter:", drop, file=log_fh)
 
         noisy, missing = corrupt_sets(test_set.data, drop=drop)
 
