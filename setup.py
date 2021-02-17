@@ -9,6 +9,7 @@ requirements = [
       'pandas',
       'joblib',
       'matplotlib',
+      'docutils',
 #      'seaborn',
 ]
 setup(name='aaerec',

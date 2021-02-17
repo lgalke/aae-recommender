@@ -17,18 +17,30 @@ from aaerec.evaluation import Evaluation
 from aaerec.svd import SVDRecommender
 from aaerec.vae import VAERecommender
 from aaerec.dae import DAERecommender
-from eval.mpd.mpd import log
-
 from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, CategoricalCondition
 
+# Import log from MPD causes static variables to be loaded (e.g. VECTORS)
+# Instead I copied the log function
+# from eval.mpd.mpd import log
+
+
+def log(*print_args, logfile=None):
+    """ Maybe logs the output also in the file `outfile` """
+    if logfile:
+        with open(logfile, 'a') as fhandle:
+            print(*print_args, file=fhandle)
+    print(*print_args)
+
 # Set to a folder containing both ACM and DBLP datasets
-DATA_PATH = "../aminer/"
+# lga Feb 17, 2021: Script exec CWD is now assumed to be repository's root
+DATA_PATH = "./aminer/"
 DEBUG_LIMIT = None
 PAPER_INFO = ['title', 'venue', 'author']
 
 
 # Set to the word2vec-Google-News-corpus file
-W2V_PATH = "../vectors/GoogleNews-vectors-negative300.bin.gz"
+# lga Feb 17, 2021: Script exec CWD is now assumed to be repository's root
+W2V_PATH = "./vectors/GoogleNews-vectors-negative300.bin.gz"
 W2V_IS_BINARY = True
 print("Loading keyed vectors") 
 VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)

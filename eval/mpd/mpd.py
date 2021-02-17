@@ -18,9 +18,6 @@ import scipy.sparse as sp
 from joblib import Parallel, delayed
 from gensim.models.keyedvectors import KeyedVectors
 
-# Imports are broken, you can quickfix via symlink
-# cd eval/mpd/; ln -s ../../aaerec aaerec
-
 from aaerec.datasets import Bags, corrupt_sets
 from aaerec.transforms import lists2sparse
 from aaerec.evaluation import remove_non_missing, evaluate
@@ -301,12 +298,6 @@ def prepare_evaluation(bags, test_size=0.1, n_items=None, min_count=None):
     return train_set, dev_set, missing
 
 
-def log(*print_args, logfile=None):
-    """ Maybe logs the output also in the file `outfile` """
-    if logfile:
-        with open(logfile, 'a') as fhandle:
-            print(*print_args, file=fhandle)
-    print(*print_args)
 
 
 def main(outfile=None, min_count=None, aggregate=None):
