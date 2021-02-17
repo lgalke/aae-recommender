@@ -25,8 +25,6 @@ from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, Ca
 DATA_PATH = "../aminer/"
 DEBUG_LIMIT = None
 PAPER_INFO = ['title', 'venue', 'author']
-# TODO Add it as parameters of evaluate() to make it effective (see mpd.py)
-# METRICS = ['mrr', 'map']
 
 
 # Set to the word2vec-Google-News-corpus file
@@ -71,15 +69,15 @@ RECOMMENDERS = [
 # Metadata to use
 CONDITIONS = ConditionList([
     ('title', PretrainedWordEmbeddingCondition(VECTORS)),
-    ('venue', PretrainedWordEmbeddingCondition(VECTORS)),
-    ('author', CategoricalCondition(embedding_dim=32, reduce="sum", # vocab_size=0.01,
-                                    sparse=True, embedding_on_gpu=True))
+    # ('venue', PretrainedWordEmbeddingCondition(VECTORS)),
+    # ('author', CategoricalCondition(embedding_dim=32, reduce="sum", # vocab_size=0.01,
+    #                                 sparse=True, embedding_on_gpu=True))
 ])
 
 # Model with metadata (metadata used as set in CONDITIONS above)
 CONDITIONED_MODELS = [
     # SVD can use only titles not generic conditions
-    SVDRecommender(1000, use_title=True)
+    SVDRecommender(1000, use_title=True),
     AAERecommender(adversarial=False,
                    conditions=CONDITIONS,
                    lr=0.001,
