@@ -19,9 +19,9 @@ ls -l1 ./vectors/ | grep "GoogleNews"
 
 
 DATASET="dblp"
-YEAR=2018 # TODO: Verify that 2018 is correct split year for DBLP
+YEAR=2017 # DONE: Verify that 2018 is correct split year for DBLP -> it was 2017.....
 MINCOUNT=55 # TODO ask Iacopo
-RESULTS_DIR="results-drop-$DATASET-$YEAR-m$MINCOUNT"
+RESULTS_DIR="results-drop-$DATASET-$YEAR-m$MINCOUNT-title"
 
 echo "Using dataset $DATASET with split on year $YEAR and min count $MINCOUNT"
 echo "Creating dir '$RESULTS_DIR' to store results"

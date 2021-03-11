@@ -32,6 +32,13 @@ W2V_IS_BINARY = True
 
 STATUS_FORMAT = "[ R: {:.4f} | D: {:.4f} | G: {:.4f} ]"
 
+try:
+    import wandb
+    USE_WANDB = True
+except ImportError:
+    USE_WANDB = False
+
+
 
 def assert_condition_callabilities(conditions):
     raise DeprecationWarning("Use _check_conditions(conditions, condition_data) instead")
@@ -298,7 +305,7 @@ class AutoEncoder():
             self.conditions.step()
         return recon_loss.item()
 
-    def partial_fit(self, X, y=None, condition_data=None):
+    def partial_fit(self, X, y=None, condition_data=None, step=None):
         """
             Performs reconstrction, discimination, generator training steps
         :param X: np.array, the base data from Bag class
@@ -329,6 +336,9 @@ class AutoEncoder():
         self.train()
         # One step each, could balance
         recon_loss = self.ae_step(X, condition_data=condition_data)
+        if USE_WANDB:
+            assert step is not None
+            wandb.log({"step": step, "loss": recon_loss})
         if self.verbose:
             log_losses(recon_loss, 0, 0)
         return self
@@ -350,8 +360,10 @@ class AutoEncoder():
 
         if use_condition:
             code_size = self.n_code + self.conditions.size_increment()
+            print("[ae] Using condition, code size:", code_size)
         else:
             code_size = self.n_code
+            print("[ae] Not using condition, code size:", code_size)
 
         self.enc = Encoder(X.shape[1], self.n_hidden, self.n_code,
                            final_activation='linear',
@@ -379,6 +391,7 @@ class AutoEncoder():
         self.dec_optim = optimizer_gen(self.dec.parameters(), lr=self.lr)
 
         # do the actual training
+        step = 0
         for epoch in range(self.n_epochs):
             if self.verbose:
                 print("Epoch", epoch + 1)
@@ -389,6 +402,7 @@ class AutoEncoder():
             else:
                 X_shuf = sklearn.utils.shuffle(X)
 
+        
             for start in range(0, X.shape[0], self.batch_size):
                 end = start + self.batch_size
                 X_batch = X_shuf[start:end].toarray()
@@ -396,9 +410,10 @@ class AutoEncoder():
                 if use_condition:
                     # c_batch = condition_shuf[start:(start+self.batch_size)]
                     c_batch = [c[start:end] for c in condition_data_shuf]
-                    self.partial_fit(X_batch, condition_data=c_batch)
+                    self.partial_fit(X_batch, condition_data=c_batch, step=step)
                 else:
-                    self.partial_fit(X_batch)
+                    self.partial_fit(X_batch, step=step)
+                step += 1
 
             if self.verbose:
                 # Clean up after flushing batch loss printings
@@ -471,7 +486,7 @@ class DecodingRecommender(Recommender):
         desc += "\n MLP Params: " + str(self.model_params)
         return desc
 
-    def partial_fit(self, condition_data, y):
+    def partial_fit(self, condition_data, y, step=None):
         ### DONE Adapt to generic condition ###
         self.mlp.train()
         self.conditions.train()
@@ -485,7 +500,6 @@ class DecodingRecommender(Recommender):
                 # Impose all remaining conditions
                 inputs = cond.impose(inputs, cdata)
 
-
         if torch.cuda.is_available():
             inputs, y = inputs.cuda(), y.cuda()
         y_pred = self.mlp(inputs)
@@ -495,6 +509,9 @@ class DecodingRecommender(Recommender):
         loss.backward()
         self.mlp_optim.step()
         self.conditions.step()
+        if USE_WANDB:
+            assert step is not None
+            wandb.log({"step": step, "loss": loss.item()})
         if self.verbose:
             print("\rLoss: {}".format(loss.data.item()), flush=True, end='')
         return self
@@ -509,6 +526,7 @@ class DecodingRecommender(Recommender):
             self.mlp = self.mlp.cuda()
         optimizer_cls = TORCH_OPTIMIZERS[self.optimizer]
         self.mlp_optim = optimizer_cls(self.mlp.parameters(), lr=self.lr)
+        step = 0
         for __epoch in range(self.n_epochs):
             Y_shuf, *condition_data_shuf = sklearn.utils.shuffle(Y, *condition_data)
             for start in range(0, Y.shape[0], self.batch_size):
@@ -517,7 +535,8 @@ class DecodingRecommender(Recommender):
                 C_batch = [c[start:end] for c in condition_data_shuf]
                 if sp.issparse(Y_batch):
                     Y_batch = Y_batch.toarray()
-                self.partial_fit(C_batch, torch.FloatTensor(Y_batch))
+                self.partial_fit(C_batch, torch.FloatTensor(Y_batch), step=step)
+                step += 1
 
             if self.verbose:
                 print()
@@ -612,6 +631,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         self.activation = activation
 
         self.conditions = conditions
+
 
     def __str__(self):
         desc = "Adversarial Autoencoder"
@@ -722,7 +742,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
 
         return gen_loss.data.item()
 
-    def partial_fit(self, X, y=None, condition_data=None):
+    def partial_fit(self, X, y=None, condition_data=None, step=None):
         ### DONE Adapt to generic condition ###
         """ Performs reconstrction, discimination, generator training steps """
         if y is not None:
@@ -740,6 +760,9 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         gen_loss = self.gen_step(X)
         if self.verbose:
             log_losses(recon_loss, disc_loss, gen_loss)
+        if USE_WANDB:
+            assert step is not None
+            wandb.log({"step": step, "loss": recon_loss, "disc_loss": disc_loss, "gen_loss": gen_loss})
         return self
 
     def fit(self, X, y=None, condition_data=None):
@@ -781,6 +804,7 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
         self.disc_optim = optimizer_gen(self.disc.parameters(), lr=self.reg_lr)
 
         # do the actual training
+        step = 0
         for epoch in range(self.n_epochs):
             if self.verbose:
                 print("Epoch", epoch + 1)
@@ -802,9 +826,10 @@ class AdversarialAutoEncoder(AutoEncoderMixin):
                 if use_condition:
                     # c_batch = condition_shuf[start:(start+self.batch_size)]
                     c_batch = [c[start:end] for c in condition_data_shuf]
-                    self.partial_fit(X_batch, condition_data=c_batch)
+                    self.partial_fit(X_batch, condition_data=c_batch, step=step)
                 else:
-                    self.partial_fit(X_batch)
+                    self.partial_fit(X_batch, step=step)
+                step += 1
 
             if self.verbose:
                 # Clean up after flushing batch loss printings
@@ -913,11 +938,14 @@ class AAERecommender(Recommender):
         :param training_set: ???, Bag Class training set
         :return: trained self
         """
+        print(self)
         X = training_set.tocsr()
         if self.conditions:
+            print("Fit transforming conditions:", self.conditions)
             condition_data_raw = training_set.get_attributes(self.conditions.keys())
             condition_data = self.conditions.fit_transform(condition_data_raw)
         else:
+            print("Start of training, not using condition...", self.conditions)
             condition_data = None
 
         if self.adversarial:
@@ -927,9 +955,9 @@ class AAERecommender(Recommender):
             # Pass conditions through along with hyperparams!
             self.model = AutoEncoder(conditions=self.conditions, **self.model_params)
 
-        print(self)
         print(self.model)
         print(self.conditions)
+
 
         # gives (Adversarial) Autoencoder BaseData (--> X: <???> representation) and side_info (attr_vect: numpy)
         self.model.fit(X, condition_data=condition_data)

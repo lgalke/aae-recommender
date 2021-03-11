@@ -3,6 +3,7 @@ from .evaluation import METRICS
 
 
 class Recommender(ABC):
+    use_wandb = False
 
     def __init__(self):
         super().__init__()

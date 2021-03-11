@@ -10,6 +10,9 @@ import os
 from gensim.models.keyedvectors import KeyedVectors
 from joblib import Parallel, delayed
 
+import aaerec.aae
+aaerec.aae.USE_WANDB = True
+
 from aaerec.aae import AAERecommender, DecodingRecommender
 from aaerec.baselines import Countbased
 from aaerec.datasets import Bags
@@ -18,6 +21,8 @@ from aaerec.svd import SVDRecommender
 from aaerec.vae import VAERecommender
 from aaerec.dae import DAERecommender
 from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, CategoricalCondition
+
+
 
 # Import log from MPD causes static variables to be loaded (e.g. VECTORS)
 # Instead I copied the log function
@@ -51,7 +56,7 @@ ae_params = {
     'n_code': 50,
     'n_epochs': 20,
 #    'embedding': VECTORS,
-    'batch_size': 1000,
+    'batch_size': 10000,
     'n_hidden': 100,
     'normalize_inputs': True,
 }
@@ -82,14 +87,14 @@ RECOMMENDERS = [
 CONDITIONS = ConditionList([
     ('title', PretrainedWordEmbeddingCondition(VECTORS)),
     # ('venue', PretrainedWordEmbeddingCondition(VECTORS)),
-    # ('author', CategoricalCondition(embedding_dim=32, reduce="sum", # vocab_size=0.01,
+    # ('authors', CategoricalCondition(embedding_dim=32, reduce="sum", # vocab_size=0.01,
     #                                 sparse=True, embedding_on_gpu=True))
 ])
 
 # Model with metadata (metadata used as set in CONDITIONS above)
 CONDITIONED_MODELS = [
     # SVD can use only titles not generic conditions
-    SVDRecommender(1000, use_title=True),
+    # SVDRecommender(1000, use_title=True),
     AAERecommender(adversarial=False,
                    conditions=CONDITIONS,
                    lr=0.001,
@@ -172,7 +177,7 @@ def papers_from_files(path, dataset, n_jobs=1, debug=False):
         pps = Parallel(n_jobs=n_jobs, verbose=5)(delayed(load_dblp)(p) for p in it)
         papers = itertools.chain.from_iterable(pps)
 
-    return papers
+    return list(papers)
 
 
 def aggregate_paper_info(paper, attributes):
@@ -291,7 +296,8 @@ def main(year, dataset, min_count=None, outfile=None, drop=1):
         print("~ Partial List + Titles + Author + Venue", "~" * 42, file=fh)
     # To evaluate SVD with titles
     # evaluation(TITLE_ENHANCED)
-    evaluation(CONDITIONED_MODELS, batch_size=1000)
+    # evaluation(CONDITIONED_MODELS, batch_size=1000) #<- first run 2021-02-26
+    evaluation(BASELINES + RECOMMENDERS + CONDITIONED_MODELS, batch_size=1000)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

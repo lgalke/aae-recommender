@@ -10,6 +10,11 @@ import scipy.sparse as sp
 from . import rank_metrics_with_std as rm
 from .datasets import corrupt_sets
 from .transforms import lists2sparse
+try:
+    import wandb
+    wandb_is_available = True
+except ImportError:
+    wandb_is_available = False
 
 
 def argtopk(X, k):
@@ -273,6 +278,12 @@ class Evaluation(object):
 
     def setup(self, seed=42, min_elements=1, max_features=None,
               min_count=None, drop=1):
+
+        self.min_elements = min_elements
+        self.max_features = max_features
+        self.min_count = min_count
+        self.drop = drop
+
         # we could specify split criterion and drop choice here
         """ Splits and corrupts the data accordion to criterion """
         log_fh = maybe_open(self.logfile)
@@ -329,13 +340,23 @@ class Evaluation(object):
             sp.save_npz(gold_path, self.y_test)
 
         for recommender in recommenders:
+            if wandb_is_available:
+                run = wandb.init(project="aaerec", reinit=True)
+                wandb.config.dataset = self.dataset
+                wandb.config.year = self.year
+                wandb.config.min_elements = self.min_elements
+                wandb.config.max_features = self.max_features
+                wandb.config.min_count = self.min_count
+                wandb.config.drop = self.drop
+                wandb.config.model_class = recommender.__class__.__name__
+                for attr, value in vars(recommender).items():
+                    setattr(wandb.config, attr, value)
             log_fh = maybe_open(self.logfile)
             print(recommender, file=log_fh)
             maybe_close(log_fh)
             train_set = self.train_set.clone()
             test_set = self.test_set.clone()
             t_0 = timer()
-            # DONE FIXME copy.deepcopy is not enough!
             recommender.train(train_set)
             log_fh = maybe_open(self.logfile)
             print("Training took {} seconds."
@@ -372,10 +393,15 @@ class Evaluation(object):
             for metric, (mean, std) in zip(self.metrics, results):
                 print("- {}: {} ({})".format(metric, mean, std),
                       file=log_fh)
+                if wandb_is_available:
+                    wandb.log({metric: mean, metric+"-SD": std})
+
             print("\nOverall time: {} seconds."
                   .format(timedelta(seconds=timer()-t_0)), file=log_fh)
             print('-' * 79, file=log_fh)
             maybe_close(log_fh)
+            if wandb_is_available:
+                run.finish()
 
 
 if __name__ == '__main__':
