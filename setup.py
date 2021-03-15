@@ -1,7 +1,7 @@
 from setuptools import setup
 
 requirements = [
-      'numpy',
+      'numpy>=1.16.5',
       'scipy',
       'sklearn',
       'torch',
