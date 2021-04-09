@@ -21,19 +21,31 @@ ls -l1 ./vectors/ | grep "GoogleNews"
 DATASET="dblp"
 YEAR=2017 # DONE: Verify that 2018 is correct split year for DBLP -> it was 2017.....
 MINCOUNT=55 # TODO ask Iacopo
-RESULTS_DIR="results-drop-$DATASET-$YEAR-m$MINCOUNT-title"
+# RESULTS_DIR="results-drop-$DATASET-$YEAR-m$MINCOUNT-metadata"
+RESULTS_DIR="results-drop-$DATASET-$YEAR-m$MINCOUNT-title-2"
 
 echo "Using dataset $DATASET with split on year $YEAR and min count $MINCOUNT"
-echo "Creating dir '$RESULTS_DIR' to store results"
-
-
-mkdir -p "$RESULTS_DIR"
 
 echo "Starting experiments..."
 
-for DROP in "0.1" "0.2" "0.3" "0.4" "0.5" "0.6" "0.7" "0.8" "0.9"; do
-	OUTPUT_FILE="$RESULTS_DIR"/"$DATASET-$YEAR-m$MINCOUNT-drop$DROP.txt"
-	echo "python3 $AMINER_PY $YEAR --drop $DROP -d $DATASET -m $MINCOUNT -o $OUTPUT_FILE"
-	python3 "$AMINER_PY" "$YEAR" --drop "$DROP" -d "$DATASET" -m "$MINCOUNT" -o "$OUTPUT_FILE"
+for RUN in "2" "3"; do
+	RESULTS_DIR="results-drop-$DATASET-$YEAR-m$MINCOUNT-title-$RUN"
+	echo "Using dir '$RESULTS_DIR' to store results"
+	mkdir -p "$RESULTS_DIR"
+	for DROP in "0.1" "0.2" "0.3" "0.4" "0.5" "0.6" "0.7" "0.8" "0.9"; do
+		OUTPUT_FILE="$RESULTS_DIR"/"$DATASET-$YEAR-m$MINCOUNT-drop$DROP.txt"
+		echo "python3 $AMINER_PY $YEAR --drop $DROP -d $DATASET -m $MINCOUNT -o $OUTPUT_FILE --baselines --autoencoders --conditioned_autoencoders"
+		python3 "$AMINER_PY" "$YEAR" --drop "$DROP" -d "$DATASET" -m "$MINCOUNT" -o "$OUTPUT_FILE" --baselines --autoencoders --conditioned_autoencoders
+	done
+
+	RESULTS_DIR="results-drop-$DATASET-$YEAR-m$MINCOUNT-metadata-$RUN"
+	echo "Using dir '$RESULTS_DIR' to store results"
+	mkdir -p "$RESULTS_DIR"
+	for DROP in "0.1" "0.2" "0.3" "0.4" "0.5" "0.6" "0.7" "0.8" "0.9"; do
+		OUTPUT_FILE="$RESULTS_DIR"/"$DATASET-$YEAR-m$MINCOUNT-drop$DROP.txt"
+		echo "python3 $AMINER_PY $YEAR --drop $DROP -d $DATASET -m $MINCOUNT -o $OUTPUT_FILE --all_metadata --conditioned_autoencoders"
+		python3 "$AMINER_PY" "$YEAR" --drop "$DROP" -d "$DATASET" -m "$MINCOUNT" -o "$OUTPUT_FILE" --all_metadata --conditioned_autoencoders
+	done
 done
+
 

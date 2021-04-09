@@ -464,8 +464,9 @@ class CategoricalCondition(ConcatenationBasedConditioning):
         if self.use_cuda and self.embedding_on_gpu:
             # Put the embedding on GPU only when wanted
             self.embedding = self.embedding.cuda()
+        print("Embedding before creating optimizer:", self.embedding, sep='\n')
         if self.sparse:
-            self.optimizer= optim.SparseAdam(self.embedding.parameters(), lr=self.lr)
+            self.optimizer = optim.SparseAdam(self.embedding.parameters(), lr=self.lr)
         else:
             self.optimizer = optim.Adam(self.embedding.parameters(), lr=self.lr)
         return self

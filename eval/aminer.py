@@ -29,6 +29,8 @@ from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, Ca
 # from eval.mpd.mpd import log
 
 
+
+
 def log(*print_args, logfile=None):
     """ Maybe logs the output also in the file `outfile` """
     if logfile:
@@ -52,7 +54,7 @@ VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
 print("Done") 
 
 # Hyperparameters
-ae_params = {
+AE_PARAMS = {
     'n_code': 50,
     'n_epochs': 20,
 #    'embedding': VECTORS,
@@ -61,55 +63,9 @@ ae_params = {
     'normalize_inputs': True,
 }
 
-# Models without metadata
-BASELINES = [
-    # RandomBaseline(),
-    # MostPopular(),
-    Countbased(),
-    SVDRecommender(1000, use_title=False)
-]
-
-RECOMMENDERS = [
-    AAERecommender(adversarial=False,
-                   conditions=None,
-                   lr=0.001,
-                   **ae_params),
-    AAERecommender(adversarial=True,
-                   conditions=None,
-                   gen_lr=0.001,
-                   reg_lr=0.001,
-                    **ae_params),
-    VAERecommender(conditions=None, **ae_params),
-    DAERecommender(conditions=None, **ae_params)
-]
 
 # Metadata to use
-CONDITIONS = ConditionList([
-    ('title', PretrainedWordEmbeddingCondition(VECTORS)),
-    # ('venue', PretrainedWordEmbeddingCondition(VECTORS)),
-    # ('authors', CategoricalCondition(embedding_dim=32, reduce="sum", # vocab_size=0.01,
-    #                                 sparse=True, embedding_on_gpu=True))
-])
 
-# Model with metadata (metadata used as set in CONDITIONS above)
-CONDITIONED_MODELS = [
-    # SVD can use only titles not generic conditions
-    # SVDRecommender(1000, use_title=True),
-    AAERecommender(adversarial=False,
-                   conditions=CONDITIONS,
-                   lr=0.001,
-                   **ae_params),
-    AAERecommender(adversarial=True,
-                   conditions=CONDITIONS,
-                   gen_lr=0.001,
-                   reg_lr=0.001,
-                    **ae_params),
-    DecodingRecommender(CONDITIONS,
-                        n_epochs=100, batch_size=1000, optimizer='adam',
-                        n_hidden=100, lr=0.001, verbose=True),
-    VAERecommender(conditions=CONDITIONS, **ae_params),
-    DAERecommender(conditions=CONDITIONS, **ae_params)
-]
 
 
 def load_dblp(path):
@@ -258,8 +214,87 @@ def unpack_papers(papers, aggregate=None):
     return bags_of_refs, ids, {"title": side_info, "year": years, "author": authors, "venue": venue}
 
 
-def main(year, dataset, min_count=None, outfile=None, drop=1):
+def main(year, dataset, min_count=None, outfile=None, drop=1,
+        baselines=False,
+        autoencoders=False,
+        conditioned_autoencoders=False,
+        all_metadata=True):
     """ Main function for training and evaluating AAE methods on DBLP data """
+
+    assert baselines or autoencoders or conditioned_autoencoders, "Please specify what to run"
+
+
+    if all_metadata:
+        # V2 - all metadata
+        CONDITIONS = ConditionList([
+            ('title', PretrainedWordEmbeddingCondition(VECTORS)),
+            ('venue', PretrainedWordEmbeddingCondition(VECTORS)),
+            ('author', CategoricalCondition(embedding_dim=32, reduce="sum", # vocab_size=0.01,
+                                            sparse=False, embedding_on_gpu=True))
+        ])
+    else:
+        # V1 - only title metadata
+        CONDITIONS = ConditionList([('title', PretrainedWordEmbeddingCondition(VECTORS))])
+    #### CONDITOINS defined
+
+    ALL_MODELS = []
+
+    if baselines:
+        # Models without metadata
+        BASELINES = [
+            # RandomBaseline(),
+            # MostPopular(),
+            Countbased(),
+            SVDRecommender(1000, use_title=False)
+        ]
+
+
+        ALL_MODELS += BASELINES
+
+        if not all_metadata:
+            # SVD can use only titles not generic conditions
+            ALL_MODELS += [SVDRecommender(1000, use_title=True)]
+
+    if autoencoders:
+        AUTOENCODERS = [
+            AAERecommender(adversarial=False,
+                           conditions=None,
+                           lr=0.001,
+                           **AE_PARAMS),
+            AAERecommender(adversarial=True,
+                           conditions=None,
+                           gen_lr=0.001,
+                           reg_lr=0.001,
+                            **AE_PARAMS),
+            VAERecommender(conditions=None, **AE_PARAMS),
+            DAERecommender(conditions=None, **AE_PARAMS)
+        ]
+        ALL_MODELS += AUTOENCODERS
+
+    if conditioned_autoencoders:
+        # Model with metadata (metadata used as set in CONDITIONS above)
+        CONDITIONED_AUTOENCODERS = [
+            AAERecommender(adversarial=False,
+                           conditions=CONDITIONS,
+                           lr=0.001,
+                           **AE_PARAMS),
+            AAERecommender(adversarial=True,
+                           conditions=CONDITIONS,
+                           gen_lr=0.001,
+                           reg_lr=0.001,
+                            **AE_PARAMS),
+            DecodingRecommender(CONDITIONS,
+                                n_epochs=100, batch_size=1000, optimizer='adam',
+                                n_hidden=100, lr=0.001, verbose=True),
+            VAERecommender(conditions=CONDITIONS, **AE_PARAMS),
+            DAERecommender(conditions=CONDITIONS, **AE_PARAMS)
+        ]
+        ALL_MODELS += CONDITIONED_AUTOENCODERS
+
+
+    print("Finished preparing models:", *ALL_MODELS, sep='\n\t')
+
+
     path = DATA_PATH + ("dblp-ref/" if dataset == "dblp" else "acm.txt")
     print("Loading data from", path)
     papers = papers_from_files(path, dataset, n_jobs=4)
@@ -285,19 +320,10 @@ def main(year, dataset, min_count=None, outfile=None, drop=1):
 
     evaluation = Evaluation(bags, year, logfile=outfile)
     evaluation.setup(min_count=min_count, min_elements=2, drop=drop)
-
-    # To evaluate the baselines and the recommenders without metadata (or just the recommenders without metadata)
-    # with open(outfile, 'a') as fh:
-    #     print("~ Partial List", "~" * 42, file=fh)
-    # evaluation(BASELINES + RECOMMENDERS)
-    # evaluation(RECOMMENDERS, batch_size=1000)
-
     with open(outfile, 'a') as fh:
         print("~ Partial List + Titles + Author + Venue", "~" * 42, file=fh)
-    # To evaluate SVD with titles
-    # evaluation(TITLE_ENHANCED)
-    # evaluation(CONDITIONED_MODELS, batch_size=1000) #<- first run 2021-02-26
-    evaluation(BASELINES + RECOMMENDERS + CONDITIONED_MODELS, batch_size=1000)
+    evaluation(ALL_MODELS, batch_size=1000)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -315,6 +341,14 @@ if __name__ == '__main__':
                         help='Drop parameter', default="1")
     parser.add_argument('--compute-mi', default=False,
                         action='store_true')
+    parser.add_argument('--all_metadata', default=False,
+                        action='store_true')
+    parser.add_argument('--baselines', default=False,
+                        action='store_true')
+    parser.add_argument('--autoencoders', default=False,
+                        action='store_true')
+    parser.add_argument('--conditioned_autoencoders', default=False,
+                        action='store_true')
     args = parser.parse_args()
 
     # Drop could also be a callable according to evaluation.py but not managed as input parameter
@@ -323,4 +357,8 @@ if __name__ == '__main__':
     except ValueError:
         drop = float(args.drop)
 
-    main(year=args.year, dataset=args.dataset, min_count=args.min_count, outfile=args.outfile, drop=drop)
+    main(year=args.year, dataset=args.dataset, min_count=args.min_count, outfile=args.outfile, drop=drop,
+            all_metadata=args.all_metadata,
+            baselines=args.baselines,
+            autoencoders=args.autoencoders,
+            conditioned_autoencoders=args.conditioned_autoencoders)
