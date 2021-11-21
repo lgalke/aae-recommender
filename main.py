@@ -58,10 +58,10 @@ mtdt_dic["author"] = {"owner_id": "pmId", "fields": ["name"],"target_names": ["a
 #                     "path": os.path.join(PMC_DATA_PATH, "mesh.csv")}
 
 # With no metadata or just titles
-DATASET = Bags.load_tabcomma_format(ARGS.dataset, unique=True)
+# DATASET = Bags.load_tabcomma_format(ARGS.dataset, unique=True)
 # With more metadata for PubMed (generic conditions)
-# DATASET = Bags.load_tabcomma_format(ARGS.dataset, unique=True, owner_str="pmId",
-#                                     set_str="cited", meta_data_dic=mtdt_dic)
+DATASET = Bags.load_tabcomma_format(ARGS.dataset, unique=True, owner_str="pmId",
+                                    set_str="cited", meta_data_dic=mtdt_dic)
 
 EVAL = Evaluation(DATASET, ARGS.year, logfile=ARGS.outfile)
 EVAL.setup(min_count=ARGS.min_count, min_elements=2, drop=drop)
