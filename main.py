@@ -53,8 +53,9 @@ PMC_DATA_PATH = "/media/nvme1n1/lgalke/datasets/AAEREC/pmc_final_data"
 mtdt_dic = OrderedDict()
 mtdt_dic["author"] = {"owner_id": "pmId", "fields": ["name"],"target_names": ["author"],
                       "path": os.path.join(PMC_DATA_PATH, "author.csv")}
-mtdt_dic["mesh"] = {"owner_id": "document", "fields": ["descriptor"], "target_names": ["mesh"],
-                    "path": os.path.join(PMC_DATA_PATH, "mesh.csv")}
+# No need to even load those
+# mtdt_dic["mesh"] = {"owner_id": "document", "fields": ["descriptor"], "target_names": ["mesh"],
+#                     "path": os.path.join(PMC_DATA_PATH, "mesh.csv")}
 
 # With no metadata or just titles
 DATASET = Bags.load_tabcomma_format(ARGS.dataset, unique=True)
