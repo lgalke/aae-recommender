@@ -32,7 +32,7 @@ for RUN in "2" "3"; do
 	RESULTS_DIR="results-drop-$DATASET-$YEAR-m$MINCOUNT-title-$RUN"
 	echo "Using dir '$RESULTS_DIR' to store results"
 	mkdir -p "$RESULTS_DIR"
-	for DROP in "0.1" "0.2" "0.3" "0.4" "0.5" "0.6" "0.7" "0.8" "0.9"; do
+	for DROP in "0.6" "0.7" "0.8" "0.9"; do
 		OUTPUT_FILE="$RESULTS_DIR"/"$DATASET-$YEAR-m$MINCOUNT-drop$DROP.txt"
 		echo "python3 $AMINER_PY $YEAR --drop $DROP -d $DATASET -m $MINCOUNT -o $OUTPUT_FILE --baselines --autoencoders --conditioned_autoencoders"
 		python3 "$AMINER_PY" "$YEAR" --drop "$DROP" -d "$DATASET" -m "$MINCOUNT" -o "$OUTPUT_FILE" --baselines --autoencoders --conditioned_autoencoders
@@ -41,7 +41,7 @@ for RUN in "2" "3"; do
 	RESULTS_DIR="results-drop-$DATASET-$YEAR-m$MINCOUNT-metadata-$RUN"
 	echo "Using dir '$RESULTS_DIR' to store results"
 	mkdir -p "$RESULTS_DIR"
-	for DROP in "0.1" "0.2" "0.3" "0.4" "0.5" "0.6" "0.7" "0.8" "0.9"; do
+	for DROP in "0.6" "0.7" "0.8" "0.9"; do
 		OUTPUT_FILE="$RESULTS_DIR"/"$DATASET-$YEAR-m$MINCOUNT-drop$DROP.txt"
 		echo "python3 $AMINER_PY $YEAR --drop $DROP -d $DATASET -m $MINCOUNT -o $OUTPUT_FILE --all_metadata --conditioned_autoencoders"
 		python3 "$AMINER_PY" "$YEAR" --drop "$DROP" -d "$DATASET" -m "$MINCOUNT" -o "$OUTPUT_FILE" --all_metadata --conditioned_autoencoders
