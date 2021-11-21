@@ -103,7 +103,7 @@ RECOMMENDERS = [
 
 # Metadata to use (apart for SVD, which uses only titles)
 CONDITIONS = ConditionList([
-    ('title', PretrainedWordEmbeddingCondition(VECTORS)) #,
+    ('title', PretrainedWordEmbeddingCondition(VECTORS)),
     ('journal', CategoricalCondition(embedding_dim=32, reduce=None)),
     ('author', CategoricalCondition(embedding_dim=32, reduce="sum",
                                     sparse=True, embedding_on_gpu=True)),
