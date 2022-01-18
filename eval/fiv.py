@@ -14,9 +14,16 @@ from aaerec.evaluation import Evaluation
 from aaerec.svd import SVDRecommender
 from aaerec.vae import VAERecommender
 from aaerec.dae import DAERecommender
-from eval.mpd.mpd import log
+
+def log(*print_args, logfile=None):
+    """ Maybe logs the output also in the file `outfile` """
+    if logfile:
+        with open(logfile, 'a') as fhandle:
+            print(*print_args, file=fhandle)
+    print(*print_args)
 
 from aaerec.condition import ConditionList, PretrainedWordEmbeddingCondition, CategoricalCondition
+
 
 # Set to a folder containing the IREON file
 # (used only for cleaning final path for running is CLEAN_DATA_PATH)
@@ -28,75 +35,77 @@ CLEAN_DATA_PATH = "../SWP/FivMetadata_clean.json"
 DEBUG_LIMIT = None
 METRICS = ['mrr', 'map']
 
-# Set to the word2vec-Google-News-corpus file
-W2V_PATH = "../vectors/GoogleNews-vectors-negative300.bin.gz"
-W2V_IS_BINARY = True
-print("Loading pre-trained embedding", W2V_PATH)
-VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
-print("Done")
 
-# Hyperparameters
-ae_params = {
-    'n_code': 50,
-    'n_epochs': 20,
-    # 'embedding': VECTORS,
-    'batch_size': 500,
-    'n_hidden': 100,
-    'normalize_inputs': True,
-}
-vae_params = {
-    'n_code': 50,
-    # VAE results get worse with more epochs in preliminary optimization
-    #(Pumed with threshold 50)
-    'n_epochs': 50,
-    'batch_size': 500,
-    'n_hidden': 100,
-    'normalize_inputs': True,
-}
+if __name__ == '__main__':
+    # Set to the word2vec-Google-News-corpus file
+    W2V_PATH = "../vectors/GoogleNews-vectors-negative300.bin.gz"
+    W2V_IS_BINARY = True
+    print("Loading pre-trained embedding", W2V_PATH)
+    VECTORS = KeyedVectors.load_word2vec_format(W2V_PATH, binary=W2V_IS_BINARY)
+    print("Done")
 
-# Models without metadata
-BASELINES = [
-    # RandomBaseline(),
-    # MostPopular(),
-    Countbased(),
-    SVDRecommender(1000, use_title=False),
-]
+    # Hyperparameters
+    ae_params = {
+        'n_code': 50,
+        'n_epochs': 20,
+        # 'embedding': VECTORS,
+        'batch_size': 500,
+        'n_hidden': 100,
+        'normalize_inputs': True,
+    }
+    vae_params = {
+        'n_code': 50,
+        # VAE results get worse with more epochs in preliminary optimization
+        #(Pumed with threshold 50)
+        'n_epochs': 50,
+        'batch_size': 500,
+        'n_hidden': 100,
+        'normalize_inputs': True,
+    }
 
-RECOMMENDERS = [
-    AAERecommender(adversarial=False, lr=0.001,
-                   **ae_params),
-    AAERecommender(prior='gauss', gen_lr=0.001,
-                   reg_lr=0.001, **ae_params),
-    VAERecommender(conditions=None, **vae_params),
-    DAERecommender(conditions=None, **ae_params)
-]
+    # Models without metadata
+    BASELINES = [
+        # RandomBaseline(),
+        # MostPopular(),
+        Countbased(),
+        SVDRecommender(1000, use_title=False),
+    ]
 
-# Metadata to use
-CONDITIONS = ConditionList([
-    ('title', PretrainedWordEmbeddingCondition(VECTORS)),
-#    ('author', CategoricalCondition(embedding_dim=32, reduce="sum",
-#                                    sparse=True, embedding_on_gpu=True))
-])
+    RECOMMENDERS = [
+        AAERecommender(adversarial=False, lr=0.001,
+                    **ae_params),
+        AAERecommender(prior='gauss', gen_lr=0.001,
+                    reg_lr=0.001, **ae_params),
+        VAERecommender(conditions=None, **vae_params),
+        DAERecommender(conditions=None, **ae_params)
+    ]
 
-# Model with metadata (metadata used as set in CONDITIONS above)
-CONDITIONED_MODELS = [
-    # TODO SVD can use only titles not generic conditions
-    SVDRecommender(1000, use_title=True),
-    AAERecommender(adversarial=False,
-                  conditions=CONDITIONS,
-                  lr=0.001,
-                  **ae_params),
-    AAERecommender(adversarial=True,
-                  conditions=CONDITIONS,
-                  gen_lr=0.001,
-                  reg_lr=0.001,
-                  **ae_params),
-    DecodingRecommender(CONDITIONS,
-                       n_epochs=20, batch_size=500, optimizer='adam',
-                        n_hidden=100, lr=0.001, verbose=True),
-    VAERecommender(conditions=CONDITIONS, **vae_params),
-    DAERecommender(conditions=CONDITIONS, **ae_params)
-]
+    # Metadata to use
+    CONDITIONS = ConditionList([
+        ('title', PretrainedWordEmbeddingCondition(VECTORS)),
+    #    ('author', CategoricalCondition(embedding_dim=32, reduce="sum",
+    #                                    sparse=True, embedding_on_gpu=True))
+    ])
+
+    # Model with metadata (metadata used as set in CONDITIONS above)
+    CONDITIONED_MODELS = [
+        # TODO SVD can use only titles not generic conditions
+        SVDRecommender(1000, use_title=True),
+        AAERecommender(adversarial=False,
+                    conditions=CONDITIONS,
+                    lr=0.001,
+                    **ae_params),
+        AAERecommender(adversarial=True,
+                    conditions=CONDITIONS,
+                    gen_lr=0.001,
+                    reg_lr=0.001,
+                    **ae_params),
+        DecodingRecommender(CONDITIONS,
+                        n_epochs=20, batch_size=500, optimizer='adam',
+                            n_hidden=100, lr=0.001, verbose=True),
+        VAERecommender(conditions=CONDITIONS, **vae_params),
+        DAERecommender(conditions=CONDITIONS, **ae_params)
+    ]
 
 
 def load(path):

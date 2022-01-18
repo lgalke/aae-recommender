@@ -52,7 +52,10 @@ min_year = 1970
 
 
 def compute_stats(A):
-    return A.shape[1], A.min(), A.max(), np.median(A, axis=1)[0, 0], A.mean(), A.std()
+    print("A Shape", A.shape)
+    A = np.ravel(A)
+    top3 = np.argsort(A)[-3:]
+    return A.size, A.min(), A.max(), np.median(A), A.mean(), A.std(), A[top3]
 
 
 def power_law_exponent(degrees, dmin=None):
@@ -397,7 +400,7 @@ row_sums = csr.sum(1).flatten()
 print(column_sums.shape)
 print(row_sums.shape)
 
-FMT = "N={}, Min={}, Max={} Median={}, Mean={}, Std={}"
+FMT = "N={}, Min={}, Max={} Median={}, Mean={}, Std={}, Top3={}"
 
 print("Items per document")
 print(FMT.format(*compute_stats(row_sums)))
