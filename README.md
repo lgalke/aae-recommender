@@ -81,13 +81,27 @@ We also run experiments with the Million Playlist Dataset (MPD), provided by [Sp
 
 Please see our papers for additional information on the models implemented and the experiments conducted:
 
+- [Recommendations for item set completion: on the semantics of item co-occurrence with data sparsity, input size, and input modalities](https://link.springer.com/article/10.1007/s10791-022-09408-9)
+
 - [Multi-Modal Adversarial Autoencoders for Recommendations of Citations and Subject Labels](https://zenodo.org/record/1313577)
 
 - [Using Adversarial Autoencoders for Multi-Modal Automatic Playlist Continuation](https://zenodo.org/record/1455214) 
 
 
 If you use our code in your own work please cite one of these papers:
-
+    @article{Vagliano:2022,
+        author    = {Iacopo Vagliano and
+                     Lukas Galke and
+                     Ansgar Scherp},
+        title     = {Recommendations for Item Set Completion: On the Semantics of Item
+                     Co-Occurrence With Data Sparsity, Input Size, and Input Modalities},
+        journal   = {Inf Retrieval J},
+        year      = {2022},
+        publisher = {Springer Nature},
+        url       = {https://doi.org/10.1007/s10791-022-09408-9},
+        doi       = {10.1007/s10791-022-09408-9}
+    }
+    
     @inproceedings{Vagliano:2018,
          author = {Vagliano, Iacopo and Galke, Lukas and Mai, Florian and Scherp, Ansgar},
          title = {Using Adversarial Autoencoders for Multi-Modal Automatic Playlist Continuation},
