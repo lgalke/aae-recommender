@@ -89,6 +89,7 @@ Please see our papers for additional information on the models implemented and t
 
 
 If you use our code in your own work please cite one of these papers:
+
     @article{Vagliano:2022,
         author    = {Iacopo Vagliano and
                      Lukas Galke and
